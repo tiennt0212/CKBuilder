@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Light theme ─────────────────────────────────────────────────────────── */
+.theme-light {
+  --bg-body: #f4f5f6;
+  --bg-elev: #ffffff;
+  --border: #eef0f2;
+  --border-2: #e3e6e9;
+  --input-border: #d6dadf;
+  --input-bg: #ffffff;
+  --text-1: rgba(17, 24, 28, 0.92);
+  --text-2: rgba(17, 24, 28, 0.6);
+  --text-3: rgba(17, 24, 28, 0.4);
+  --primary: #0a9d6c;
+  --primary-press: #08855b;
+  --primary-tint: rgba(10, 157, 108, 0.1);
+  --dot: #13c08a;
+  --seg-bg: #f1f3f4;
+  --panel-bg: #f8f9fa;
+  --code-bg: #fbfcfc;
+  --code-text: rgba(17, 24, 28, 0.72);
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.05);
+  --sidebar-bg: #ffffff;
+  --sidebar-item-text: rgba(17, 24, 28, 0.66);
+  --sidebar-group-label: rgba(17, 24, 28, 0.36);
+  --sidebar-hover: rgba(17, 24, 28, 0.04);
+  --sidebar-active-bg: rgba(10, 157, 108, 0.1);
+  --sidebar-active-text: #0a9d6c;
+}
+
+/* ─── Dark theme ──────────────────────────────────────────────────────────── */
+.theme-dark {
+  --bg-body: #121315;
+  --bg-elev: #1c1d1f;
+  --border: #2a2c2f;
+  --border-2: #34373b;
+  --input-border: #3a3d41;
+  --input-bg: #202123;
+  --text-1: rgba(255, 255, 255, 0.9);
+  --text-2: rgba(255, 255, 255, 0.56);
+  --text-3: rgba(255, 255, 255, 0.4);
+  --primary: #2bd396;
+  --primary-press: #22bd85;
+  --primary-tint: rgba(43, 211, 150, 0.14);
+  --dot: #2bd396;
+  --seg-bg: #26282b;
+  --panel-bg: #202123;
+  --code-bg: #18191b;
+  --code-text: rgba(255, 255, 255, 0.7);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --sidebar-bg: #161719;
+  --sidebar-item-text: rgba(255, 255, 255, 0.56);
+  --sidebar-group-label: rgba(255, 255, 255, 0.34);
+  --sidebar-hover: rgba(255, 255, 255, 0.05);
+  --sidebar-active-bg: rgba(43, 211, 150, 0.14);
+  --sidebar-active-text: #3fd49b;
+}
+
+/* ─── Base ────────────────────────────────────────────────────────────────── */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background-color: var(--bg-body);
+  color: var(--text-1);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Tabular numerals for on-chain figures */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Mono stack for hashes / addresses */
+.mono {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas,
+    monospace;
+}
+
+/* ─── Scrollbar (subtle) ──────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-2);
+  border-radius: 3px;
+}
+
+/* ─── Ant Design overrides ────────────────────────────────────────────────── */
+.ant-layout {
+  background: var(--bg-body) !important;
+}
+
+.ant-layout-sider {
+  background: var(--sidebar-bg) !important;
+  border-right: 1px solid var(--border) !important;
+}
+
+.ant-layout-header {
+  background: var(--bg-elev) !important;
+  border-bottom: 1px solid var(--border) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+.ant-menu {
+  background: transparent !important;
+  border-inline-end: none !important;
+}
+
+.ant-menu-item,
+.ant-menu-submenu-title {
+  color: var(--sidebar-item-text) !important;
+}
+
+.ant-menu-item:hover {
+  background: var(--sidebar-hover) !important;
+}
+
+.ant-menu-item-selected {
+  background: var(--sidebar-active-bg) !important;
+  color: var(--sidebar-active-text) !important;
+  font-weight: 550;
+}
+
+.ant-menu-item-group-title {
+  color: var(--sidebar-group-label) !important;
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}

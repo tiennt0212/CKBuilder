@@ -1,0 +1,6 @@
+packages:
+  - "apps/*"
+  - "packages/ckb-utils"
+allowBuilds:
+  sharp: true
+  unrs-resolver: true
