@@ -1,6 +1,62 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* ─── Design tokens → Tailwind utilities ─────────────────────────────────────
+   @theme inline: tokens reference runtime CSS vars so utilities resolve
+   dynamically when .theme-light / .theme-dark switches the variables.
+   Single source of truth: add a color here once → bg-*, text-*, border-* all work.
+──────────────────────────────────────────────────────────────────────────────── */
+@theme inline {
+  /* ── Colors ── */
+  --color-primary: var(--primary);
+  --color-primary-press: var(--primary-press);
+  --color-primary-tint: var(--primary-tint);
+  --color-bg-body: var(--bg-body);
+  --color-bg-elev: var(--bg-elev);
+  --color-app-border: var(--border);
+  --color-border-2: var(--border-2);
+  --color-input-border: var(--input-border);
+  --color-input-bg: var(--input-bg);
+  --color-text-1: var(--text-1);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+  --color-panel-bg: var(--panel-bg);
+  --color-code-bg: var(--code-bg);
+  --color-code-text: var(--code-text);
+  --color-dot: var(--dot);
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-sidebar-item: var(--sidebar-item-text);
+  --color-sidebar-group: var(--sidebar-group-label);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-active: var(--sidebar-active-text);
+  --color-sidebar-active-bg: var(--sidebar-active-bg);
+  --color-rust: #c0683a;
+  --color-rust-tint: rgba(192, 104, 58, 0.12);
+
+  /* ── Shadows ── */
+  --shadow-app: var(--shadow);
+
+  /* ── Font families ── */
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+
+  /* ── Font sizes ── */
+  --text-2xs:     10px;    /* badge / chip text      */
+  --text-micro:   11px;    /* sidebar subtitle       */
+  --text-hint:    11.5px;  /* breadcrumb, field hint */
+  --text-body:    13.5px;  /* body / description     */
+  --text-subhead: 15px;    /* card title, brand name */
+  --text-title:   17px;    /* page title in header   */
+
+  /* ── Font weights ── */
+  --font-weight-brand: 650;
+
+  /* ── App-specific sizes ── */
+  --height-header: 64px;
+  --width-sidebar: 248px;
+
+  /* ── Letter spacing ── */
+  --tracking-tightest: -0.01em;
+  --tracking-widest2: 0.07em;
+}
 
 /* ─── Light theme ─────────────────────────────────────────────────────────── */
 .theme-light {
@@ -11,23 +67,25 @@
   --input-border: #d6dadf;
   --input-bg: #ffffff;
   --text-1: rgba(17, 24, 28, 0.92);
-  --text-2: rgba(17, 24, 28, 0.6);
-  --text-3: rgba(17, 24, 28, 0.4);
+  --text-2: rgba(17, 24, 28, 0.60);
+  --text-3: rgba(17, 24, 28, 0.40);
   --primary: #0a9d6c;
   --primary-press: #08855b;
-  --primary-tint: rgba(10, 157, 108, 0.1);
+  --primary-tint: rgba(10, 157, 108, 0.10);
   --dot: #13c08a;
   --seg-bg: #f1f3f4;
   --panel-bg: #f8f9fa;
   --code-bg: #fbfcfc;
   --code-text: rgba(17, 24, 28, 0.72);
-  --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.05);
+  --shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 1px 3px rgba(16, 24, 40, .05);
   --sidebar-bg: #ffffff;
   --sidebar-item-text: rgba(17, 24, 28, 0.66);
   --sidebar-group-label: rgba(17, 24, 28, 0.36);
   --sidebar-hover: rgba(17, 24, 28, 0.04);
-  --sidebar-active-bg: rgba(10, 157, 108, 0.1);
+  --sidebar-active-bg: rgba(10, 157, 108, 0.10);
   --sidebar-active-text: #0a9d6c;
+  --cube-top: #27c08a;
+  --cube-side: #077a55;
 }
 
 /* ─── Dark theme ──────────────────────────────────────────────────────────── */
@@ -38,9 +96,9 @@
   --border-2: #34373b;
   --input-border: #3a3d41;
   --input-bg: #202123;
-  --text-1: rgba(255, 255, 255, 0.9);
+  --text-1: rgba(255, 255, 255, 0.90);
   --text-2: rgba(255, 255, 255, 0.56);
-  --text-3: rgba(255, 255, 255, 0.4);
+  --text-3: rgba(255, 255, 255, 0.40);
   --primary: #2bd396;
   --primary-press: #22bd85;
   --primary-tint: rgba(43, 211, 150, 0.14);
@@ -48,14 +106,16 @@
   --seg-bg: #26282b;
   --panel-bg: #202123;
   --code-bg: #18191b;
-  --code-text: rgba(255, 255, 255, 0.7);
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --code-text: rgba(255, 255, 255, 0.70);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.30);
   --sidebar-bg: #161719;
   --sidebar-item-text: rgba(255, 255, 255, 0.56);
   --sidebar-group-label: rgba(255, 255, 255, 0.34);
   --sidebar-hover: rgba(255, 255, 255, 0.05);
   --sidebar-active-bg: rgba(43, 211, 150, 0.14);
   --sidebar-active-text: #3fd49b;
+  --cube-top: #54e0b0;
+  --cube-side: #1aa874;
 }
 
 /* ─── Base ────────────────────────────────────────────────────────────────── */
@@ -72,31 +132,22 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Tabular numerals for on-chain figures */
-.tabular {
-  font-variant-numeric: tabular-nums;
-}
-
-/* Mono stack for hashes / addresses */
-.mono {
-  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas,
-    monospace;
-}
-
-/* ─── Scrollbar (subtle) ──────────────────────────────────────────────────── */
+/* ─── Scrollbar ───────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--border-2);
   border-radius: 3px;
 }
 
-/* ─── Ant Design overrides ────────────────────────────────────────────────── */
+/* ─── Ant Design layout overrides ────────────────────────────────────────── */
 .ant-layout {
   background: var(--bg-body) !important;
 }

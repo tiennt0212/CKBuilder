@@ -1,9 +1,7 @@
 "use client";
 
-import { Alert, Divider, Typography } from "antd";
+import { Alert } from "antd";
 import type { ReactNode } from "react";
-
-const { Title, Text } = Typography;
 
 interface PageShellProps {
   title: string;
@@ -20,27 +18,14 @@ export function PageShell({
 }: PageShellProps) {
   return (
     <div>
-      <div style={{ marginBottom: 20 }}>
-        <Title
-          level={4}
-          style={{
-            margin: 0,
-            fontSize: 17,
-            fontWeight: 600,
-            color: "var(--text-1)",
-            letterSpacing: "-0.01em",
-          }}
-        >
+      <div className="mb-5">
+        <h2 className="m-0 text-title font-semibold text-text-1 tracking-tightest">
           {title}
-        </Title>
-        <Text style={{ color: "var(--text-2)", fontSize: 13.5 }}>
-          {description}
-        </Text>
+        </h2>
+        <p className="m-0 text-body text-text-2">{description}</p>
       </div>
 
-      {children ? (
-        children
-      ) : (
+      {children ?? (
         <Alert
           message={
             status === "designed"

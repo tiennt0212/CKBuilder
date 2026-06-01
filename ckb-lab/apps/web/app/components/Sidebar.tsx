@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, Divider } from "antd";
+import { Menu } from "antd";
 import type { MenuProps } from "antd";
 import {
   SwapOutlined,
@@ -19,33 +19,13 @@ import {
 import { CubeMark } from "./CubeMark";
 
 const TAG_XUDT = (
-  <span
-    style={{
-      fontSize: 10,
-      fontWeight: 600,
-      padding: "1px 5px",
-      borderRadius: 4,
-      background: "var(--primary-tint)",
-      color: "var(--primary)",
-      letterSpacing: "0.02em",
-    }}
-  >
+  <span className="text-2xs font-semibold px-[5px] py-px rounded bg-primary-tint text-primary tracking-[0.02em]">
     xUDT
   </span>
 );
 
 const TAG_RUST = (
-  <span
-    style={{
-      fontSize: 10,
-      fontWeight: 600,
-      padding: "1px 5px",
-      borderRadius: 4,
-      background: "rgba(192,104,58,.12)",
-      color: "#c0683a",
-      letterSpacing: "0.02em",
-    }}
-  >
+  <span className="text-2xs font-semibold px-[5px] py-px rounded bg-rust-tint text-rust tracking-[0.02em]">
     Rust
   </span>
 );
@@ -55,24 +35,12 @@ const menuItems: MenuProps["items"] = [
     type: "group",
     label: "Wallet",
     children: [
-      {
-        key: "/transfer",
-        icon: <SwapOutlined />,
-        label: "Transfer CKB",
-      },
-      {
-        key: "/cell-explorer",
-        icon: <SearchOutlined />,
-        label: "Cell Explorer",
-      },
+      { key: "/transfer", icon: <SwapOutlined />, label: "Transfer CKB" },
+      { key: "/cell-explorer", icon: <SearchOutlined />, label: "Cell Explorer" },
       {
         key: "/tokens",
         icon: <GoldOutlined />,
-        label: (
-          <span className="flex items-center gap-2">
-            Tokens {TAG_XUDT}
-          </span>
-        ),
+        label: <span className="flex items-center gap-2">Tokens {TAG_XUDT}</span>,
       },
     ],
   },
@@ -80,19 +48,11 @@ const menuItems: MenuProps["items"] = [
     type: "group",
     label: "Smart Contracts",
     children: [
-      {
-        key: "/invoke",
-        icon: <CodeOutlined />,
-        label: "Invoke Script",
-      },
+      { key: "/invoke", icon: <CodeOutlined />, label: "Invoke Script" },
       {
         key: "/deploy",
         icon: <CloudUploadOutlined />,
-        label: (
-          <span className="flex items-center gap-2">
-            Deploy Script {TAG_RUST}
-          </span>
-        ),
+        label: <span className="flex items-center gap-2">Deploy Script {TAG_RUST}</span>,
       },
     ],
   },
@@ -100,34 +60,22 @@ const menuItems: MenuProps["items"] = [
     type: "group",
     label: "Advanced",
     children: [
-      {
-        key: "/dao",
-        icon: <BankOutlined />,
-        label: "Nervos DAO",
-      },
-      {
-        key: "/time-lock",
-        icon: <ClockCircleOutlined />,
-        label: "Time Lock",
-      },
-      {
-        key: "/multisig",
-        icon: <TeamOutlined />,
-        label: "Multisig",
-      },
+      { key: "/dao", icon: <BankOutlined />, label: "Nervos DAO" },
+      { key: "/time-lock", icon: <ClockCircleOutlined />, label: "Time Lock" },
+      { key: "/multisig", icon: <TeamOutlined />, label: "Multisig" },
     ],
   },
   {
     type: "group",
     label: "Activity",
     children: [
-      {
-        key: "/history",
-        icon: <HistoryOutlined />,
-        label: "Transaction History",
-      },
+      { key: "/history", icon: <HistoryOutlined />, label: "Transaction History" },
     ],
   },
+];
+
+const settingsItems: MenuProps["items"] = [
+  { key: "settings", icon: <SettingOutlined />, label: "Settings" },
 ];
 
 export function Sidebar() {
@@ -135,36 +83,15 @@ export function Sidebar() {
   const router = useRouter();
 
   return (
-    <div
-      className="flex flex-col h-full"
-      style={{ background: "var(--sidebar-bg)" }}
-    >
+    <div className="flex flex-col h-full bg-sidebar-bg">
       {/* Brand */}
-      <div
-        className="flex items-center gap-3 px-5"
-        style={{ height: 64, borderBottom: "1px solid var(--border)" }}
-      >
+      <div className="flex items-center gap-3 px-5 h-header border-b border-app-border shrink-0">
         <CubeMark size={26} />
         <div>
-          <div
-            style={{
-              fontSize: 15,
-              fontWeight: 650,
-              color: "var(--text-1)",
-              lineHeight: 1.2,
-            }}
-          >
+          <div className="text-subhead font-brand text-text-1 leading-tight">
             CKBuilder
           </div>
-          <div
-            style={{
-              fontSize: 11,
-              color: "var(--sidebar-group-label)",
-              letterSpacing: "0.07em",
-              textTransform: "uppercase",
-              fontWeight: 600,
-            }}
-          >
+          <div className="text-micro text-sidebar-group uppercase tracking-widest2 font-semibold">
             Bootcamp Console
           </div>
         </div>
@@ -182,51 +109,22 @@ export function Sidebar() {
       </div>
 
       {/* Footer */}
-      <div style={{ borderTop: "1px solid var(--border)" }}>
+      <div className="border-t border-app-border shrink-0">
         <div className="px-3 py-2">
           <Menu
             mode="inline"
             selectedKeys={[]}
-            items={[
-              {
-                key: "settings",
-                icon: <SettingOutlined />,
-                label: "Settings",
-              },
-            ]}
+            items={settingsItems}
             style={{ border: "none" }}
           />
         </div>
-        {/* Node status */}
-        <div
-          className="flex items-center gap-2 px-5 py-3"
-          style={{
-            borderTop: "1px solid var(--border)",
-            fontSize: 12,
-          }}
-        >
-          <span
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: "50%",
-              background: "var(--dot)",
-              flexShrink: 0,
-            }}
-          />
-          <ApiOutlined style={{ color: "var(--text-3)", fontSize: 12 }} />
-          <span style={{ color: "var(--text-2)", flex: 1 }}>
-            RPC · testnet.ckb.dev
-          </span>
-          <span
-            style={{
-              color: "var(--primary)",
-              fontVariantNumeric: "tabular-nums",
-              fontSize: 11.5,
-            }}
-          >
-            —
-          </span>
+
+        {/* Node status row */}
+        <div className="flex items-center gap-2 px-5 py-3 text-hint border-t border-app-border">
+          <span className="size-[7px] rounded-full bg-dot shrink-0" />
+          <ApiOutlined className="text-text-3 text-hint" />
+          <span className="text-text-2 flex-1">RPC · testnet.ckb.dev</span>
+          <span className="text-primary text-hint tabular-nums">—</span>
         </div>
       </div>
     </div>

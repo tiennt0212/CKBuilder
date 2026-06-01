@@ -12,28 +12,17 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
+    <Layout className="min-h-screen">
       <Sider
         width={248}
-        style={{
-          height: "100vh",
-          position: "sticky",
-          top: 0,
-          overflow: "hidden",
-        }}
+        className="h-screen sticky top-0 overflow-hidden"
       >
         <Sidebar />
       </Sider>
 
       <Layout>
         <Header pathname={pathname} />
-        <Content
-          style={{
-            padding: "22px 24px",
-            background: "var(--bg-body)",
-            minHeight: "calc(100vh - 64px)",
-          }}
-        >
+        <Content className="bg-bg-body px-6 py-[22px] min-h-[calc(100vh-var(--height-header))]">
           {children}
         </Content>
       </Layout>
