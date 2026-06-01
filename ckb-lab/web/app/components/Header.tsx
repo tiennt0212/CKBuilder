@@ -4,7 +4,7 @@ import { Button, Select, Divider, Avatar, Tooltip } from "antd";
 import { WalletOutlined, MoonOutlined, SunOutlined } from "@ant-design/icons";
 import { useNetwork } from "../contexts/NetworkContext";
 import { useTheme } from "../contexts/ThemeContext";
-import type { Network } from "ckb-utils";
+import type { Network } from "@/lib/ccc-client";
 
 const PAGE_TITLES: Record<string, { group: string; title: string }> = {
   "/transfer": { group: "Wallet", title: "Transfer CKB" },

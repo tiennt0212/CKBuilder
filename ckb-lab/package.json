@@ -3,11 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "pnpm --filter web dev",
-    "build": "pnpm --filter web build",
-    "lint": "pnpm --filter web lint"
-  },
-  "devDependencies": {
-    "typescript": "^5.8.3"
+    "dev": "pnpm -C web dev",
+    "build": "pnpm -C web build",
+    "lint": "pnpm -C web lint"
   }
 }

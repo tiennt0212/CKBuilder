@@ -1,5 +1,9 @@
 lockfileVersion: '9.0'
 
+onlyBuiltDependencies:
+  - sharp
+  - unrs-resolver
+
 settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
@@ -7,12 +11,6 @@ settings:
 importers:
 
   .:
-    devDependencies:
-      typescript:
-        specifier: ^5.8.3
-        version: 5.9.3
-
-  apps/web:
     dependencies:
       '@ant-design/icons':
         specifier: ^5.6.1
@@ -29,9 +27,6 @@ importers:
       antd:
         specifier: ^5.24.0
         version: 5.29.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      ckb-utils:
-        specifier: workspace:*
-        version: link:../../packages/ckb-utils
       next:
         specifier: ^15.3.2
         version: 15.5.18(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -66,16 +61,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.0
         version: 4.3.0
-      typescript:
-        specifier: ^5.8.3
-        version: 5.9.3
-
-  packages/ckb-utils:
-    dependencies:
-      '@ckb-ccc/core':
-        specifier: ^1.12.5
-        version: 1.12.5(typescript@5.9.3)
-    devDependencies:
       typescript:
         specifier: ^5.8.3
         version: 5.9.3

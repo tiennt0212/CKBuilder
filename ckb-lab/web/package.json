@@ -14,10 +14,12 @@
     "@ckb-ccc/connector-react": "^1.0.35",
     "@ckb-ccc/core": "^1.12.5",
     "antd": "^5.24.0",
-    "ckb-utils": "workspace:*",
     "next": "^15.3.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
+  },
+  "pnpm": {
+    "ignoredBuiltDependencies": ["sharp", "unrs-resolver"]
   },
   "devDependencies": {
     "@types/node": "^20.19.9",

@@ -7,7 +7,7 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
-import { buildCccClient, readEnvNetwork, type Network } from "ckb-utils";
+import { buildCccClient, readEnvNetwork, type Network } from "@/lib/ccc-client";
 import type { ccc } from "@ckb-ccc/core";
 
 interface NetworkContextValue {
