@@ -7,10 +7,19 @@ Next.js 15 frontend + Rust CKB smart contracts. CKB-specific APIs via `@ckb-ccc/
 ```
 ckb-lab/
 ├── web/                    # Next.js 15 (App Router) — only JS package
+│   ├── .storybook/         # Storybook config (Vite + React, resolves @/ → app/)
+│   ├── stories/
+│   │   ├── chrome/         # Header, Sidebar stories
+│   │   ├── components/     # Stories for every ui/ component
+│   │   └── foundations/    # Colors, Spacing, Typography
 │   ├── app/
 │   │   ├── (shell)/        # Route group — wraps all pages in AppLayout
-│   │   ├── components/     # AppLayout, Header, Sidebar, PageShell, CubeMark
+│   │   │   └── <route>/    # Each route may co-locate a <Name>Form.tsx beside page.tsx
+│   │   ├── components/
+│   │   │   ├── ui/         # Reusable domain UI — use these before creating new components
+│   │   │   └── *.tsx       # AppLayout, Header, Sidebar, PageShell, CubeMark
 │   │   ├── contexts/       # NetworkContext (cccClient + network), ThemeContext (light/dark)
+│   │   ├── features/       # Feature-scoped logic (hooks, utils) — not page components
 │   │   ├── lib/            # CKB utilities — format.ts, ccc-client.ts, index.ts
 │   │   ├── globals.css     # @theme inline tokens — single source of truth for design tokens
 │   │   └── providers.tsx   # Client root: ThemeProvider > AntdThemeProvider > NetworkProvider > CccProvider
@@ -21,8 +30,6 @@ ckb-lab/
     └── build/release/      # compiled binaries — read by web API routes for on-chain deploy
 ```
 
-> No `pnpm-workspace.yaml` — single JS package (`web/`), no workspace needed.
-
 ## Tech stack
 
 | Layer | Library |
@@ -32,17 +39,20 @@ ckb-lab/
 | Styling | Tailwind CSS v4 (no `tailwind.config.ts`) |
 | CKB wallet | `@ckb-ccc/connector-react` |
 | CKB transactions | `@ckb-ccc/core` |
-| Package manager | pnpm |
+| Package manager | pnpm (single package — `web/`, no workspace packages) |
 | Smart contracts | Rust + `ckb-std` (target: `riscv64imac-unknown-none-elf`) |
 | Contract testing | `ckb-testtool` (native host) |
+| Component dev | Storybook 8 (Vite, `@storybook/react-vite`) |
 
 ## Commands
 
 ```bash
-pnpm -C web install      # install deps
-pnpm -C web dev          # dev server
-pnpm -C web build        # production build (also runs TypeScript check)
-pnpm -C web lint         # lint
+pnpm -C web install              # install deps
+pnpm -C web dev                  # dev server
+pnpm -C web build                # production build (also runs TypeScript check)
+pnpm -C web lint                 # lint
+pnpm -C web storybook            # Storybook dev server on :6006
+pnpm -C web build-storybook      # static Storybook build
 ```
 
 App defaults to testnet (`NEXT_PUBLIC_NETWORK=testnet` in `web/.env.local`).
@@ -56,6 +66,27 @@ For devnet: set `NEXT_PUBLIC_NETWORK=devnet` and run `offckb node`.
 - Do NOT push directly to `canary` — create a branch
 - Do NOT refactor code outside the direct scope of the current task
 
+## UI component decision order (follow strictly)
+
+Before writing any UI code, go through this checklist in order — stop at the first match:
+
+1. **Ant Design has it** → use it. Apply Tailwind `className` or inline `style` for visual tweaks.
+2. **Ant Design has it but needs heavier restyling** → use it with a CSS override on the wrapping element. Do NOT duplicate Antd's logic in a custom component.
+3. **`components/ui/` has a domain-specific wrapper** → use that wrapper.
+4. **Nothing fits** → build a new `ui/` component, composing Antd primitives inside it.
+
+CSS tweak examples (preferred over custom components):
+```tsx
+// Tighten padding on an Antd Button — no custom component needed
+<Button size="small" className="px-2! h-7! text-xs">Copy</Button>
+
+// Give an Antd Card a custom background — use `styles` not `bodyStyle` (deprecated in v5)
+<Card className="bg-bg-elev border-app-border" styles={{ body: { padding: 12 } }}>…</Card>
+
+// Style an Antd Tag with a token color
+<Tag className="border-0 bg-primary-tint text-primary text-xs">Active</Tag>
+```
+
 ## Tailwind design tokens
 
 All tokens live in `web/app/globals.css` → `@theme inline`. Adding a token there automatically creates the Tailwind utility class. Runtime values (light/dark) are in `.theme-light` / `.theme-dark` in the same file.
@@ -64,11 +95,36 @@ Key classes: `text-text-1/2/3`, `bg-bg-body`, `bg-bg-elev`, `border-app-border`,
 
 See `DESIGN.md` for the full token reference and component patterns.
 
+## Component library (`components/ui/`)
+
+Before building any new UI piece, check if `web/app/components/ui/` already has it:
+
+| Component | Purpose |
+|---|---|
+| `Badge` | Status/count badge |
+| `CellChip` | CKB cell summary card (capacity, lock, address, optional accent stripe) |
+| `CellFlow` | Visual input→output cell flow diagram |
+| `DaoPosition` | Nervos DAO deposit/withdraw position card |
+| `FormItem` | Form field label with optional right-aligned hint |
+| `MultisigParticipant` | Multisig co-signer row (key, weight) |
+| `NoteBox` | Info/warning callout box |
+| `RawBlock` | Monospace pre-formatted data block (hex, JSON) |
+| `StatePanel` | Two-column key-value state display panel |
+| `StatusChip` | Small colored chip for on-chain status |
+| `SummaryPanel` | Transaction summary row list |
+| `SwitchRow` | Labeled toggle row |
+| `TokenListItem` | Token balance list item |
+| `UploadZone` | File drag-and-drop upload area |
+
+Every component in `ui/` must have a corresponding story in `web/stories/components/`.
+
 ## Gotchas
 
 - `px-[5px]`, `size-[7px]`, `py-[22px]` — intentional arbitrary values with no named token equivalent. Do NOT replace with approximations.
+- Tailwind v4 important modifier is a **suffix**: `px-2!` not `!px-2`. Using `!` prefix will silently fail.
 - `contracts/` is a standalone Cargo workspace — `pnpm` commands do not apply to it.
 - `web/app/lib/` was previously named `ckb-utils`. Always import via path alias `@/lib/...`.
+- Complex pages extract a co-located `<Name>Form.tsx` (e.g. `TransferForm.tsx` beside `transfer/page.tsx`). Follow this pattern for pages with non-trivial forms.
 
 ## Adding a feature page
 
@@ -82,6 +138,7 @@ See `DESIGN.md` for the full token reference and component patterns.
    ```
 2. Add the route to `menuItems` in `web/app/components/Sidebar.tsx`
 3. Add a `PAGE_TITLES` entry in `web/app/components/Header.tsx`
+4. If the page has a non-trivial form, extract it into `<route>/<FeatureName>Form.tsx`
 
 For pages that read/write chain state:
 
@@ -92,6 +149,12 @@ import { useCcc } from "@ckb-ccc/connector-react";     // wallet signer (null if
 ```
 
 Key lib exports (`@/lib/format`): `shannonToCKB`, `formatCapacity`, `utf8ToHex`, `hexToUtf8`, `truncateAddress`.
+
+## Adding a UI component
+
+1. Create `web/app/components/ui/<ComponentName>.tsx`
+2. Export it as a named export
+3. Create `web/stories/components/<ComponentName>.stories.tsx` with at least a Default story
 
 ## Rust contracts
 
@@ -109,4 +172,5 @@ Before ending any task:
 1. `pnpm -C web build` — must pass with 0 errors
 2. `pnpm -C web lint` — must pass
 3. If you added a route: confirm it appears in `Sidebar.tsx` `menuItems` and `Header.tsx` `PAGE_TITLES`
-4. If you added a contract: confirm it builds with `make -C contracts build`
+4. If you added a `ui/` component: confirm its story exists in `stories/components/`
+5. If you added a contract: confirm it builds with `make -C contracts build`

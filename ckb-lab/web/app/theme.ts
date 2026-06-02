@@ -29,5 +29,9 @@ export const ckbTheme = (mode: "light" | "dark") => ({
     Select: {
       controlHeight: 42,
     },
+    Form: {
+      labelColor: mode === "dark" ? "rgba(255,255,255,0.56)" : "rgba(17,24,28,0.60)",
+      labelFontSize: 12.5,
+    },
   },
 });
