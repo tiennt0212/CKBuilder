@@ -5,25 +5,24 @@ Next.js 15 frontend + Rust CKB smart contracts. CKB-specific APIs via `@ckb-ccc/
 ## Repo structure
 
 ```
-ckb-lab/
-├── web/                    # Next.js 15 (App Router) — only JS package
-│   ├── .storybook/         # Storybook config (Vite + React, resolves @/ → app/)
-│   ├── stories/
-│   │   ├── chrome/         # Header, Sidebar stories
-│   │   ├── components/     # Stories for every ui/ component
-│   │   └── foundations/    # Colors, Spacing, Typography
-│   ├── app/
-│   │   ├── (shell)/        # Route group — wraps all pages in AppLayout
-│   │   │   └── <route>/    # Each route may co-locate a <Name>Form.tsx beside page.tsx
-│   │   ├── components/
-│   │   │   ├── ui/         # Reusable domain UI — use these before creating new components
-│   │   │   └── *.tsx       # AppLayout, Header, Sidebar, PageShell, CubeMark
-│   │   ├── contexts/       # NetworkContext (cccClient + network), ThemeContext (light/dark)
-│   │   ├── features/       # Feature-scoped logic (hooks, utils) — not page components
-│   │   ├── lib/            # CKB utilities — format.ts, ccc-client.ts, index.ts
-│   │   ├── globals.css     # @theme inline tokens — single source of truth for design tokens
-│   │   └── providers.tsx   # Client root: ThemeProvider > AntdThemeProvider > NetworkProvider > CccProvider
-│   └── package.json
+ckb-lab/                    # Next.js 15 (App Router) — single JS package at root
+├── .storybook/             # Storybook config (Vite + React, resolves @/ → app/)
+├── stories/
+│   ├── chrome/             # Header, Sidebar stories
+│   ├── components/         # Stories for every ui/ component
+│   └── foundations/        # Colors, Spacing, Typography
+├── app/
+│   ├── (shell)/            # Route group — wraps all pages in AppLayout
+│   │   └── <route>/        # Each route may co-locate a <Name>Form.tsx beside page.tsx
+│   ├── components/
+│   │   ├── ui/             # Reusable domain UI — use these before creating new components
+│   │   └── *.tsx           # AppLayout, Header, Sidebar, PageShell, CubeMark
+│   ├── contexts/           # NetworkContext (cccClient + network), ThemeContext (light/dark)
+│   ├── features/           # Feature-scoped logic (hooks, utils) — not page components
+│   ├── lib/                # CKB utilities — format.ts, ccc-client.ts, index.ts
+│   ├── globals.css         # @theme inline tokens — single source of truth for design tokens
+│   └── providers.tsx       # Client root: ThemeProvider > AntdThemeProvider > NetworkProvider > CccProvider
+├── package.json
 └── contracts/              # Rust CKB scripts — Cargo workspace, pnpm does NOT touch this
     ├── Cargo.toml          # [workspace] members = ["contracts/*", "tests"]
     ├── Makefile            # `make build` → riscv64imac-unknown-none-elf binaries
@@ -39,7 +38,7 @@ ckb-lab/
 | Styling | Tailwind CSS v4 (no `tailwind.config.ts`) |
 | CKB wallet | `@ckb-ccc/connector-react` |
 | CKB transactions | `@ckb-ccc/core` |
-| Package manager | pnpm (single package — `web/`, no workspace packages) |
+| Package manager | pnpm (single package at repo root, no workspace packages) |
 | Smart contracts | Rust + `ckb-std` (target: `riscv64imac-unknown-none-elf`) |
 | Contract testing | `ckb-testtool` (native host) |
 | Component dev | Storybook 8 (Vite, `@storybook/react-vite`) |
@@ -47,15 +46,15 @@ ckb-lab/
 ## Commands
 
 ```bash
-pnpm -C web install              # install deps
-pnpm -C web dev                  # dev server
-pnpm -C web build                # production build (also runs TypeScript check)
-pnpm -C web lint                 # lint
-pnpm -C web storybook            # Storybook dev server on :6006
-pnpm -C web build-storybook      # static Storybook build
+pnpm install              # install deps
+pnpm dev                  # dev server
+pnpm build                # production build (also runs TypeScript check)
+pnpm lint                 # lint
+pnpm storybook            # Storybook dev server on :6006
+pnpm build-storybook      # static Storybook build
 ```
 
-App defaults to testnet (`NEXT_PUBLIC_NETWORK=testnet` in `web/.env.local`).
+App defaults to testnet (`NEXT_PUBLIC_NETWORK=testnet` in `.env.local`).
 For devnet: set `NEXT_PUBLIC_NETWORK=devnet` and run `offckb node`.
 
 ## Constraints
@@ -89,7 +88,7 @@ CSS tweak examples (preferred over custom components):
 
 ## Tailwind design tokens
 
-All tokens live in `web/app/globals.css` → `@theme inline`. Adding a token there automatically creates the Tailwind utility class. Runtime values (light/dark) are in `.theme-light` / `.theme-dark` in the same file.
+All tokens live in `app/globals.css` → `@theme inline`. Adding a token there automatically creates the Tailwind utility class. Runtime values (light/dark) are in `.theme-light` / `.theme-dark` in the same file.
 
 Key classes: `text-text-1/2/3`, `bg-bg-body`, `bg-bg-elev`, `border-app-border`, `text-primary`, `bg-primary-tint`, `font-brand` (weight 650), `font-mono`, `text-body` (13.5px), `text-title` (17px).
 
@@ -97,7 +96,7 @@ See `DESIGN.md` for the full token reference and component patterns.
 
 ## Component library (`components/ui/`)
 
-Before building any new UI piece, check if `web/app/components/ui/` already has it:
+Before building any new UI piece, check if `app/components/ui/` already has it:
 
 | Component | Purpose |
 |---|---|
@@ -116,19 +115,19 @@ Before building any new UI piece, check if `web/app/components/ui/` already has 
 | `TokenListItem` | Token balance list item |
 | `UploadZone` | File drag-and-drop upload area |
 
-Every component in `ui/` must have a corresponding story in `web/stories/components/`.
+Every component in `ui/` must have a corresponding story in `stories/components/`.
 
 ## Gotchas
 
 - `px-[5px]`, `size-[7px]`, `py-[22px]` — intentional arbitrary values with no named token equivalent. Do NOT replace with approximations.
 - Tailwind v4 important modifier is a **suffix**: `px-2!` not `!px-2`. Using `!` prefix will silently fail.
 - `contracts/` is a standalone Cargo workspace — `pnpm` commands do not apply to it.
-- `web/app/lib/` was previously named `ckb-utils`. Always import via path alias `@/lib/...`.
+- `app/lib/` was previously named `ckb-utils`. Always import via path alias `@/lib/...`.
 - Complex pages extract a co-located `<Name>Form.tsx` (e.g. `TransferForm.tsx` beside `transfer/page.tsx`). Follow this pattern for pages with non-trivial forms.
 
 ## Adding a feature page
 
-1. Create `web/app/(shell)/<route>/page.tsx` using `PageShell`:
+1. Create `app/(shell)/<route>/page.tsx` using `PageShell`:
    ```tsx
    import { PageShell } from "../../components/PageShell";
    export const metadata = { title: "My Feature — CKBuilder" };
@@ -136,8 +135,8 @@ Every component in `ui/` must have a corresponding story in `web/stories/compone
      return <PageShell title="My Feature" description="..." status="todo" />;
    }
    ```
-2. Add the route to `menuItems` in `web/app/components/Sidebar.tsx`
-3. Add a `PAGE_TITLES` entry in `web/app/components/Header.tsx`
+2. Add the route to `menuItems` in `app/components/Sidebar.tsx`
+3. Add a `PAGE_TITLES` entry in `app/components/Header.tsx`
 4. If the page has a non-trivial form, extract it into `<route>/<FeatureName>Form.tsx`
 
 For pages that read/write chain state:
@@ -152,9 +151,9 @@ Key lib exports (`@/lib/format`): `shannonToCKB`, `formatCapacity`, `utf8ToHex`,
 
 ## Adding a UI component
 
-1. Create `web/app/components/ui/<ComponentName>.tsx`
+1. Create `app/components/ui/<ComponentName>.tsx`
 2. Export it as a named export
-3. Create `web/stories/components/<ComponentName>.stories.tsx` with at least a Default story
+3. Create `stories/components/<ComponentName>.stories.tsx` with at least a Default story
 
 ## Rust contracts
 
@@ -169,8 +168,8 @@ New contract: add crate at `contracts/contracts/<name>/`, register in `contracts
 ## Definition of Done
 
 Before ending any task:
-1. `pnpm -C web build` — must pass with 0 errors
-2. `pnpm -C web lint` — must pass
+1. `pnpm build` — must pass with 0 errors
+2. `pnpm lint` — must pass
 3. If you added a route: confirm it appears in `Sidebar.tsx` `menuItems` and `Header.tsx` `PAGE_TITLES`
 4. If you added a `ui/` component: confirm its story exists in `stories/components/`
 5. If you added a contract: confirm it builds with `make -C contracts build`
