@@ -19,12 +19,13 @@ const config: StorybookConfig = {
 
     viteConfig.plugins = [...(viteConfig.plugins ?? []), tailwindcss()];
 
-    // Resolve @/ → app/ for stories
+    // Resolve @/ → app/ for stories; mock next/navigation so Sidebar/Header render without a Next.js server
     viteConfig.resolve = {
       ...viteConfig.resolve,
       alias: {
         ...viteConfig.resolve?.alias,
         "@": path.resolve(__dirname, "../app"),
+        "next/navigation": path.resolve(__dirname, "../__mocks__/next/navigation.ts"),
       },
     };
 

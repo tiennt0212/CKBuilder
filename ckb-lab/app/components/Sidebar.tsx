@@ -1,86 +1,17 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Menu } from "antd";
-import type { MenuProps } from "antd";
-import {
-  SwapOutlined,
-  SearchOutlined,
-  GoldOutlined,
-  CodeOutlined,
-  CloudUploadOutlined,
-  BankOutlined,
-  ClockCircleOutlined,
-  TeamOutlined,
-  HistoryOutlined,
-  SettingOutlined,
-  ApiOutlined,
-} from "@ant-design/icons";
+import { SettingOutlined, ApiOutlined } from "@ant-design/icons";
 import { CubeMark } from "./CubeMark";
+import { NAV_ITEMS } from "@/lib/nav-items";
 
-const TAG_XUDT = (
-  <span className="text-2xs font-semibold px-[5px] py-px rounded bg-primary-tint text-primary tracking-[0.02em]">
-    xUDT
-  </span>
-);
-
-const TAG_RUST = (
-  <span className="text-2xs font-semibold px-[5px] py-px rounded bg-rust-tint text-rust tracking-[0.02em]">
-    Rust
-  </span>
-);
-
-const menuItems: MenuProps["items"] = [
-  {
-    type: "group",
-    label: "Wallet",
-    children: [
-      { key: "/transfer", icon: <SwapOutlined />, label: "Transfer CKB" },
-      { key: "/cell-explorer", icon: <SearchOutlined />, label: "Cell Explorer" },
-      {
-        key: "/tokens",
-        icon: <GoldOutlined />,
-        label: <span className="flex items-center gap-2">Tokens {TAG_XUDT}</span>,
-      },
-    ],
-  },
-  {
-    type: "group",
-    label: "Smart Contracts",
-    children: [
-      { key: "/invoke", icon: <CodeOutlined />, label: "Invoke Script" },
-      {
-        key: "/deploy",
-        icon: <CloudUploadOutlined />,
-        label: <span className="flex items-center gap-2">Deploy Script {TAG_RUST}</span>,
-      },
-    ],
-  },
-  {
-    type: "group",
-    label: "Advanced",
-    children: [
-      { key: "/dao", icon: <BankOutlined />, label: "Nervos DAO" },
-      { key: "/time-lock", icon: <ClockCircleOutlined />, label: "Time Lock" },
-      { key: "/multisig", icon: <TeamOutlined />, label: "Multisig" },
-    ],
-  },
-  {
-    type: "group",
-    label: "Activity",
-    children: [
-      { key: "/history", icon: <HistoryOutlined />, label: "Transaction History" },
-    ],
-  },
-];
-
-const settingsItems: MenuProps["items"] = [
+const settingsItems = [
   { key: "settings", icon: <SettingOutlined />, label: "Settings" },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
 
   return (
     <div className="flex flex-col h-full bg-sidebar-bg">
@@ -102,8 +33,7 @@ export function Sidebar() {
         <Menu
           mode="inline"
           selectedKeys={[pathname]}
-          items={menuItems}
-          onClick={({ key }) => router.push(key)}
+          items={NAV_ITEMS}
           style={{ border: "none" }}
         />
       </div>

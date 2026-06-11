@@ -17,11 +17,12 @@ ckb-lab/                    # Next.js 15 (App Router) — single JS package at r
 │   ├── components/
 │   │   ├── ui/             # Reusable domain UI — use these before creating new components
 │   │   └── *.tsx           # AppLayout, Header, Sidebar, PageShell, CubeMark
-│   ├── contexts/           # NetworkContext (cccClient + network), ThemeContext (light/dark)
+│   ├── contexts/           # ThemeContext (light/dark) — network state lives in stores/
+│   ├── stores/             # Zustand stores — network.ts (network + cccClient)
 │   ├── features/           # Feature-scoped logic (hooks, utils) — not page components
-│   ├── lib/                # CKB utilities — format.ts, ccc-client.ts, index.ts
+│   ├── lib/                # CKB utilities — format.ts, ccc-client.ts, routes.ts, nav-items.tsx, index.ts
 │   ├── globals.css         # @theme inline tokens — single source of truth for design tokens
-│   └── providers.tsx       # Client root: ThemeProvider > AntdThemeProvider > NetworkProvider > CccProvider
+│   └── providers.tsx       # Client root: ThemeProvider > AntdThemeProvider > CccProvider > NetworkSync
 ├── package.json
 └── contracts/              # Rust CKB scripts — Cargo workspace, pnpm does NOT touch this
     ├── Cargo.toml          # [workspace] members = ["contracts/*", "tests"]
@@ -135,15 +136,15 @@ Every component in `ui/` must have a corresponding story in `stories/components/
      return <PageShell title="My Feature" description="..." status="todo" />;
    }
    ```
-2. Add the route to `menuItems` in `app/components/Sidebar.tsx`
-3. Add a `PAGE_TITLES` entry in `app/components/Header.tsx`
+2. Add the route constant to `ROUTES` in `app/lib/routes.ts` and add its nav item to `NAV_ITEMS` in `app/lib/nav-items.tsx`
+3. Add a `PAGE_TITLES` entry in `app/lib/routes.ts`
 4. If the page has a non-trivial form, extract it into `<route>/<FeatureName>Form.tsx`
 
 For pages that read/write chain state:
 
 ```tsx
 "use client";
-import { useNetwork } from "@/contexts/NetworkContext"; // network-aware CKB client
+import { useNetworkStore } from "@/stores/network"; // network-aware CKB client
 import { useCcc } from "@ckb-ccc/connector-react";     // wallet signer (null if disconnected)
 ```
 
@@ -170,6 +171,6 @@ New contract: add crate at `contracts/contracts/<name>/`, register in `contracts
 Before ending any task:
 1. `pnpm build` — must pass with 0 errors
 2. `pnpm lint` — must pass
-3. If you added a route: confirm it appears in `Sidebar.tsx` `menuItems` and `Header.tsx` `PAGE_TITLES`
+3. If you added a route: confirm it appears in `lib/routes.ts` `ROUTES` + `PAGE_TITLES` and `lib/nav-items.tsx` `NAV_ITEMS`
 4. If you added a `ui/` component: confirm its story exists in `stories/components/`
 5. If you added a contract: confirm it builds with `make -C contracts build`

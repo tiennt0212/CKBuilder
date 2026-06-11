@@ -1,6 +1,13 @@
 import { ccc, CellDepInfoLike, KnownScript, Script } from "@ckb-ccc/core";
 
-export type Network = "devnet" | "testnet" | "mainnet";
+export const NETWORKS = ["devnet", "testnet", "mainnet"] as const;
+export type Network = (typeof NETWORKS)[number];
+
+export const NETWORK_DOT_COLORS: Record<Network, string> = {
+  devnet: "#f59e0b",
+  testnet: "var(--dot)",
+  mainnet: "#6366f1",
+};
 
 export type ScriptInfo = Pick<Script, "codeHash" | "hashType"> & {
   cellDeps: CellDepInfoLike[];
@@ -64,7 +71,7 @@ export function readEnvNetwork(): Network {
     typeof process !== "undefined"
       ? process.env.NEXT_PUBLIC_NETWORK
       : undefined;
-  if (!network || !["devnet", "testnet", "mainnet"].includes(network)) {
+  if (!network || !(NETWORKS as readonly string[]).includes(network)) {
     return "testnet";
   }
   return network as Network;
