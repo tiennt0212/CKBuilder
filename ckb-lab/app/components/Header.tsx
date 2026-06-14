@@ -1,11 +1,14 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Button, Select, Divider, Avatar, Tooltip } from "antd";
 import { WalletOutlined, MoonOutlined, SunOutlined } from "@ant-design/icons";
+import { useCcc, useSigner } from "@ckb-ccc/connector-react";
 import { useNetworkStore } from "@/stores/network";
 import { useTheme } from "../contexts/ThemeContext";
 import { PAGE_TITLES } from "@/lib/routes";
 import { NETWORKS, NETWORK_DOT_COLORS, type Network } from "@/lib/ccc-client";
+import { truncateAddress } from "@/lib/format";
 
 interface HeaderProps {
   pathname: string;
@@ -14,6 +17,22 @@ interface HeaderProps {
 export function Header({ pathname }: HeaderProps) {
   const { network, setNetwork } = useNetworkStore();
   const { mode, toggle } = useTheme();
+  const { open, disconnect, wallet } = useCcc();
+  const signer = useSigner();
+
+  const [address, setAddress] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (!signer) {
+      setAddress(undefined);
+      return;
+    }
+    signer.getRecommendedAddress().then(setAddress).catch(() => setAddress(undefined));
+  }, [signer]);
+
+  const isConnected = !!signer;
+  const truncated = address ? truncateAddress(address) : undefined;
+  const avatarLabel = truncated ? truncated.slice(0, 2).toUpperCase() : "CK";
 
   const page = PAGE_TITLES[pathname as keyof typeof PAGE_TITLES] ?? {
     group: "CKBuilder",
@@ -74,19 +93,22 @@ export function Header({ pathname }: HeaderProps) {
         <Button
           type="primary"
           icon={<WalletOutlined />}
+          onClick={isConnected ? () => disconnect() : () => open()}
           style={{ height: 38, borderRadius: 10, paddingInline: 16 }}
         >
-          Connect Wallet
+          {isConnected ? (wallet?.name ?? "Connected") : "Connect Wallet"}
         </Button>
 
         {/* Avatar */}
-        <Avatar
-          size={34}
-          className="bg-primary text-white! text-hint font-semibold shrink-0 cursor-pointer"
-          style={{ borderRadius: 8 }}
-        >
-          CK
-        </Avatar>
+        <Tooltip title={truncated ?? "Not connected"}>
+          <Avatar
+            size={34}
+            className="bg-primary text-white! text-hint font-semibold shrink-0 cursor-pointer"
+            style={{ borderRadius: 8 }}
+          >
+            {avatarLabel}
+          </Avatar>
+        </Tooltip>
       </div>
     </div>
   );
