@@ -33,8 +33,9 @@
   --color-sidebar-active: var(--sidebar-active-text);
   --color-sidebar-active-bg: var(--sidebar-active-bg);
   --color-seg-bg: var(--seg-bg);
-  --color-rust: #c0683a;
-  --color-rust-tint: rgba(192, 104, 58, 0.12);
+  --color-rust: var(--rust);
+  --color-rust-tint: var(--rust-tint);
+  --color-hover-overlay: var(--hover-overlay);
   --color-status-pend: var(--status-pend);
   --color-status-pend-bg: var(--status-pend-bg);
 
@@ -95,6 +96,9 @@
   --sidebar-hover: rgba(17, 24, 28, 0.04);
   --sidebar-active-bg: rgba(10, 157, 108, 0.10);
   --sidebar-active-text: #0a9d6c;
+  --rust: #c0683a;
+  --rust-tint: rgba(192, 104, 58, 0.08);
+  --hover-overlay: rgba(17, 24, 28, 0.04);
   --status-pend: #bd8a3a;
   --status-pend-bg: rgba(189, 138, 58, 0.12);
   --cube-top: #27c08a;
@@ -130,6 +134,9 @@
   --sidebar-hover: rgba(255, 255, 255, 0.05);
   --sidebar-active-bg: rgba(43, 211, 150, 0.14);
   --sidebar-active-text: #3fd49b;
+  --rust: #e3925f;
+  --rust-tint: rgba(227, 146, 95, 0.10);
+  --hover-overlay: rgba(255, 255, 255, 0.05);
   --status-pend: #e0a84a;
   --status-pend-bg: rgba(224, 168, 74, 0.14);
   --cube-top: #54e0b0;

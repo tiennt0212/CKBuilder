@@ -29,6 +29,8 @@ Every `-exp` skill follows this 3-layer structure:
 - Can be illustrated with a before/after code example
 - Has a meaningful impact level (HIGH / MEDIUM / LOW-MEDIUM)
 
+**On examples:** Use generic, hypothetical identifiers — `UserRole`, `Status`, `PageLayout` — never names lifted from the codebase that prompted the rule. The test: could a developer on a completely different project read this and recognize the pattern?
+
 **File naming:** prefix matches the section category (e.g. `state-`, `routing-`, `constants-`)
 
 **`_sections.md`:** domain-specific, defined in each skill. Groups rules into categories.

@@ -6,6 +6,15 @@ import { useNetworkStore } from "@/stores/network";
 import { NETWORKS, type Network } from "@/lib/ccc-client";
 import { ROUTES } from "@/lib/routes";
 
+// Header renders:
+//   - Network pill dropdown (Mainnet / Testnet / Local Devnet)
+//   - Theme toggle (moon / sun)
+//   - Vertical divider
+//   - Wallet dropdown (connected) OR "Connect Wallet" button (disconnected)
+//
+// Wallet/signer state comes from CccProvider hooks — in Storybook the wallet
+// is always disconnected, so the "Connect Wallet" button is shown.
+
 const meta: Meta<{ pathname: string; network: Network }> = {
   title: "Chrome/Header",
   component: Header,

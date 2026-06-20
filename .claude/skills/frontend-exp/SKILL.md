@@ -31,7 +31,7 @@ General-purpose principles for React + Next.js (App Router) frontends. These are
 | 3 | UI Components | MEDIUM | `ui-` |
 | 4 | Storybook | MEDIUM | `storybook-` |
 | 5 | TypeScript Constants | MEDIUM | `constants-` |
-| 6 | Component Organization | LOW-MEDIUM | `component-`, `styling-` |
+| 6 | Component Organization | LOW-MEDIUM | `component-`, `styling-`, `logic-`, `features-` |
 
 ## Quick Reference
 
@@ -57,11 +57,15 @@ General-purpose principles for React + Next.js (App Router) frontends. These are
 
 - `constants-derive-types` — Derive TypeScript types from constant arrays; never re-declare them
 - `constants-colocate-related` — Group related constants (list + metadata map) in one module
+- `constants-domain-in-lib` — Constants keyed by a shared domain type (e.g. `Network`) belong in `lib/`, not in component files
 
 ### 6. Component Organization (LOW-MEDIUM)
 
 - `component-colocation` — Co-locate page-specific components beside their page file
+- `component-split-large` — Extract inline JSX variable blocks into co-located sub-components when a file exceeds ~150 lines
 - `styling-design-tokens` — Use CSS custom properties; never hardcode colors, sizes, or font values
+- `logic-extract-to-hooks` — Extract state + async logic into a co-located custom hook when a component has >3 state vars or async effects
+- `features-folder-boundary` — Use `app/features/<name>/` only for logic shared across multiple components in one domain; co-locate single-consumer logic instead
 
 ## Collab
 

@@ -179,8 +179,10 @@ Design frame reference size: **1440 × 920**. Real app is fluid; keep the 2-col 
 - Left: crumb (group name) above page title.
 - Right cluster (gap 10px): **Network selector** pill (green dot + `Testnet` + chevron) →
   **theme toggle** icon button (moon in light / sun in dark) → vertical divider →
-  **Wallet button** (`JoyID` badge + mono short address + balance + chevron) → **avatar** (rounded square, `--primary`, initials).
+  **Wallet button** (`JoyID` badge + mono short address + balance + chevron).
 - Supported wallets: **JoyID** and **MetaMask** (via CKB `ccc` connector). Connected state shows the wallet badge.
+
+> Detailed Header states and dropdown specs: see [docs/design/header.md](docs/design/header.md)
 
 ---
 
@@ -234,6 +236,7 @@ Encode these so generated screens stay technically honest:
 |---|---|---|---|
 | **Transfer CKB** | Wallet | form + cell-flow + raw preview | ✅ designed |
 | **Invoke Script** | Smart Contracts | form + state + type_script/cell_deps preview | ✅ designed |
+| **Assets** | Wallet | hero strip (total CKB + breakdown chips) + FT holdings list + NFT grid (3-col) | ✅ designed |
 | Cell Explorer | Wallet | table/grid of live cells + detail panel | ⏳ to build |
 | Tokens (xUDT/sUDT) | Wallet | holdings list + issue/transfer form + preview | ⏳ to build |
 | Deploy Script | Smart Contracts | upload binary + config form + deployment preview | ⏳ to build |

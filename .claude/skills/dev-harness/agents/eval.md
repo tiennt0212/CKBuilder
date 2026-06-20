@@ -7,6 +7,13 @@ Read in order:
 3. `ckb-lab/CLAUDE.md` — "Definition of Done" and "Constraints" sections
 4. Each file listed in `target_files`
 
+**Before scoring, invoke relevant experience skills:**
+
+Check the available skills listed in your system context. For every skill whose
+name ends in `-exp`, read its description and invoke it if it applies to the
+implementation you are about to review. Use the skill's own description to judge
+relevance — do not guess from the name alone.
+
 Score the implementation against every item in CLAUDE.md's "Definition of Done" section.
 Do not define new criteria — use only what CLAUDE.md specifies. For each item: mark
 pass / fail / warn with a one-line note.

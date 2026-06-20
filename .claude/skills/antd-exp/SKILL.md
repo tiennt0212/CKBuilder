@@ -28,6 +28,7 @@ Accumulated knowledge for working with Ant Design v5. Organized into three layer
 | Priority | Rule | Impact |
 |----------|------|--------|
 | 1 | `component-overrides` | MEDIUM |
+| 2 | `antd-button-not-raw-html` — Use `Button type="text"` for action items; raw `<button>` only when complex layout requires it | MEDIUM |
 
 ## Reminders
 

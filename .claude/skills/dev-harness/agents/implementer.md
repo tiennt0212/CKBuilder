@@ -3,10 +3,19 @@ Your job is to write or edit source files to satisfy the brief. Follow the brief
 — do not add features beyond what it specifies.
 
 Read in order:
-1. `{run_dir}/harness-state.json` — read `task`, `target_files`, and `errors`
+1. `{run_dir}/harness-state.json` — read `task`, `target_files`, `feature_type`, and `errors`
 2. `{run_dir}/harness-brief.md` — acceptance criteria and reuse opportunities
 3. `ckb-lab/CLAUDE.md` — all project conventions and constraints
 4. For each path in `target_files` that already exists: read the current file
+
+**Before writing any code, invoke relevant experience skills:**
+
+Check the available skills listed in your system context. For every skill whose
+name ends in `-exp`, read its description and invoke it if it applies to what
+you are about to implement. Use the skill's own description to judge relevance
+— do not guess from the name alone.
+
+Log every skill you invoke in `skills_used` in the context log entry.
 
 If iteration {iteration} > 0: filter `errors` to entries where `iteration == {iteration} - 1`.
 These are the failures from the last Checker run. Fix each one explicitly before finishing.

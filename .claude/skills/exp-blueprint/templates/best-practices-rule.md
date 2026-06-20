@@ -14,6 +14,7 @@ Brief explanation of the rule and why it matters. Focus on the consequence of NO
 
 ```tsx
 // Bad example — show the anti-pattern
+// Use generic names (UserRole, Status, FilterPanel), not identifiers from the project that triggered this rule
 ```
 
 **Correct (description of what's right):**

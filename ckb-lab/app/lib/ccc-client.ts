@@ -3,12 +3,6 @@ import { ccc, CellDepInfoLike, KnownScript, Script } from "@ckb-ccc/core";
 export const NETWORKS = ["devnet", "testnet", "mainnet"] as const;
 export type Network = (typeof NETWORKS)[number];
 
-export const NETWORK_DOT_COLORS: Record<Network, string> = {
-  devnet: "#f59e0b",
-  testnet: "var(--dot)",
-  mainnet: "#6366f1",
-};
-
 export type ScriptInfo = Pick<Script, "codeHash" | "hashType"> & {
   cellDeps: CellDepInfoLike[];
 };
@@ -52,6 +46,20 @@ export const DEVNET_SCRIPTS: Record<string, ScriptInfo> = {
   },
 } as Record<string, ScriptInfo>;
 
+export const DEVNET_RPC_URL = "http://localhost:28114";
+
+export const NETWORK_LABELS: Record<Network, string> = {
+  mainnet: "Mainnet",
+  testnet: "Testnet",
+  devnet: "Local Devnet",
+};
+
+export const NETWORK_RPC_URLS: Record<Network, string> = {
+  mainnet: "https://mainnet.ckb.dev/rpc",
+  testnet: "https://testnet.ckb.dev/rpc",
+  devnet: DEVNET_RPC_URL,
+};
+
 export function buildCccClient(network: Network): ccc.Client {
   if (network === "mainnet") {
     return new ccc.ClientPublicMainnet();
@@ -61,7 +69,7 @@ export function buildCccClient(network: Network): ccc.Client {
   }
   // devnet — offCKB proxy
   return new ccc.ClientPublicTestnet({
-    url: "http://localhost:28114",
+    url: DEVNET_RPC_URL,
     scripts: DEVNET_SCRIPTS as any,
   });
 }

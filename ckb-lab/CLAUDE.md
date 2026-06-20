@@ -94,6 +94,7 @@ All tokens live in `app/globals.css` → `@theme inline`. Adding a token there a
 Key classes: `text-text-1/2/3`, `bg-bg-body`, `bg-bg-elev`, `border-app-border`, `text-primary`, `bg-primary-tint`, `font-brand` (weight 650), `font-mono`, `text-body` (13.5px), `text-title` (17px).
 
 See `DESIGN.md` for the full token reference and component patterns.
+Component-level design specs live in `docs/design/` (e.g. `docs/design/header.md`).
 
 ## Component library (`components/ui/`)
 
@@ -102,6 +103,7 @@ Before building any new UI piece, check if `app/components/ui/` already has it:
 | Component | Purpose |
 |---|---|
 | `Badge` | Status/count badge |
+| `CopyText` | Inline text with clipboard copy button (idle/copied/failed states) |
 | `CellChip` | CKB cell summary card (capacity, lock, address, optional accent stripe) |
 | `CellFlow` | Visual input→output cell flow diagram |
 | `DaoPosition` | Nervos DAO deposit/withdraw position card |
