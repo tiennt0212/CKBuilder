@@ -2,11 +2,17 @@
 
 import { Card, Form, Input, Button, Segmented } from "antd";
 import { ArrowRightOutlined, CopyOutlined } from "@ant-design/icons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FormItem } from "@/components/ui/FormItem";
 import { CellChip } from "@/components/ui/CellChip";
 import { SummaryPanel, SummaryRow } from "@/components/ui/SummaryPanel";
 import { RawBlock } from "@/components/ui/RawBlock";
+import { useTransfer } from "@/features/transfer/useTransfer";
+import { useNetworkStore } from "@/stores/network";
+import { ckbToShannons, Network } from "@/lib";
+import { useWalletAccount } from "@/features/wallet/useWalletAccount";
+import { useForm } from "antd/es/form/Form";
+import { CopyText } from "@/components/ui/CopyText";
 
 const FEE_RATES = [
   { value: 1000, name: "Slow", sub: "1,000 sh/KB" },
@@ -55,6 +61,18 @@ const MOCK_TX = {
 export function TransferForm() {
   const [feeRate, setFeeRate] = useState(2000);
   const [activeTab, setActiveTab] = useState("summary");
+  const { transfer, status } = useTransfer();
+  const { network } = useNetworkStore();
+  const addressPlaceholder = network === Network.Testnet ? "ckt…" : "ckb…";
+  const { address, balance } = useWalletAccount();
+  const [form] = useForm();
+
+
+  useEffect(() => {
+    if (address) {
+      form.setFieldValue("from", address);
+    }
+  }, [address])
 
   return (
     <div className="grid grid-cols-[1fr_1.07fr] gap-5 items-start">
@@ -71,10 +89,31 @@ export function TransferForm() {
         style={CARD_STYLE}
         styles={{ header: HEAD_STYLE, body: BODY_STYLE }}
       >
-        <Form layout="vertical" requiredMark={false} colon={false}>
+        Status: {status}
+        <Form
+          form={form}
+          layout="vertical"
+          requiredMark={false}
+          colon={false}
+          onFinish={(values) => {
+            const { to, amount } = values;
+            transfer(to, ckbToShannons(amount)).then(txhash => console.log("Transaction sent:", txhash)).catch(err => console.error(err));
+          }}>
+          <FormItem name="from" label="From Address" style={{ marginBottom: 14 }} >
+            <Input
+              placeholder={addressPlaceholder}
+              suffix={
+                address && <CopyText text={address} />
+              }
+              className="font-mono"
+              style={{ height: 42 }}
+              disabled
+            />
+          </FormItem>
+
           <FormItem name="to" label="To Address" style={{ marginBottom: 14 }}>
             <Input
-              placeholder="ckt1qy…"
+              placeholder={addressPlaceholder}
               suffix={
                 <CopyOutlined className="text-text-3 cursor-pointer hover:text-primary transition-colors" />
               }
@@ -119,6 +158,7 @@ export function TransferForm() {
 
           <Button
             type="primary"
+            htmlType="submit"
             block
             icon={<ArrowRightOutlined />}
             iconPosition="end"

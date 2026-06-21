@@ -5,6 +5,12 @@ export function shannonToCKB(shannon: bigint): string {
   return ckb.toFixed(8).replace(/\.?0+$/, "");
 }
 
+export function ckbToShannons(ckb: string): bigint {
+  const [integer = "0", decimal = ""] = ckb.split(".");
+  const paddedDecimal = decimal.padEnd(8, "0").slice(0, 8);
+  return BigInt(integer) * 100_000_000n + BigInt(paddedDecimal);
+}
+
 export function utf8ToHex(str: string): string {
   const encoder = new TextEncoder();
   const bytes = encoder.encode(str);

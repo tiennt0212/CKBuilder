@@ -1,7 +1,12 @@
 import { ccc, CellDepInfoLike, KnownScript, Script } from "@ckb-ccc/core";
 
-export const NETWORKS = ["devnet", "testnet", "mainnet"] as const;
-export type Network = (typeof NETWORKS)[number];
+export const Network = {
+  Devnet:  "devnet",
+  Testnet: "testnet",
+  Mainnet: "mainnet",
+} as const;
+export type Network = (typeof Network)[keyof typeof Network];
+export const NETWORKS = Object.values(Network) as Network[];
 
 export type ScriptInfo = Pick<Script, "codeHash" | "hashType"> & {
   cellDeps: CellDepInfoLike[];
@@ -61,10 +66,10 @@ export const NETWORK_RPC_URLS: Record<Network, string> = {
 };
 
 export function buildCccClient(network: Network): ccc.Client {
-  if (network === "mainnet") {
+  if (network === Network.Mainnet) {
     return new ccc.ClientPublicMainnet();
   }
-  if (network === "testnet") {
+  if (network === Network.Testnet) {
     return new ccc.ClientPublicTestnet();
   }
   // devnet — offCKB proxy
@@ -79,8 +84,8 @@ export function readEnvNetwork(): Network {
     typeof process !== "undefined"
       ? process.env.NEXT_PUBLIC_NETWORK
       : undefined;
-  if (!network || !(NETWORKS as readonly string[]).includes(network)) {
-    return "testnet";
+  if (!network || !NETWORKS.includes(network as Network)) {
+    return Network.Testnet;
   }
   return network as Network;
 }
