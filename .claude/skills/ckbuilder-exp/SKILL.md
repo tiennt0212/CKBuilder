@@ -15,13 +15,14 @@ CKBuilder project-specific knowledge. This skill is intentionally project-scoped
 
 - Working with CKB network types (`devnet`, `testnet`, `mainnet`)
 - Looking up where network constants or CCC client are defined
-- Unsure which file exports `NETWORKS`, `NETWORK_DOT_COLORS`, or `Network` type
+- Unsure which file exports `Network`, `NETWORKS`, or `NETWORK_LABELS`
+- Comparing network values (use `Network.Testnet`, not `"testnet"`)
 
 ## Reminders
 
 | Reminder | Type |
 |---|---|
-| `network-constants` — `NETWORKS`, `NETWORK_DOT_COLORS`, and `Network` type all live in `app/lib/ccc-client.ts` | file-location |
+| `network-constants` — `Network` object, `NETWORKS`, `NETWORK_LABELS`, `NETWORK_RPC_URLS` all live in `app/lib/ccc-client.ts`; compare with `Network.Testnet` not `"testnet"` | file-location |
 
 ## Creating New Content
 

@@ -1,48 +1,50 @@
 ---
-title: Define NETWORKS array and NETWORK_DOT_COLORS once in ccc-client.ts
+title: Network constants and Network object live in ccc-client.ts
 impact: LOW-MEDIUM
 tags: network, ckb, constants, dry
 ---
 
-## Define NETWORKS array and NETWORK_DOT_COLORS once in ccc-client.ts
+## Network constants and Network object live in ccc-client.ts
 
 **Impact: LOW-MEDIUM**
 
-The list of supported networks and their indicator colors are defined **once** in `app/lib/ccc-client.ts`. The `Network` type is derived from the constant array — not declared independently. All consumers import from this file.
+`Network` (both value and type), `NETWORKS`, and all network metadata (`NETWORK_LABELS`, `NETWORK_RPC_URLS`) are defined **once** in `app/lib/ccc-client.ts`. All consumers import from this file — never redeclare the list or type elsewhere.
 
-Without a single source, the network list and dot colors were duplicated in `Header.tsx` and `Header.stories.tsx`. Any new network (e.g. a staging environment) required updates in multiple places.
-
-**Incorrect (network list and colors duplicated across files):**
-
-```tsx
-// Header.tsx
-const DOT_COLORS = { devnet: "#f59e0b", testnet: "var(--dot)", mainnet: "#6366f1" };
-const networkOptions = (["devnet", "testnet", "mainnet"] as Network[]).map(...)
-
-// Header.stories.tsx — same literal again
-const DOT_COLORS = { devnet: "#f59e0b", testnet: "var(--dot)", mainnet: "#6366f1" };
-```
-
-**Correct (single source — type derived from the array):**
+**Correct pattern (object-as-namespace + derived type):**
 
 ```ts
 // app/lib/ccc-client.ts
-export const NETWORKS = ["devnet", "testnet", "mainnet"] as const;
-export type Network = (typeof NETWORKS)[number]; // derived, not re-declared
+export const Network = {
+  Devnet:  "devnet",
+  Testnet: "testnet",
+  Mainnet: "mainnet",
+} as const;
+export type Network = (typeof Network)[keyof typeof Network];
+// → "devnet" | "testnet" | "mainnet"
 
-export const NETWORK_DOT_COLORS: Record<Network, string> = {
-  devnet:  "#f59e0b",
-  testnet: "var(--dot)",  // CSS custom property — resolves at runtime
-  mainnet: "#6366f1",
-};
+export const NETWORKS = Object.values(Network) as Network[];
+
+export const NETWORK_LABELS: Record<Network, string> = { ... };
 ```
 
-```tsx
-// Header.tsx — import both and use
-import { NETWORKS, NETWORK_DOT_COLORS, type Network } from "@/lib/ccc-client";
+**Comparisons use named keys — not string literals:**
 
-const networkOptions = (NETWORKS as readonly Network[]).map((n) => ({
-  value: n,
-  label: <span style={{ background: NETWORK_DOT_COLORS[n] }} />,
-}));
+```ts
+// Correct
+if (network === Network.Testnet) { ... }
+
+// Incorrect — magic string
+if (network === "testnet") { ... }
 ```
+
+**Import patterns:**
+
+```ts
+// Need to compare against specific values → value import
+import { Network, NETWORKS } from "@/lib/ccc-client";
+
+// Only need the type annotation → type-only import (no .Devnet access)
+import { type Network } from "@/lib/ccc-client";
+```
+
+For the transferable principle behind this pattern, see `frontend-exp/best-practices/constants-guide`.

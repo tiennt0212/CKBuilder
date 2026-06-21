@@ -55,9 +55,7 @@ General-purpose principles for React + Next.js (App Router) frontends. These are
 
 ### 5. TypeScript Constants (MEDIUM)
 
-- `constants-derive-types` — Derive TypeScript types from constant arrays; never re-declare them
-- `constants-colocate-related` — Group related constants (list + metadata map) in one module
-- `constants-domain-in-lib` — Constants keyed by a shared domain type (e.g. `Network`) belong in `lib/`, not in component files
+- `constants-guide` — All TypeScript constants conventions: derive types, object-as-namespace for comparisons, colocation, and placement in `lib/`
 
 ### 6. Component Organization (LOW-MEDIUM)
 
