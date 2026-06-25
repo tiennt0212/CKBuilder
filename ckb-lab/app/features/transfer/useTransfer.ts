@@ -98,8 +98,6 @@ export function useTransfer() {
 
       const poll = async () => {
         while (!signal.cancelled) {
-          await sleep(2000);
-          if (signal.cancelled) return;
           try {
             const res = await signer.client.getTransaction(hash);
             if (!res) continue;
@@ -127,6 +125,7 @@ export function useTransfer() {
             setError(err?.message ?? "Failed to fetch transaction status");
             return;
           }
+          await sleep(2000);
         }
       };
 
