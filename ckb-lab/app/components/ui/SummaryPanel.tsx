@@ -42,9 +42,7 @@ interface SummaryPanelProps {
 
 export function SummaryPanel({ children, className = "" }: SummaryPanelProps) {
   return (
-    <div
-      className={`rounded-[11px] border border-app-border bg-panel-bg px-4 py-1 ${className}`}
-    >
+    <div className={`rounded-[11px] border border-app-border bg-panel-bg px-4 py-1 ${className}`}>
       {children}
     </div>
   );

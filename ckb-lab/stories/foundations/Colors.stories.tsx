@@ -68,7 +68,11 @@ function ColorsStory() {
             {group}
           </div>
           <div
-            style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 14 }}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+              gap: 14,
+            }}
           >
             {tokens.map((t) => (
               <ColorSwatch key={t.name} cssVar={t.name} desc={t.desc} />

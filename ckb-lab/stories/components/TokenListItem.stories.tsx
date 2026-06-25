@@ -3,7 +3,13 @@ import { TokenListItem } from "@/components/ui/TokenListItem";
 import { useState } from "react";
 
 const TOKENS = [
-  { symbol: "CKB", name: "Nervos CKB", type: "Native", balance: "1,480.34", balanceSub: "≈ $42.10" },
+  {
+    symbol: "CKB",
+    name: "Nervos CKB",
+    type: "Native",
+    balance: "1,480.34",
+    balanceSub: "≈ $42.10",
+  },
   { symbol: "DEM", name: "Demo Token", type: "xUDT", balance: "10,000", balanceSub: "" },
   { symbol: "SUV", name: "sUDT Token", type: "sUDT", balance: "500", balanceSub: "" },
 ];

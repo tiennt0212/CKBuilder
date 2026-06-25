@@ -10,10 +10,22 @@ function CellFlowStory() {
         </div>
         <div className="rounded-[10px] bg-panel-bg p-4" style={{ maxWidth: 620 }}>
           <CellFlow
-            inputs={[{ capacity: "990.001", lockLabel: "secp256k1_blake160", address: "ckt1qy…feed1a" }]}
+            inputs={[
+              { capacity: "990.001", lockLabel: "secp256k1_blake160", address: "ckt1qy…feed1a" },
+            ]}
             outputs={[
-              { capacity: "100", lockLabel: "secp256k1_blake160", address: "ckt1qy…m3f9a", accent: "primary" },
-              { capacity: "889.999", lockLabel: "secp256k1_blake160 (change)", address: "ckt1qy…feed1a", accent: "neutral" },
+              {
+                capacity: "100",
+                lockLabel: "secp256k1_blake160",
+                address: "ckt1qy…m3f9a",
+                accent: "primary",
+              },
+              {
+                capacity: "889.999",
+                lockLabel: "secp256k1_blake160 (change)",
+                address: "ckt1qy…feed1a",
+                accent: "neutral",
+              },
             ]}
           />
         </div>
@@ -25,10 +37,22 @@ function CellFlowStory() {
         </div>
         <div className="rounded-[10px] bg-panel-bg p-4" style={{ maxWidth: 620 }}>
           <CellFlow
-            inputs={[{ capacity: "1,000", lockLabel: "secp256k1_blake160", address: "ckt1qy…feed1a" }]}
+            inputs={[
+              { capacity: "1,000", lockLabel: "secp256k1_blake160", address: "ckt1qy…feed1a" },
+            ]}
             outputs={[
-              { capacity: "500", lockLabel: "DAO deposit", address: "ckt1qy…feed1a", accent: "primary" },
-              { capacity: "499.999", lockLabel: "secp256k1_blake160 (change)", address: "ckt1qy…feed1a", accent: "neutral" },
+              {
+                capacity: "500",
+                lockLabel: "DAO deposit",
+                address: "ckt1qy…feed1a",
+                accent: "primary",
+              },
+              {
+                capacity: "499.999",
+                lockLabel: "secp256k1_blake160 (change)",
+                address: "ckt1qy…feed1a",
+                accent: "neutral",
+              },
             ]}
           />
         </div>

@@ -48,7 +48,11 @@ function SpacingStory() {
               <div className="flex flex-col gap-0.5">
                 <span className="text-[12px] font-semibold text-text-1">{r.name}</span>
                 <span
-                  style={{ fontFamily: 'ui-monospace,"SF Mono",Menlo,monospace', fontSize: 10.5, color: "var(--text-3)" }}
+                  style={{
+                    fontFamily: 'ui-monospace,"SF Mono",Menlo,monospace',
+                    fontSize: 10.5,
+                    color: "var(--text-3)",
+                  }}
                 >
                   {r.value}
                 </span>
@@ -77,7 +81,11 @@ function SpacingStory() {
               <div className="flex gap-2 items-baseline">
                 <span className="text-body font-semibold text-text-1">{h.name}</span>
                 <span
-                  style={{ fontFamily: 'ui-monospace,"SF Mono",Menlo,monospace', fontSize: 10.5, color: "var(--text-3)" }}
+                  style={{
+                    fontFamily: 'ui-monospace,"SF Mono",Menlo,monospace',
+                    fontSize: 10.5,
+                    color: "var(--text-3)",
+                  }}
                 >
                   {h.value}
                 </span>

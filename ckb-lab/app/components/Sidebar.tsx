@@ -6,9 +6,7 @@ import { SettingOutlined, ApiOutlined } from "@ant-design/icons";
 import { CubeMark } from "./CubeMark";
 import { NAV_ITEMS } from "@/lib/nav-items";
 
-const settingsItems = [
-  { key: "settings", icon: <SettingOutlined />, label: "Settings" },
-];
+const settingsItems = [{ key: "settings", icon: <SettingOutlined />, label: "Settings" }];
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -19,9 +17,7 @@ export function Sidebar() {
       <div className="flex items-center gap-3 px-5 h-header border-b border-app-border shrink-0">
         <CubeMark size={26} />
         <div>
-          <div className="text-subhead font-brand text-text-1 leading-tight">
-            CKBuilder
-          </div>
+          <div className="text-subhead font-brand text-text-1 leading-tight">CKBuilder</div>
           <div className="text-micro text-sidebar-group uppercase tracking-widest2 font-semibold">
             Bootcamp Console
           </div>
@@ -41,12 +37,7 @@ export function Sidebar() {
       {/* Footer */}
       <div className="border-t border-app-border shrink-0">
         <div className="px-3 py-2">
-          <Menu
-            mode="inline"
-            selectedKeys={[]}
-            items={settingsItems}
-            style={{ border: "none" }}
-          />
+          <Menu mode="inline" selectedKeys={[]} items={settingsItems} style={{ border: "none" }} />
         </div>
 
         {/* Node status row */}

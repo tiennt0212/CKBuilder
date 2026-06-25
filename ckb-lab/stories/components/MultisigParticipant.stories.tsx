@@ -14,8 +14,7 @@ function MultisigParticipantStory() {
   const update = (i: number, val: string) =>
     setAddresses((prev) => prev.map((a, j) => (j === i ? val : a)));
 
-  const remove = (i: number) =>
-    setAddresses((prev) => prev.filter((_, j) => j !== i));
+  const remove = (i: number) => setAddresses((prev) => prev.filter((_, j) => j !== i));
 
   return (
     <div className="flex flex-col gap-3 max-w-[500px]">

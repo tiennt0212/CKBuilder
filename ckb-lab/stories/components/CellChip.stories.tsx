@@ -8,11 +8,7 @@ function CellChipStory() {
         <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-text-3 mb-2">
           No accent (input cell)
         </div>
-        <CellChip
-          capacity="990.001"
-          lockLabel="secp256k1_blake160"
-          address="ckt1qy…feed1a"
-        />
+        <CellChip capacity="990.001" lockLabel="secp256k1_blake160" address="ckt1qy…feed1a" />
       </div>
 
       <div>

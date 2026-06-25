@@ -46,14 +46,14 @@
   --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
 
   /* ── Font sizes ── */
-  --text-2xs:     10px;    /* badge / chip text      */
-  --text-micro:   11px;    /* sidebar subtitle       */
-  --text-hint:    11.5px;  /* breadcrumb, field hint */
-  --text-body:    13.5px;  /* body / description     */
-  --text-numeral: 14px;    /* data value in summary rows */
-  --text-subhead: 15px;    /* card title, brand name */
-  --text-title:   17px;    /* page title in header   */
-  --text-figure:  18px;    /* strong/prominent summary figure */
+  --text-2xs: 10px; /* badge / chip text      */
+  --text-micro: 11px; /* sidebar subtitle       */
+  --text-hint: 11.5px; /* breadcrumb, field hint */
+  --text-body: 13.5px; /* body / description     */
+  --text-numeral: 14px; /* data value in summary rows */
+  --text-subhead: 15px; /* card title, brand name */
+  --text-title: 17px; /* page title in header   */
+  --text-figure: 18px; /* strong/prominent summary figure */
 
   /* ── Font weights ── */
   --font-weight-brand: 650;
@@ -76,11 +76,11 @@
   --input-border: #d6dadf;
   --input-bg: #ffffff;
   --text-1: rgba(17, 24, 28, 0.92);
-  --text-2: rgba(17, 24, 28, 0.60);
-  --text-3: rgba(17, 24, 28, 0.40);
+  --text-2: rgba(17, 24, 28, 0.6);
+  --text-3: rgba(17, 24, 28, 0.4);
   --primary: #0a9d6c;
   --primary-press: #08855b;
-  --primary-tint: rgba(10, 157, 108, 0.10);
+  --primary-tint: rgba(10, 157, 108, 0.1);
   --dot: #13c08a;
   --dot-halo: rgba(19, 192, 138, 0.16);
   --tag-bg: rgba(17, 24, 28, 0.05);
@@ -89,12 +89,12 @@
   --panel-bg: #f8f9fa;
   --code-bg: #fbfcfc;
   --code-text: rgba(17, 24, 28, 0.72);
-  --shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 1px 3px rgba(16, 24, 40, .05);
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.05);
   --sidebar-bg: #ffffff;
   --sidebar-item-text: rgba(17, 24, 28, 0.66);
   --sidebar-group-label: rgba(17, 24, 28, 0.36);
   --sidebar-hover: rgba(17, 24, 28, 0.04);
-  --sidebar-active-bg: rgba(10, 157, 108, 0.10);
+  --sidebar-active-bg: rgba(10, 157, 108, 0.1);
   --sidebar-active-text: #0a9d6c;
   --rust: #c0683a;
   --rust-tint: rgba(192, 104, 58, 0.08);
@@ -113,21 +113,21 @@
   --border-2: #34373b;
   --input-border: #3a3d41;
   --input-bg: #202123;
-  --text-1: rgba(255, 255, 255, 0.90);
+  --text-1: rgba(255, 255, 255, 0.9);
   --text-2: rgba(255, 255, 255, 0.56);
-  --text-3: rgba(255, 255, 255, 0.40);
+  --text-3: rgba(255, 255, 255, 0.4);
   --primary: #2bd396;
   --primary-press: #22bd85;
   --primary-tint: rgba(43, 211, 150, 0.14);
   --dot: #2bd396;
-  --dot-halo: rgba(43, 211, 150, 0.20);
+  --dot-halo: rgba(43, 211, 150, 0.2);
   --tag-bg: rgba(255, 255, 255, 0.07);
   --wallet-bg: #202123;
   --seg-bg: #26282b;
   --panel-bg: #202123;
   --code-bg: #18191b;
-  --code-text: rgba(255, 255, 255, 0.70);
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.30);
+  --code-text: rgba(255, 255, 255, 0.7);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   --sidebar-bg: #161719;
   --sidebar-item-text: rgba(255, 255, 255, 0.56);
   --sidebar-group-label: rgba(255, 255, 255, 0.34);
@@ -135,7 +135,7 @@
   --sidebar-active-bg: rgba(43, 211, 150, 0.14);
   --sidebar-active-text: #3fd49b;
   --rust: #e3925f;
-  --rust-tint: rgba(227, 146, 95, 0.10);
+  --rust-tint: rgba(227, 146, 95, 0.1);
   --hover-overlay: rgba(255, 255, 255, 0.05);
   --status-pend: #e0a84a;
   --status-pend-bg: rgba(224, 168, 74, 0.14);

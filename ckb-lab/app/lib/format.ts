@@ -28,9 +28,7 @@ export function utf8ToHex(str: string): string {
 export function hexToUtf8(hex: string): string {
   const clean = hex.startsWith("0x") ? hex.slice(2) : hex;
   if (clean.length === 0) return "";
-  const bytes = new Uint8Array(
-    clean.match(/.{2}/g)!.map((b) => parseInt(b, 16))
-  );
+  const bytes = new Uint8Array(clean.match(/.{2}/g)!.map((b) => parseInt(b, 16)));
   return new TextDecoder().decode(bytes);
 }
 

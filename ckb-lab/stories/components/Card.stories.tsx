@@ -27,7 +27,9 @@ function CardStory() {
           title={
             <div>
               <div className="text-subhead font-semibold text-text-1">Transfer CKB</div>
-              <div className="text-hint text-text-3 font-normal">Send capacity to another address</div>
+              <div className="text-hint text-text-3 font-normal">
+                Send capacity to another address
+              </div>
             </div>
           }
           style={CARD_STYLE}

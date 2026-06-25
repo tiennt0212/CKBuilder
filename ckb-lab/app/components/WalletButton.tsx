@@ -58,7 +58,10 @@ export function WalletButton() {
         <Button
           type="text"
           icon={<SwapOutlined style={{ fontSize: 13 }} />}
-          onClick={() => { setDropOpen(false); open(); }}
+          onClick={() => {
+            setDropOpen(false);
+            open();
+          }}
           className="w-full! justify-start! px-4! py-2! h-auto! rounded-none! text-body! text-text-1! hover:bg-hover-overlay!"
         >
           Switch wallet
@@ -66,7 +69,10 @@ export function WalletButton() {
         <Button
           type="text"
           icon={<PoweroffOutlined style={{ fontSize: 13 }} />}
-          onClick={() => { setDropOpen(false); disconnect(); }}
+          onClick={() => {
+            setDropOpen(false);
+            disconnect();
+          }}
           className="w-full! justify-start! px-4! py-2! h-auto! rounded-none! text-body! text-rust! hover:bg-rust-tint! hover:text-rust!"
         >
           Disconnect
@@ -107,9 +113,7 @@ export function WalletButton() {
       <button
         className={[
           "flex items-center gap-2 px-3 py-1 rounded-[10px] border transition-colors",
-          dropOpen
-            ? "border-primary"
-            : "border-input-border hover:border-primary",
+          dropOpen ? "border-primary" : "border-input-border hover:border-primary",
         ].join(" ")}
         style={{ height: 38 }}
       >

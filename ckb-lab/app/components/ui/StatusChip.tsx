@@ -13,10 +13,7 @@ export function StatusChip({ variant, label }: StatusChipProps) {
         isOk ? "text-primary bg-primary-tint" : "text-status-pend bg-status-pend-bg"
       }`}
     >
-      <span
-        className="w-1.5 h-1.5 rounded-full"
-        style={{ background: "currentColor" }}
-      />
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: "currentColor" }} />
       {label ?? (isOk ? "Confirmed" : "Pending")}
     </span>
   );

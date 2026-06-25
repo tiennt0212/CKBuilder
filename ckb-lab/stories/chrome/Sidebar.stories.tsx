@@ -11,7 +11,11 @@ const meta: Meta<{ activeKey: string; latency?: string }> = {
   decorators: [
     (Story, ctx) => {
       (usePathname as ReturnType<typeof fn>).mockReturnValue(ctx.args.activeKey ?? ROUTES.TRANSFER);
-      (useRouter as ReturnType<typeof fn>).mockReturnValue({ push: fn(), replace: fn(), back: fn() });
+      (useRouter as ReturnType<typeof fn>).mockReturnValue({
+        push: fn(),
+        replace: fn(),
+        back: fn(),
+      });
       return (
         <div style={{ width: 248, height: 680 }}>
           <Story />

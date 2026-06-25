@@ -10,18 +10,11 @@ interface PageShellProps {
   children?: ReactNode;
 }
 
-export function PageShell({
-  title,
-  description,
-  status = "todo",
-  children,
-}: PageShellProps) {
+export function PageShell({ title, description, status = "todo", children }: PageShellProps) {
   return (
     <div>
       <div className="mb-5">
-        <h2 className="m-0 text-title font-semibold text-text-1 tracking-tightest">
-          {title}
-        </h2>
+        <h2 className="m-0 text-title font-semibold text-text-1 tracking-tightest">{title}</h2>
         <p className="m-0 text-body text-text-2">{description}</p>
       </div>
 

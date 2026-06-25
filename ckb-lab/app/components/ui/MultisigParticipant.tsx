@@ -16,9 +16,7 @@ export function MultisigParticipant({
 }: MultisigParticipantProps) {
   return (
     <div className="flex items-center gap-2.5">
-      <div
-        className="w-5 h-5 rounded-[6px] bg-seg-bg text-text-2 text-[11px] font-semibold grid place-items-center flex-shrink-0"
-      >
+      <div className="w-5 h-5 rounded-[6px] bg-seg-bg text-text-2 text-[11px] font-semibold grid place-items-center flex-shrink-0">
         {index}
       </div>
       <Input

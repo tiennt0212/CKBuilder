@@ -65,11 +65,7 @@ export function CopyText({
         : "text-text-3! hover:text-primary!";
 
   return (
-    <span
-      className={["flex items-center gap-1", className]
-        .filter(Boolean)
-        .join(" ")}
-    >
+    <span className={["flex items-center gap-1", className].filter(Boolean).join(" ")}>
       {text !== undefined ? (
         <span className={textClassName}>{display ?? text}</span>
       ) : (

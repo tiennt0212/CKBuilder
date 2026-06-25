@@ -55,11 +55,9 @@ export function CellExplorerForm() {
   const [selectedKey, setSelectedKey] = useState<string>(CELLS[0].key);
 
   const filtered = CELLS.filter((c) => {
-    const matchesFilter =
-      filter === "All" || (filter === "CKB" && !c.type) || c.type === filter;
+    const matchesFilter = filter === "All" || (filter === "CKB" && !c.type) || c.type === filter;
     const q = search.toLowerCase();
-    const matchesSearch =
-      !q || c.op.toLowerCase().includes(q) || c.lock.toLowerCase().includes(q);
+    const matchesSearch = !q || c.op.toLowerCase().includes(q) || c.lock.toLowerCase().includes(q);
     return matchesFilter && matchesSearch;
   });
 
@@ -144,8 +142,7 @@ export function CellExplorerForm() {
             pagination={false}
             onRow={(r) => ({
               onClick: () => setSelectedKey(r.key),
-              style:
-                r.key === selectedKey ? { background: "var(--primary-tint)" } : undefined,
+              style: r.key === selectedKey ? { background: "var(--primary-tint)" } : undefined,
               className: "cursor-pointer",
             })}
           />
@@ -157,9 +154,7 @@ export function CellExplorerForm() {
         title={
           <div>
             <div className="text-subhead font-semibold text-text-1">Cell detail</div>
-            <div className="text-hint text-text-3 font-normal">
-              Live cell · {selectedCell.op}
-            </div>
+            <div className="text-hint text-text-3 font-normal">Live cell · {selectedCell.op}</div>
           </div>
         }
         style={CARD_STYLE}
@@ -172,11 +167,7 @@ export function CellExplorerForm() {
             <SummaryRow label="Free" value="939.00" unit="CKB" />
           </SummaryPanel>
 
-          <RawBlock
-            data={LOCK_SCRIPT}
-            label="Lock script · secp256k1_blake160"
-            defaultOpen
-          />
+          <RawBlock data={LOCK_SCRIPT} label="Lock script · secp256k1_blake160" defaultOpen />
 
           <details>
             <summary
@@ -190,9 +181,7 @@ export function CellExplorerForm() {
               </span>
             </summary>
             <div className="rounded-[10px] bg-code-bg border border-app-border p-4">
-              <pre className="text-hint text-code-text font-mono leading-[1.65] m-0">
-                null
-              </pre>
+              <pre className="text-hint text-code-text font-mono leading-[1.65] m-0">null</pre>
             </div>
           </details>
 

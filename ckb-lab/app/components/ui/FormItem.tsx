@@ -11,7 +11,9 @@ export function FormItem({ label, hint, ...rest }: CkbFormItemProps) {
       <span>{label}</span>
       <span className="text-hint text-text-3 font-normal tabular-nums">{hint}</span>
     </span>
-  ) : label;
+  ) : (
+    label
+  );
 
   return <Form.Item label={resolvedLabel} {...rest} />;
 }

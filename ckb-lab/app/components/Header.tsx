@@ -22,12 +22,8 @@ export function Header({ pathname }: HeaderProps) {
     <div className="flex items-center px-6 h-header bg-bg-elev border-b border-app-border shadow-app shrink-0">
       {/* Left: breadcrumb + page title */}
       <div className="flex-1">
-        <div className="text-hint text-text-3 leading-tight mb-px">
-          {page.group}
-        </div>
-        <div className="text-title font-semibold text-text-1 tracking-tightest">
-          {page.title}
-        </div>
+        <div className="text-hint text-text-3 leading-tight mb-px">{page.group}</div>
+        <div className="text-title font-semibold text-text-1 tracking-tightest">{page.title}</div>
       </div>
 
       {/* Right cluster */}

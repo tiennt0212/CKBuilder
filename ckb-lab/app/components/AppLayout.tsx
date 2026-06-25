@@ -13,10 +13,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <Layout className="min-h-screen">
-      <Sider
-        width={248}
-        className="h-screen sticky top-0 overflow-hidden"
-      >
+      <Sider width={248} className="h-screen sticky top-0 overflow-hidden">
         <Sidebar />
       </Sider>
 

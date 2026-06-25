@@ -38,7 +38,12 @@ function ButtonsStory() {
         </div>
         <Space style={{ maxWidth: 320, width: "100%" }}>
           <Button style={{ flex: 1, minWidth: 120 }}>Reset</Button>
-          <Button type="primary" style={{ flex: 1, minWidth: 120 }} icon={<ArrowRightOutlined />} iconPosition="end">
+          <Button
+            type="primary"
+            style={{ flex: 1, minWidth: 120 }}
+            icon={<ArrowRightOutlined />}
+            iconPosition="end"
+          >
             Deposit
           </Button>
         </Space>

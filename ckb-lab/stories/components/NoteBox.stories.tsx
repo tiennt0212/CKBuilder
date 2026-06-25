@@ -9,8 +9,8 @@ function NoteBoxStory() {
           Info note
         </div>
         <NoteBox>
-          Each xUDT cell requires a minimum of <strong>142 CKB</strong> for capacity.
-          Make sure your wallet has enough CKB to cover the cell cost.
+          Each xUDT cell requires a minimum of <strong>142 CKB</strong> for capacity. Make sure your
+          wallet has enough CKB to cover the cell cost.
         </NoteBox>
       </div>
 

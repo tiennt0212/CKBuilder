@@ -27,7 +27,11 @@ const TAG_RUST = (
 );
 
 function navLabel(href: string, children: React.ReactNode) {
-  return <Link href={href} className="text-inherit!">{children}</Link>;
+  return (
+    <Link href={href} className="text-inherit!">
+      {children}
+    </Link>
+  );
 }
 
 export const NAV_ITEMS: MenuProps["items"] = [

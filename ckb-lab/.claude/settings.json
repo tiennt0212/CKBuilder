@@ -1,9 +1,5 @@
 {
   "permissions": {
-    "allow": [
-      "Bash(cd * && pnpm build*)",
-      "Bash(cd * && pnpm lint*)",
-      "Bash(gunzip -c *)"
-    ]
+    "allow": ["Bash(cd * && pnpm build*)", "Bash(cd * && pnpm lint*)", "Bash(gunzip -c *)"]
   }
 }

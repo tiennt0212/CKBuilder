@@ -4,12 +4,7 @@ import { useState } from "react";
 import { Button, Dropdown } from "antd";
 import { CheckOutlined, DownOutlined } from "@ant-design/icons";
 import { useNetworkStore } from "@/stores/network";
-import {
-  NETWORKS,
-  NETWORK_LABELS,
-  NETWORK_RPC_URLS,
-  type Network,
-} from "@/lib/ccc-client";
+import { NETWORKS, NETWORK_LABELS, NETWORK_RPC_URLS, type Network } from "@/lib/ccc-client";
 
 // Dot colors per design spec:
 // - mainnet: muted grey (var(--text-3)) — not using indigo to avoid false urgency
@@ -61,9 +56,7 @@ export function NetworkPill() {
                 {NETWORK_RPC_URLS[n]}
               </span>
             </span>
-            {isActive && (
-              <CheckOutlined className="text-primary text-xs shrink-0" />
-            )}
+            {isActive && <CheckOutlined className="text-primary text-xs shrink-0" />}
           </button>
         );
       })}
