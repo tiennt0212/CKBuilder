@@ -18,7 +18,10 @@ const HIDDEN: TransferStatus[] = ["idle", "building", "signing"];
 
 type BannerVariant = "amber" | "primary" | "green" | "rust";
 
-const VARIANTS: Record<BannerVariant, { border: string; bg: string; iconBg: string; iconColor: string }> = {
+const VARIANTS: Record<
+  BannerVariant,
+  { border: string; bg: string; iconBg: string; iconColor: string }
+> = {
   amber: {
     border: "var(--banner-pend-border)",
     bg: "var(--status-pend-bg)",
@@ -57,7 +60,13 @@ type BannerConfig = {
   action?: React.ReactNode;
 };
 
-export function TxStatusBanner({ status, txHash, blockNumber, error, onRetry }: TxStatusBannerProps) {
+export function TxStatusBanner({
+  status,
+  txHash,
+  blockNumber,
+  error,
+  onRetry,
+}: TxStatusBannerProps) {
   const { network } = useNetworkStore();
 
   if (HIDDEN.includes(status)) return null;
@@ -135,13 +144,15 @@ export function TxStatusBanner({ status, txHash, blockNumber, error, onRetry }: 
       variant: "green",
       icon: <CheckOutlined style={{ fontSize: 20, color: "var(--primary)" }} />,
       title: "Transaction confirmed ✓",
-      subtitle: blockNumber != null ? (
-        <>
-          Committed in block <span className="font-mono">#{Number(blockNumber).toLocaleString()}</span>
-        </>
-      ) : (
-        "Committed on-chain"
-      ),
+      subtitle:
+        blockNumber != null ? (
+          <>
+            Committed in block{" "}
+            <span className="font-mono">#{Number(blockNumber).toLocaleString()}</span>
+          </>
+        ) : (
+          "Committed on-chain"
+        ),
       action: (
         <>
           {txHash && explorerBase && (
@@ -209,9 +220,7 @@ export function TxStatusBanner({ status, txHash, blockNumber, error, onRetry }: 
         <div className="text-body font-semibold text-text-1">{cfg.title}</div>
         <div className="text-hint text-text-3 mt-0.5">{cfg.subtitle}</div>
       </div>
-      {cfg.action && (
-        <div className="flex items-center gap-1.5 flex-shrink-0">{cfg.action}</div>
-      )}
+      {cfg.action && <div className="flex items-center gap-1.5 flex-shrink-0">{cfg.action}</div>}
     </div>
   );
 }

@@ -5,11 +5,10 @@ import { useNetworkStore } from "@/stores/network";
 
 const MOCK_TX_HASH = "0xa3f9c8d21b4e5f72a981c3b07d46e258f19034a67c82b154d709e3f81200c7d1";
 
-const withNetwork = (network: Network) =>
-  (Story: React.ComponentType) => {
-    useNetworkStore.setState({ network });
-    return <Story />;
-  };
+const withNetwork = (network: Network) => (Story: React.ComponentType) => {
+  useNetworkStore.setState({ network });
+  return <Story />;
+};
 
 const meta = {
   title: "Components/TxStatusBanner",
