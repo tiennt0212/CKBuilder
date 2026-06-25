@@ -1,18 +1,20 @@
 "use client";
 
-import { Card, Form, Input, Button, Segmented } from "antd";
-import { ArrowRightOutlined, CopyOutlined } from "@ant-design/icons";
-import { useEffect, useState } from "react";
-import { FormItem } from "@/components/ui/FormItem";
 import { CellChip } from "@/components/ui/CellChip";
-import { SummaryPanel, SummaryRow } from "@/components/ui/SummaryPanel";
-import { RawBlock } from "@/components/ui/RawBlock";
-import { useTransfer } from "@/features/transfer/useTransfer";
-import { useNetworkStore } from "@/stores/network";
-import { ckbToShannons, Network } from "@/lib";
-import { useWalletAccount } from "@/features/wallet/useWalletAccount";
-import { useForm } from "antd/es/form/Form";
 import { CopyText } from "@/components/ui/CopyText";
+import { FormItem } from "@/components/ui/FormItem";
+import { RawBlock } from "@/components/ui/RawBlock";
+import { SummaryPanel, SummaryRow } from "@/components/ui/SummaryPanel";
+import { useRawTx } from "@/features/common/useRawTx";
+import { useTransfer } from "@/features/transfer/useTransfer";
+import { useWalletAccount } from "@/features/wallet/useWalletAccount";
+import { ckbToShannons, formatCapacity, Network, shannonToCKB, truncateAddress } from "@/lib";
+import { addressFromLock } from "@/lib/ckb/utils";
+import { useNetworkStore } from "@/stores/network";
+import { ArrowRightOutlined, CopyOutlined } from "@ant-design/icons";
+import { Button, Card, Form, Input, InputNumber, Segmented } from "antd";
+import { useForm } from "antd/es/form/Form";
+import { useEffect, useState } from "react";
 
 const FEE_RATES = [
   { value: 1000, name: "Slow", sub: "1,000 sh/KB" },
@@ -39,9 +41,7 @@ const MOCK_TX = {
       dep_type: "dep_group",
     },
   ],
-  inputs: [
-    { previous_output: { tx_hash: "0xabc123def456…", index: "0x0" }, since: "0x0" },
-  ],
+  inputs: [{ previous_output: { tx_hash: "0xabc123def456…", index: "0x0" }, since: "0x0" }],
   outputs: [
     {
       capacity: "0x174876e800",
@@ -59,20 +59,22 @@ const MOCK_TX = {
 };
 
 export function TransferForm() {
-  const [feeRate, setFeeRate] = useState(2000);
   const [activeTab, setActiveTab] = useState("summary");
-  const { transfer, status } = useTransfer();
-  const { network } = useNetworkStore();
+  const { buildTx, fee, transfer, status } = useTransfer();
+  const { network, lockLabelMap, cccClient } = useNetworkStore();
   const addressPlaceholder = network === Network.Testnet ? "ckt…" : "ckb…";
   const { address, balance } = useWalletAccount();
   const [form] = useForm();
+  const amountCkb = Form.useWatch("amount", form);
+  const from = Form.useWatch("from", form);
 
+  const { rawTx, txJson, txBytes, isBuilding } = useRawTx();
 
   useEffect(() => {
     if (address) {
       form.setFieldValue("from", address);
     }
-  }, [address])
+  }, [address]);
 
   return (
     <div className="grid grid-cols-[1fr_1.07fr] gap-5 items-start">
@@ -95,23 +97,44 @@ export function TransferForm() {
           layout="vertical"
           requiredMark={false}
           colon={false}
+          onValuesChange={async (_, values) => {
+            const { to, amount, feeRate } = values;
+            if (!to || !amount) return;
+            try {
+              await form.validateFields();
+            } catch (error: any) {
+              if (error?.errorFields?.length > 0) return;
+            }
+            await rawTx(() => buildTx({ to, amountCkb: amount.toString(), feeRate }));
+            console.group("Transaction Preview");
+            console.log("Form Values:", values);
+            console.log("Tx JSON:", txJson);
+            console.log("Tx Bytes:", txBytes);
+            console.groupEnd();
+          }}
           onFinish={(values) => {
-            const { to, amount } = values;
-            transfer(to, ckbToShannons(amount)).then(txhash => console.log("Transaction sent:", txhash)).catch(err => console.error(err));
-          }}>
-          <FormItem name="from" label="From Address" style={{ marginBottom: 14 }} >
+            const { to, amount, feeRate } = values;
+            transfer({ to, amountCkb: amount.toString(), feeRate })
+              .then((txhash) => console.log("Transaction sent:", txhash))
+              .catch((err) => console.error(err));
+          }}
+        >
+          <FormItem name="from" label="From Address" style={{ marginBottom: 14 }}>
             <Input
               placeholder={addressPlaceholder}
-              suffix={
-                address && <CopyText text={address} />
-              }
+              suffix={address && <CopyText text={address} />}
               className="font-mono"
               style={{ height: 42 }}
               disabled
             />
           </FormItem>
 
-          <FormItem name="to" label="To Address" style={{ marginBottom: 14 }}>
+          <FormItem
+            name="to"
+            label="To Address"
+            style={{ marginBottom: 14 }}
+            rules={[{ required: true, message: "Please enter the recipient address" }]}
+          >
             <Input
               placeholder={addressPlaceholder}
               suffix={
@@ -122,8 +145,31 @@ export function TransferForm() {
             />
           </FormItem>
 
-          <FormItem name="amount" label="Amount" hint="Min: 61 CKB" style={{ marginBottom: 14 }}>
-            <Input
+          <FormItem
+            name="amount"
+            label="Amount"
+            hint="Min: 61 CKB"
+            style={{ marginBottom: 14 }}
+            rules={[
+              { required: true, message: "Please enter the amount to send" },
+              {
+                validator: (_, value) => {
+                  if (!value) {
+                    return Promise.resolve();
+                  } else if (value < 61) {
+                    return Promise.reject(new Error("Amount must be at least 61 CKB"));
+                  } else if (balance && ckbToShannons(String(value)) > balance) {
+                    return Promise.reject(
+                      new Error(`Amount cannot exceed your balance of ${shannonToCKB(balance)} CKB`)
+                    );
+                  } else {
+                    return Promise.resolve();
+                  }
+                },
+              },
+            ]}
+          >
+            <InputNumber
               placeholder="0.00000000"
               suffix={
                 <span className="flex items-center gap-2">
@@ -134,15 +180,18 @@ export function TransferForm() {
                 </span>
               }
               style={{ height: 42, fontSize: 20, fontWeight: 600 }}
-              className="tabular-nums"
+              className="tabular-nums w-full!"
             />
           </FormItem>
 
-          <FormItem name="feeRate" label="Fee Rate" style={{ marginBottom: 20 }}>
+          <FormItem
+            name="feeRate"
+            label="Fee Rate"
+            style={{ marginBottom: 20 }}
+            initialValue={FEE_RATES[0].value}
+          >
             <Segmented
               block
-              value={feeRate}
-              onChange={(v) => setFeeRate(v as number)}
               options={FEE_RATES.map((r) => ({
                 value: r.value,
                 label: (
@@ -188,51 +237,81 @@ export function TransferForm() {
       >
         {activeTab === "summary" ? (
           <div className="flex flex-col gap-4">
-            <div className="rounded-[10px] bg-panel-bg p-4">
-              <div className="grid grid-cols-[1fr_20px_1fr] gap-3 items-start">
-                <div>
-                  <div className="text-2xs font-semibold text-text-3 uppercase tracking-widest2 mb-2">
-                    INPUTS · 1 CELL
+            {!!txJson && (
+              <div className="rounded-[10px] bg-panel-bg p-4">
+                <div className="grid grid-cols-[1fr_20px_1fr] gap-3 items-start">
+                  <div>
+                    <div className="text-2xs font-semibold text-text-3 uppercase tracking-widest2 mb-2">
+                      INPUTS · {txJson.inputs.length} CELL(s)
+                    </div>
+                    {txJson.inputs.map((i) => {
+                      const address = i.cellOutput?.lock.codeHash
+                        ? addressFromLock(cccClient, i.cellOutput.lock)
+                        : null;
+                      return (
+                        <CellChip
+                          key={`${i.previousOutput.txHash}-${i.previousOutput.index}`}
+                          capacity={
+                            i.cellOutput?.capacity
+                              ? formatCapacity(i.cellOutput.capacity)
+                              : "Unknown"
+                          }
+                          lockLabel={
+                            i.cellOutput?.lock.codeHash
+                              ? lockLabelMap[i.cellOutput?.lock.codeHash]
+                              : "Unknown"
+                          }
+                          address={address ? truncateAddress(address.toString()) : "Unknown"}
+                          accent="primary"
+                        />
+                      );
+                    })}
                   </div>
-                  <CellChip
-                    capacity="990.001"
-                    lockLabel="secp256k1_blake160"
-                    address="ckt1qy…feed1a"
-                  />
-                </div>
-                <div className="flex items-center justify-center" style={{ paddingTop: 34 }}>
-                  <ArrowRightOutlined style={{ color: "var(--text-3)" }} />
-                </div>
-                <div>
-                  <div className="text-2xs font-semibold text-text-3 uppercase tracking-widest2 mb-2">
-                    OUTPUTS · 2 CELLS
+                  <div className="flex items-center justify-center" style={{ paddingTop: 34 }}>
+                    <ArrowRightOutlined style={{ color: "var(--text-3)" }} />
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <CellChip
-                      capacity="100"
-                      lockLabel="secp256k1_blake160"
-                      address="ckt1qy…m3f9a"
-                      accent="primary"
-                    />
-                    <CellChip
-                      capacity="889.999"
-                      lockLabel="secp256k1_blake160 (change)"
-                      address="ckt1qy…feed1a"
-                      accent="neutral"
-                    />
+                  <div>
+                    <div className="text-2xs font-semibold text-text-3 uppercase tracking-widest2 mb-2">
+                      OUTPUTS · {txJson.outputs.length} CELL(s)
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {txJson.outputs.map((o) => {
+                        const address = addressFromLock(cccClient, o.lock);
+                        return (
+                          <CellChip
+                            key={o.lock.args}
+                            capacity={formatCapacity(o.capacity)}
+                            lockLabel={o.lock.codeHash ? lockLabelMap[o.lock.codeHash] : "Unknown"}
+                            address={address ? truncateAddress(address.toString()) : "Unknown"}
+                            // Set accent based on the owner of the output cell(s)
+                            accent={address?.toString() === from ? "primary" : "neutral"}
+                          />
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
 
             <SummaryPanel>
-              <SummaryRow label="Amount" value="100" unit="CKB" />
-              <SummaryRow label="Fee" value="0.001" unit="CKB" />
-              <SummaryRow label="Balance after" value="889.999" unit="CKB" strong divider />
+              {amountCkb != null && (
+                <SummaryRow label="Amount" value={String(amountCkb)} unit="CKB" />
+              )}
+              {!!fee && <SummaryRow label="Fee" value={shannonToCKB(fee)} unit="CKB" />}
+              {!!balance && !!fee && amountCkb != null && (
+                <SummaryRow
+                  label="Balance after"
+                  value={shannonToCKB(balance - ckbToShannons(String(amountCkb)) - fee)}
+                  unit="CKB"
+                  strong
+                  divider
+                />
+              )}
             </SummaryPanel>
           </div>
         ) : (
-          <RawBlock data={MOCK_TX} byteCount={320} />
+          !!txJson && <RawBlock data={txJson} byteCount={txBytes?.length} />
         )}
       </Card>
     </div>

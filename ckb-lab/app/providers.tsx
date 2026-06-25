@@ -10,9 +10,7 @@ import type { ReactNode } from "react";
 
 function AntdThemeProvider({ children }: { children: ReactNode }) {
   const { mode } = useTheme();
-  return (
-    <ConfigProvider theme={ckbTheme(mode)}>{children}</ConfigProvider>
-  );
+  return <ConfigProvider theme={ckbTheme(mode)}>{children}</ConfigProvider>;
 }
 
 function NetworkSync() {
@@ -21,7 +19,7 @@ function NetworkSync() {
 
   useEffect(() => {
     setClient(cccClient);
-  }, [cccClient, setClient]);
+  }, [cccClient]);
 
   return null;
 }

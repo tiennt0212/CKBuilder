@@ -12,7 +12,7 @@ interface RawBlockProps {
 export function RawBlock({ data, byteCount, defaultOpen = true, label }: RawBlockProps) {
   const [open, setOpen] = useState(defaultOpen);
   const resolvedLabel = byteCount
-    ? `${label ?? "Raw Transaction"} · ~${byteCount} bytes`
+    ? `${label ?? "Raw Transaction"} · ~${byteCount || 0} bytes`
     : (label ?? "Raw Transaction");
 
   return (

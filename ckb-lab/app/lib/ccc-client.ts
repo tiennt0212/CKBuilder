@@ -1,7 +1,7 @@
 import { ccc, CellDepInfoLike, KnownScript, Script } from "@ckb-ccc/core";
 
 export const Network = {
-  Devnet:  "devnet",
+  Devnet: "devnet",
   Testnet: "testnet",
   Mainnet: "mainnet",
 } as const;
@@ -16,15 +16,67 @@ export type ScriptInfo = Pick<Script, "codeHash" | "hashType"> & {
 // Update this when deploying to a new devnet
 export const DEVNET_SCRIPTS: Record<string, ScriptInfo> = {
   [KnownScript.Secp256k1Blake160]: {
-    codeHash:
-      "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
+    codeHash: "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
     hashType: "type",
     cellDeps: [
       {
         cellDep: {
           outPoint: {
-            txHash:
-              "0x71a7ba8fc96349fea0ed3a5c47992e3b4084b031a42264a018e0072e8172e46c",
+            txHash: "0x4d804f1495612631da202fe9902fa9899118554b08138cfe5dfb50e1ede76293",
+            index: 0,
+          },
+          depType: "depGroup",
+        },
+      },
+    ],
+  },
+  [KnownScript.Secp256k1Multisig]: {
+    codeHash: "0x5c5069eb0857efc65e1bca0c07df34c31663b3622fd3876c876320fc9634e2a8",
+    hashType: "type",
+    cellDeps: [
+      {
+        cellDep: {
+          outPoint: {
+            txHash: "0x4d804f1495612631da202fe9902fa9899118554b08138cfe5dfb50e1ede76293",
+            index: 1,
+          },
+          depType: "depGroup",
+        },
+      },
+    ],
+  },
+  [KnownScript.AnyoneCanPay]: {
+    codeHash: "0xe09352af0066f3162287763ce4ddba9af6bfaeab198dc7ab37f8c71c9e68bb5b",
+    hashType: "type",
+    cellDeps: [
+      {
+        cellDep: {
+          outPoint: {
+            txHash: "0x1bb87da347a776a927ab6593e1e10304ca195f8e24279f039008d5e3115b1bf7",
+            index: 8,
+          },
+          depType: "code",
+        },
+      },
+    ],
+  },
+  [KnownScript.OmniLock]: {
+    codeHash: "0x9c6933d977360f115a3e9cd5a2e0e475853681b80d775d93ad0f8969da343e56",
+    hashType: "type",
+    cellDeps: [
+      {
+        cellDep: {
+          outPoint: {
+            txHash: "0x1bb87da347a776a927ab6593e1e10304ca195f8e24279f039008d5e3115b1bf7",
+            index: 7,
+          },
+          depType: "code",
+        },
+      },
+      {
+        cellDep: {
+          outPoint: {
+            txHash: "0x4d804f1495612631da202fe9902fa9899118554b08138cfe5dfb50e1ede76293",
             index: 0,
           },
           depType: "depGroup",
@@ -33,16 +85,14 @@ export const DEVNET_SCRIPTS: Record<string, ScriptInfo> = {
     ],
   },
   [KnownScript.XUdt]: {
-    codeHash:
-      "0x50bd8d6680b8b9cf98b73f3c08faf8b9a21914bd03b94c17f197ef5b6a1c18ba",
-    hashType: "data1",
+    codeHash: "0x1a1e4fef34f5982906f745b048fe7b1089647e82346074e0f32c2ece26cf6b1e",
+    hashType: "type",
     cellDeps: [
       {
         cellDep: {
           outPoint: {
-            txHash:
-              "0xc07844ce21b38e4b071dd0e1ee3b0e27afd8d7532491327f39b786343f558ab7",
-            index: 0,
+            txHash: "0x1bb87da347a776a927ab6593e1e10304ca195f8e24279f039008d5e3115b1bf7",
+            index: 6,
           },
           depType: "code",
         },
@@ -80,12 +130,30 @@ export function buildCccClient(network: Network): ccc.Client {
 }
 
 export function readEnvNetwork(): Network {
-  const network =
-    typeof process !== "undefined"
-      ? process.env.NEXT_PUBLIC_NETWORK
-      : undefined;
+  const network = typeof process !== "undefined" ? process.env.NEXT_PUBLIC_NETWORK : undefined;
   if (!network || !NETWORKS.includes(network as Network)) {
     return Network.Testnet;
   }
   return network as Network;
+}
+
+const KNOWN_SCRIPT_LABELS: KnownScript[] = [
+  KnownScript.Secp256k1Blake160,
+  KnownScript.Secp256k1Multisig,
+  KnownScript.AnyoneCanPay,
+  KnownScript.OmniLock,
+  KnownScript.XUdt,
+];
+
+export async function buildLockLabelMap(client: ccc.Client): Promise<Record<string, string>> {
+  const map: Record<string, string> = {};
+  for (const knownScript of KNOWN_SCRIPT_LABELS) {
+    try {
+      const { codeHash } = await client.getKnownScript(knownScript);
+      map[codeHash] = knownScript;
+    } catch {
+      // script doesn't exist on the network -> skip it
+    }
+  }
+  return map;
 }

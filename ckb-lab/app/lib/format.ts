@@ -1,8 +1,11 @@
 import { ccc } from "@ckb-ccc/core";
 
 export function shannonToCKB(shannon: bigint): string {
-  const ckb = Number(shannon) / 10 ** 8;
-  return ckb.toFixed(8).replace(/\.?0+$/, "");
+  const sign = shannon < 0n ? "-" : "";
+  const abs = shannon < 0n ? -shannon : shannon;
+  const integer = abs / 100_000_000n;
+  const fraction = (abs % 100_000_000n).toString().padStart(8, "0").replace(/0+$/, "");
+  return fraction ? `${sign}${integer}.${fraction}` : `${sign}${integer}`;
 }
 
 export function ckbToShannons(ckb: string): bigint {
