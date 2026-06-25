@@ -49,6 +49,7 @@ export function useTransfer() {
     pollSignal.current = null;
     setStatus("idle");
     setError(null);
+    setFee(null);
     setTxHash(null);
     setBlockNumber(null);
   };
