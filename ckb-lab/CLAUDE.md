@@ -159,6 +159,23 @@ Key lib exports (`@/lib/format`): `shannonToCKB`, `formatCapacity`, `utf8ToHex`,
 2. Export it as a named export
 3. Create `stories/components/<ComponentName>.stories.tsx` with at least a Default story
 
+## Feature documentation
+
+User-facing feature docs live in `docs/`. When implementing or significantly changing a feature, update (or create) the relevant doc:
+
+| Path | Contents |
+|---|---|
+| `docs/design/` | Component-level design specs (one file per component, e.g. `header.md`) |
+| `docs/<feature>-features.md` | End-user feature description, states, and edge cases (e.g. `cell-explorer-features.md`) |
+
+**When to update docs:**
+
+- New page or route → create `docs/<route>-features.md` describing all UI states and user flows
+- New `ui/` component with non-trivial behavior → create `docs/design/<ComponentName>.md` with prop table and state diagram
+- Changed user-visible behavior (status transitions, error messages, copy text) → update the relevant `docs/` file
+
+This keeps the `docs/` directory the single source of truth for "what does this feature do" — separate from `DESIGN.md` (token reference) and `CLAUDE.md` (build conventions).
+
 ## Rust contracts
 
 ```bash
@@ -216,3 +233,4 @@ Before ending any task:
 5. If you added a new screen state or component variant: confirm the Claude Design artboard is updated (`ckb-screens.jsx` and/or `ds-components.jsx`)
 6. If you added a new design token: confirm it exists in both `app/globals.css` and `CKBuilder.html` CSS vars
 7. If you added a contract: confirm it builds with `make -C contracts build`
+8. If you added or changed user-visible behavior: confirm `docs/` is updated (see "Feature documentation" section)
