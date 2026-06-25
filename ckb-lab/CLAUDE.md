@@ -116,6 +116,7 @@ Before building any new UI piece, check if `app/components/ui/` already has it:
 | `SummaryPanel` | Transaction summary row list |
 | `SwitchRow` | Labeled toggle row |
 | `TokenListItem` | Token balance list item |
+| `TxStatusBanner` | Lifecycle banner for CKB tx status: sending → sent → pending → proposed → committed / rejected |
 | `UploadZone` | File drag-and-drop upload area |
 
 Every component in `ui/` must have a corresponding story in `stories/components/`.
@@ -168,11 +169,50 @@ cd contracts && cargo test                        # tests run on native host, no
 
 New contract: add crate at `contracts/contracts/<name>/`, register in `contracts/Cargo.toml` workspace members, add build rule to `contracts/Makefile`, add tests in `contracts/tests/src/`.
 
+## Claude Design integration
+
+The visual design lives in a Claude Design project (accessible via `DesignSync` MCP tool, available in this environment). Project ID: `8e7cfe8c-2db9-4eb1-92d2-6ea76f6a7de6`.
+
+### File map
+
+| Design file | Contents |
+|---|---|
+| `CKBuilder.html` | All CSS + screen gallery (Transfer, Invoke, Assets) with per-screen state artboards |
+| `ckb-screens.jsx` | JSX artboards for every screen state — tab between states using the `S` selector at top |
+| `ds-catalog.jsx` | Design System foundations (Brand, Color, Typography, Metrics, Icons) + helper primitives (`Section`, `Spec`, `Stage`, `Var`) |
+| `ds-components.jsx` | Design System components (Buttons, Inputs, Badges, `TxStatusBanner`, Cards, Cells…) + app shell |
+| `ckb-icons.jsx` | Icon definitions used across all files |
+
+### DesignSync workflow
+
+```
+1. DesignSync.get_file(projectId, path)       → read current file content
+2. DesignSync.finalize_plan(writes, deletes)  → declare intent (always pass deletes: [])
+3. DesignSync.write_files(planId, files)      → push updated content (must pass projectId)
+```
+
+Always `get_file` first — write the full file content back (the API replaces, not patches).
+
+### When to update Claude Design
+
+| Action | Files to update |
+|---|---|
+| New CSS class for a component | `CKBuilder.html` — add the class in the relevant CSS block |
+| New screen state or artboard | `ckb-screens.jsx` + update the gallery array in `CKBuilder.html` |
+| New `ui/` component | `ds-components.jsx` — add a `<Spec>` with all variants inside the relevant `Section` |
+| New design token | `CKBuilder.html` CSS vars + `app/globals.css` (keep both in sync) |
+
+### Workflow convention
+
+Design and code should stay in parallel — update the Claude Design artboard **in the same task** as the code change, not after. The Design System pane (`ds-components.jsx`) is the canonical visual reference; `DESIGN.md` is the prose reference.
+
 ## Definition of Done
 
 Before ending any task:
 1. `pnpm build` — must pass with 0 errors
 2. `pnpm lint` — must pass
 3. If you added a route: confirm it appears in `lib/routes.ts` `ROUTES` + `PAGE_TITLES` and `lib/nav-items.tsx` `NAV_ITEMS`
-4. If you added a `ui/` component: confirm its story exists in `stories/components/`
-5. If you added a contract: confirm it builds with `make -C contracts build`
+4. If you added a `ui/` component: confirm its story exists in `stories/components/` **and** a `<Spec>` entry exists in `ds-components.jsx`
+5. If you added a new screen state or component variant: confirm the Claude Design artboard is updated (`ckb-screens.jsx` and/or `ds-components.jsx`)
+6. If you added a new design token: confirm it exists in both `app/globals.css` and `CKBuilder.html` CSS vars
+7. If you added a contract: confirm it builds with `make -C contracts build`

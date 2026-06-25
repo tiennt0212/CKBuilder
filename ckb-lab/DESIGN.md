@@ -52,6 +52,11 @@ on the app root. Map these to Ant Design `ConfigProvider` theme tokens and Tailw
 | `--code-bg` | `#fbfcfc` | Raw/code block bg |
 | `--code-text` | `rgba(17,24,28,0.72)` | Code text |
 | `--shadow` | `0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.05)` | Card/elevation |
+| `--status-pend` | `#bd8a3a` | Amber — pending/in-flight status text & icons |
+| `--status-pend-bg` | `rgba(189,138,58,0.12)` | Amber status badge background |
+| `--rust` | `#c0683a` | Error/rejected/Rust-badge text & icons |
+| `--rust-tint` | `rgba(192,104,58,0.08)` | Error/rejected banner background tint |
+| `--tag-bg` | `rgba(17,24,28,0.05)` | Sidebar menu tag chip background |
 
 Sidebar (light): bg `--bg-elev`, border `--border`, item text `rgba(17,24,28,0.66)`,
 group label `rgba(17,24,28,0.36)`, hover `rgba(17,24,28,0.04)`, active bg `--primary-tint`,
@@ -79,6 +84,11 @@ active text `--primary`.
 | `--code-bg` | `#18191b` | Code block bg |
 | `--code-text` | `rgba(255,255,255,0.70)` | Code text |
 | `--shadow` | `0 1px 2px rgba(0,0,0,0.30)` | Elevation |
+| `--status-pend` | `#e0a84a` | Amber — pending/in-flight status text & icons |
+| `--status-pend-bg` | `rgba(224,168,74,0.14)` | Amber status badge background |
+| `--rust` | `#e3925f` | Error/rejected/Rust-badge text & icons |
+| `--rust-tint` | `rgba(227,146,95,0.10)` | Error/rejected banner background tint |
+| `--tag-bg` | `rgba(255,255,255,0.07)` | Sidebar menu tag chip background |
 
 Sidebar (dark): bg `#161719`, border `#2a2c2f`, item text `rgba(255,255,255,0.56)`,
 group label `rgba(255,255,255,0.34)`, hover `rgba(255,255,255,0.05)`, active bg `rgba(43,211,150,0.14)`,
@@ -207,6 +217,16 @@ reference design's; in code use AntD components + Tailwind utilities mapped to t
 - **Raw block** — `<details>` (default open) titled with byte count; mono `<pre>` of the JSON transaction (`version`, `cell_deps`, `inputs`, `outputs`, `outputs_data`, `witnesses`).
 - **State panel** (script results) — before/after data rows; the `after` row in `--primary`.
 - **Badges** — account/wallet `JoyID` (primary-tint); `Rust` (orange special-purpose).
+- **TxStatusBanner** — appears above the form once a transaction is submitted. Hidden for `idle / building / signing`. Renders a bordered banner card with an icon slot, title + subtitle, and an optional action. Six lifecycle states:
+  | State | Color | Icon | Action |
+  |---|---|---|---|
+  | `sending` | amber | spinner | — |
+  | `sent` | amber | spinner | Pending badge |
+  | `pending` | amber | spinner | Pending badge |
+  | `proposed` | primary (teal) | spinner | Proposed badge |
+  | `committed` | primary (green fill) | checkmark | Explorer link |
+  | `rejected` / `error` | rust | exclamation | Retry button |
+  Uses `--status-pend` / `--status-pend-bg` for amber states, `--primary` / `--primary-tint` for proposed/committed, `--rust` / `--rust-tint` for error states.
 
 ---
 
