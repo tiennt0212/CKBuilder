@@ -68,6 +68,7 @@ export function TransferForm() {
   const [form] = useForm();
   const amountCkb = Form.useWatch("amount", form);
   const from = Form.useWatch("from", form);
+  const to = Form.useWatch("to", form);
 
   const { rawTx, txJson, txBytes, isBuilding } = useRawTx();
 
@@ -156,7 +157,12 @@ export function TransferForm() {
               <Input
                 placeholder={addressPlaceholder}
                 suffix={
-                  <CopyOutlined className="text-text-3 cursor-pointer hover:text-primary transition-colors" />
+                  <CopyOutlined
+                    className="text-text-3 cursor-pointer hover:text-primary transition-colors"
+                    onClick={() => {
+                      if (to) navigator.clipboard.writeText(to);
+                    }}
+                  />
                 }
                 className="font-mono"
                 style={{ height: 42 }}
