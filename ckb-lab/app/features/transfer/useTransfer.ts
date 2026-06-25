@@ -25,6 +25,7 @@ export function useTransfer() {
   const [txHash, setTxHash] = useState<string | null>(null);
   const [blockNumber, setBlockNumber] = useState<bigint | null>(null);
   const pollSignal = useRef<{ cancelled: boolean } | null>(null);
+  const transferId = useRef(0);
 
   const buildTx = async ({
     to,
@@ -43,6 +44,7 @@ export function useTransfer() {
   };
 
   const reset = () => {
+    transferId.current += 1;
     if (pollSignal.current) pollSignal.current.cancelled = true;
     pollSignal.current = null;
     setStatus("idle");
@@ -64,6 +66,7 @@ export function useTransfer() {
   }) => {
     if (!signer) throw new Error("Wallet not connected");
 
+    const myId = ++transferId.current;
     if (pollSignal.current) pollSignal.current.cancelled = true;
     pollSignal.current = null;
     setError(null);
@@ -71,6 +74,8 @@ export function useTransfer() {
     try {
       setStatus("building");
       const tx = await buildTx({ to, amountCkb, feeRate });
+      if (myId !== transferId.current) return;
+
       if (buildOnly) {
         setStatus("idle");
         return tx;
@@ -78,9 +83,11 @@ export function useTransfer() {
 
       setStatus("signing");
       await signer.signTransaction(tx);
+      if (myId !== transferId.current) return;
 
       setStatus("sending");
       const hash = await signer.client.sendTransaction(tx);
+      if (myId !== transferId.current) return;
 
       setStatus("sent");
       setTxHash(hash);
