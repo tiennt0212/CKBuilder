@@ -72,12 +72,14 @@ export function TxStatusBanner({ status, txHash, blockNumber, error, onRetry }: 
   const shortHash = txHash ? `${txHash.slice(0, 10)}…${txHash.slice(-4)}` : null;
 
   const retryBtn = onRetry && (
-    <button
+    <Button
+      type="text"
+      size="small"
       onClick={onRetry}
-      className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg border border-app-border bg-transparent text-text-2 hover:border-primary hover:text-primary transition-colors cursor-pointer"
+      className="text-xs! font-semibold! px-3! py-1.5! h-auto! rounded-lg! border! border-app-border! text-text-2! hover:border-primary! hover:text-primary!"
     >
       ← Retry
-    </button>
+    </Button>
   );
 
   const configs: Partial<Record<TransferStatus, BannerConfig>> = {
