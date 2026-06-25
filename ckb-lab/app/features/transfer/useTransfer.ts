@@ -117,10 +117,12 @@ export function useTransfer() {
                 setStatus("proposed");
                 break;
               case "committed":
+                if (signal.cancelled) return;
                 setStatus("committed");
                 setBlockNumber(res.blockNumber ?? null);
                 return;
               case "rejected":
+                if (signal.cancelled) return;
                 setStatus("rejected");
                 setError(res.reason ?? "Rejected by node");
                 return;
