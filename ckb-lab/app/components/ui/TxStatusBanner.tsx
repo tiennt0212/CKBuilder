@@ -71,6 +71,16 @@ export function TxStatusBanner({ status, txHash, blockNumber, error, onRetry }: 
 
   const shortHash = txHash ? `${txHash.slice(0, 10)}…${txHash.slice(-4)}` : null;
 
+  const pendingBadge = (
+    <span
+      className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
+      style={{ color: "var(--status-pend)", background: "var(--status-pend-bg)" }}
+    >
+      <span className="w-1.5 h-1.5 rounded-full bg-current" />
+      Pending
+    </span>
+  );
+
   const retryBtn = onRetry && (
     <Button
       type="text"
@@ -100,24 +110,14 @@ export function TxStatusBanner({ status, txHash, blockNumber, error, onRetry }: 
       ) : (
         "Propagating to peers"
       ),
-      action: (
-        <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full" style={{ color: "var(--status-pend)", background: "var(--status-pend-bg)" }}>
-          <span className="w-1.5 h-1.5 rounded-full bg-current" />
-          Pending
-        </span>
-      ),
+      action: pendingBadge,
     },
     pending: {
       variant: "amber",
       icon: <Spinner color="var(--status-pend)" />,
       title: "Pending",
       subtitle: "In mempool · awaiting block inclusion",
-      action: (
-        <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full" style={{ color: "var(--status-pend)", background: "var(--status-pend-bg)" }}>
-          <span className="w-1.5 h-1.5 rounded-full bg-current" />
-          Pending
-        </span>
-      ),
+      action: pendingBadge,
     },
     proposed: {
       variant: "primary",
