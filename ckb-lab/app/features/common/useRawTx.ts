@@ -2,8 +2,6 @@ import { txToBytes, txToRawJson } from "@/lib/ckb/utils";
 import { Bytes, ccc } from "@ckb-ccc/core";
 import { useState } from "react";
 
-export type TransferStatus = "idle" | "building" | "signing" | "sending" | "done" | "error";
-
 export function useRawTx() {
   const [isBuilding, setIsBuilding] = useState(false);
   const [txJson, setTxJson] = useState<ccc.Transaction | null>(null);
