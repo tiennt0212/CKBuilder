@@ -101,6 +101,14 @@
   --hover-overlay: rgba(17, 24, 28, 0.04);
   --status-pend: #bd8a3a;
   --status-pend-bg: rgba(189, 138, 58, 0.12);
+  --banner-pend-border: rgba(189, 138, 58, 0.35);
+  --banner-pend-icon-bg: rgba(189, 138, 58, 0.14);
+  --banner-primary-border: rgba(10, 157, 108, 0.32);
+  --banner-primary-bg: rgba(10, 157, 108, 0.06);
+  --banner-primary-icon-bg: rgba(10, 157, 108, 0.14);
+  --banner-green-icon-bg: rgba(10, 157, 108, 0.16);
+  --banner-rust-border: rgba(192, 104, 58, 0.35);
+  --banner-rust-icon-bg: rgba(192, 104, 58, 0.14);
   --cube-top: #27c08a;
   --cube-side: #077a55;
 }
@@ -139,6 +147,14 @@
   --hover-overlay: rgba(255, 255, 255, 0.05);
   --status-pend: #e0a84a;
   --status-pend-bg: rgba(224, 168, 74, 0.14);
+  --banner-pend-border: rgba(224, 168, 74, 0.35);
+  --banner-pend-icon-bg: rgba(224, 168, 74, 0.14);
+  --banner-primary-border: rgba(43, 211, 150, 0.32);
+  --banner-primary-bg: rgba(43, 211, 150, 0.06);
+  --banner-primary-icon-bg: rgba(43, 211, 150, 0.14);
+  --banner-green-icon-bg: rgba(43, 211, 150, 0.16);
+  --banner-rust-border: rgba(227, 146, 95, 0.35);
+  --banner-rust-icon-bg: rgba(227, 146, 95, 0.14);
   --cube-top: #54e0b0;
   --cube-side: #1aa874;
 }

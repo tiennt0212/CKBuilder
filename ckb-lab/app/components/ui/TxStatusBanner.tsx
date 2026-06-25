@@ -20,27 +20,27 @@ type BannerVariant = "amber" | "primary" | "green" | "rust";
 
 const VARIANTS: Record<BannerVariant, { border: string; bg: string; iconBg: string; iconColor: string }> = {
   amber: {
-    border: "rgba(189,138,58,0.35)",
-    bg: "rgba(189,138,58,0.07)",
-    iconBg: "rgba(189,138,58,0.14)",
+    border: "var(--banner-pend-border)",
+    bg: "var(--status-pend-bg)",
+    iconBg: "var(--banner-pend-icon-bg)",
     iconColor: "var(--status-pend)",
   },
   primary: {
-    border: "rgba(10,157,108,0.32)",
-    bg: "rgba(10,157,108,0.06)",
-    iconBg: "rgba(10,157,108,0.14)",
+    border: "var(--banner-primary-border)",
+    bg: "var(--banner-primary-bg)",
+    iconBg: "var(--banner-primary-icon-bg)",
     iconColor: "var(--primary)",
   },
   green: {
-    border: "rgba(10,157,108,0.32)",
+    border: "var(--banner-primary-border)",
     bg: "var(--primary-tint)",
-    iconBg: "rgba(10,157,108,0.16)",
+    iconBg: "var(--banner-green-icon-bg)",
     iconColor: "var(--primary)",
   },
   rust: {
-    border: "rgba(192,104,58,0.35)",
-    bg: "rgba(192,104,58,0.07)",
-    iconBg: "rgba(192,104,58,0.14)",
+    border: "var(--banner-rust-border)",
+    bg: "var(--rust-tint)",
+    iconBg: "var(--banner-rust-icon-bg)",
     iconColor: "var(--rust)",
   },
 };
