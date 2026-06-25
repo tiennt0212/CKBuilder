@@ -99,9 +99,11 @@ export function useTransfer() {
       pollSignal.current = signal;
 
       const poll = async () => {
+        let rpcErrors = 0;
         while (!signal.cancelled) {
           try {
             const res = await signer.client.getTransaction(hash);
+            rpcErrors = 0;
             if (!res) {
               await sleep(2000);
               continue;
@@ -128,9 +130,12 @@ export function useTransfer() {
                 return;
             }
           } catch (err: any) {
-            setStatus("error");
-            setError(err?.message ?? "Failed to fetch transaction status");
-            return;
+            rpcErrors++;
+            if (rpcErrors >= 3) {
+              setStatus("error");
+              setError(err?.message ?? "Failed to fetch transaction status");
+              return;
+            }
           }
           await sleep(2000);
         }
