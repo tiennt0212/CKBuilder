@@ -234,3 +234,5 @@ Before ending any task:
 6. If you added a new design token: confirm it exists in both `app/globals.css` and `CKBuilder.html` CSS vars
 7. If you added a contract: confirm it builds with `make -C contracts build`
 8. If you added or changed user-visible behavior: confirm `docs/` is updated (see "Feature documentation" section)
+9. **Exp skills consulted** — before writing React/Next.js, Antd, Tailwind, Storybook, or CKB code, the relevant skill must have been read: `frontend-exp`, `antd-exp`, `tailwind-v4-exp`, `storybook-exp`, `ckbuilder-exp`. Do not skip because a change "looks trivial" — known gotchas live there.
+10. **Non-obvious logic is commented** — any workaround, CKB-specific invariant, subtle state transition, or behaviour that would surprise a future reader must have an inline comment explaining WHY (not what). Code that reads straightforwardly from its identifiers needs no comment.

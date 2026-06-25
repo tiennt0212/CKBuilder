@@ -5,6 +5,7 @@ import { useRawTx } from "@/features/common/useRawTx";
 import { useTransfer } from "@/features/transfer/useTransfer";
 import { useWalletAccount } from "@/features/wallet/useWalletAccount";
 import { Network } from "@/lib";
+import { useDebouncedCallback } from "@/lib/useDebouncedCallback";
 import { useNetworkStore } from "@/stores/network";
 import { Form } from "antd";
 import { useForm } from "antd/es/form/Form";
@@ -12,8 +13,12 @@ import { useEffect, useState } from "react";
 import { TransferInputCard } from "./TransferInputCard";
 import { TransferPreviewCard } from "./TransferPreviewCard";
 
+const DEBOUNCE_MS = 400;
+
 export function TransferForm() {
   const [activeTab, setActiveTab] = useState("summary");
+  const [buildError, setBuildError] = useState<string | null>(null);
+
   const { buildTx, fee, transfer, status, isInProgress, error, txHash, blockNumber, reset } =
     useTransfer();
   const { network, lockLabelMap, cccClient } = useNetworkStore();
@@ -32,20 +37,34 @@ export function TransferForm() {
     }
   }, [address]);
 
-  const handleValuesChange = async (_: unknown, values: Record<string, unknown>) => {
+  const debouncedBuild = useDebouncedCallback(
+    async (to: string, amount: number, feeRate: number) => {
+      try {
+        await form.validateFields();
+      } catch (err: any) {
+        if (err?.errorFields?.length > 0) {
+          setBuildError(null);
+          return;
+        }
+      }
+      try {
+        await rawTx(() => buildTx({ to, amountCkb: amount.toString(), feeRate }));
+        setBuildError(null);
+      } catch (err: any) {
+        setBuildError(err?.message ?? "Failed to build transaction");
+      }
+    },
+    DEBOUNCE_MS
+  );
+
+  const handleValuesChange = (_: unknown, values: Record<string, unknown>) => {
     if (isInProgress) return;
     const { to, amount, feeRate } = values as { to: string; amount: number; feeRate: number };
-    if (!to || !amount) return;
-    try {
-      await form.validateFields();
-    } catch (error: any) {
-      if (error?.errorFields?.length > 0) return;
+    if (!to || !amount) {
+      setBuildError(null);
+      return;
     }
-    try {
-      await rawTx(() => buildTx({ to, amountCkb: amount.toString(), feeRate }));
-    } catch {
-      // build errors are display-only; suppress unhandled rejection
-    }
+    debouncedBuild(to, amount, feeRate);
   };
 
   const handleFinish = (values: Record<string, unknown>) => {
@@ -55,6 +74,11 @@ export function TransferForm() {
       .catch((err) => console.error(err));
   };
 
+  const handleReset = () => {
+    setBuildError(null);
+    reset();
+  };
+
   return (
     <div>
       <TxStatusBanner
@@ -62,7 +86,7 @@ export function TransferForm() {
         txHash={txHash}
         blockNumber={blockNumber}
         error={error}
-        onRetry={reset}
+        onRetry={handleReset}
       />
       <div className="grid grid-cols-[1fr_1.07fr] gap-5 items-start">
         <TransferInputCard
@@ -86,6 +110,7 @@ export function TransferForm() {
           from={from}
           cccClient={cccClient}
           lockLabelMap={lockLabelMap}
+          buildError={buildError}
         />
       </div>
     </div>

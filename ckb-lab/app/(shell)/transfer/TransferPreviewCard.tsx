@@ -5,7 +5,7 @@ import { RawBlock } from "@/components/ui/RawBlock";
 import { SummaryPanel, SummaryRow } from "@/components/ui/SummaryPanel";
 import { ckbToShannons, formatCapacity, shannonToCKB, truncateAddress } from "@/lib";
 import { addressFromLock } from "@/lib/ckb/utils";
-import { ArrowRightOutlined } from "@ant-design/icons";
+import { ArrowRightOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
 import { Card } from "antd";
 import { type Bytes, type ccc } from "@ckb-ccc/core";
 
@@ -28,6 +28,7 @@ interface TransferPreviewCardProps {
   from: string | undefined;
   cccClient: ccc.Client;
   lockLabelMap: Record<string, string>;
+  buildError?: string | null;
 }
 
 export function TransferPreviewCard({
@@ -41,6 +42,7 @@ export function TransferPreviewCard({
   from,
   cccClient,
   lockLabelMap,
+  buildError,
 }: TransferPreviewCardProps) {
   return (
     <Card
@@ -61,6 +63,15 @@ export function TransferPreviewCard({
     >
       {activeTab === "summary" ? (
         <div className="flex flex-col gap-4">
+          {!!buildError && (
+            <div
+              className="flex items-start gap-2.5 px-3.5 py-3 rounded-[10px] text-hint leading-[1.5]"
+              style={{ background: "var(--rust-tint)", color: "var(--rust)" }}
+            >
+              <ExclamationCircleOutlined className="flex-shrink-0" style={{ marginTop: 1, fontSize: 14 }} />
+              <span className="text-text-2">{buildError}</span>
+            </div>
+          )}
           {!!txJson && (
             <div className="rounded-[10px] bg-panel-bg p-4">
               <div className="grid grid-cols-[1fr_20px_1fr] gap-3 items-start">
