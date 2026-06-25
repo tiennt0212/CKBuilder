@@ -1,6 +1,6 @@
 "use client";
 
-import type { TransferStatus } from "@/features/transfer/useTransfer";
+import { TransferStatus } from "@/lib/ckb/transfer-status";
 import { Network } from "@/lib";
 import { useNetworkStore } from "@/stores/network";
 import { CheckOutlined, ExclamationCircleOutlined, LoadingOutlined } from "@ant-design/icons";
@@ -14,7 +14,7 @@ export interface TxStatusBannerProps {
   onRetry?: () => void;
 }
 
-const HIDDEN: TransferStatus[] = ["idle", "building", "signing"];
+const HIDDEN: TransferStatus[] = [TransferStatus.Idle, TransferStatus.Building, TransferStatus.Signing];
 
 type BannerVariant = "amber" | "primary" | "green" | "rust";
 

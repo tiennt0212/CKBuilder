@@ -1,25 +1,16 @@
 import { ckbToShannons } from "@/lib";
 import { buildTransferTx } from "@/lib/ckb/transfer";
+import { TransferStatus } from "@/lib/ckb/transfer-status";
 import { useSigner } from "@ckb-ccc/connector-react";
 import { useRef, useState } from "react";
 
-export type TransferStatus =
-  | "idle"
-  | "building"
-  | "signing"
-  | "sending"
-  | "sent"
-  | "pending"
-  | "proposed"
-  | "committed"
-  | "rejected"
-  | "error";
+export type { TransferStatus } from "@/lib/ckb/transfer-status";
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 export function useTransfer() {
   const signer = useSigner();
-  const [status, setStatus] = useState<TransferStatus>("idle");
+  const [status, setStatus] = useState<TransferStatus>(TransferStatus.Idle);
   const [error, setError] = useState<string | null>(null);
   const [fee, setFee] = useState<bigint | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -47,7 +38,7 @@ export function useTransfer() {
     transferId.current += 1;
     if (pollSignal.current) pollSignal.current.cancelled = true;
     pollSignal.current = null;
-    setStatus("idle");
+    setStatus(TransferStatus.Idle);
     setError(null);
     setFee(null);
     setTxHash(null);
@@ -75,24 +66,24 @@ export function useTransfer() {
     setBlockNumber(null);
 
     try {
-      setStatus("building");
+      setStatus(TransferStatus.Building);
       const tx = await buildTx({ to, amountCkb, feeRate });
       if (myId !== transferId.current) return;
 
       if (buildOnly) {
-        setStatus("idle");
+        setStatus(TransferStatus.Idle);
         return tx;
       }
 
-      setStatus("signing");
+      setStatus(TransferStatus.Signing);
       await signer.signTransaction(tx);
       if (myId !== transferId.current) return;
 
-      setStatus("sending");
+      setStatus(TransferStatus.Sending);
       const hash = await signer.client.sendTransaction(tx);
       if (myId !== transferId.current) return;
 
-      setStatus("sent");
+      setStatus(TransferStatus.Sent);
       setTxHash(hash);
 
       const signal = { cancelled: false };
@@ -109,30 +100,30 @@ export function useTransfer() {
               continue;
             }
             switch (res.status) {
-              case "sent":
-                setStatus("sent");
+              case TransferStatus.Sent:
+                setStatus(TransferStatus.Sent);
                 break;
-              case "pending":
-                setStatus("pending");
+              case TransferStatus.Pending:
+                setStatus(TransferStatus.Pending);
                 break;
-              case "proposed":
-                setStatus("proposed");
+              case TransferStatus.Proposed:
+                setStatus(TransferStatus.Proposed);
                 break;
-              case "committed":
+              case TransferStatus.Committed:
                 if (signal.cancelled) return;
-                setStatus("committed");
+                setStatus(TransferStatus.Committed);
                 setBlockNumber(res.blockNumber ?? null);
                 return;
-              case "rejected":
+              case TransferStatus.Rejected:
                 if (signal.cancelled) return;
-                setStatus("rejected");
+                setStatus(TransferStatus.Rejected);
                 setError(res.reason ?? "Rejected by node");
                 return;
             }
           } catch (err: any) {
             rpcErrors++;
             if (rpcErrors >= 3) {
-              setStatus("error");
+              setStatus(TransferStatus.Error);
               setError(err?.message ?? "Failed to fetch transaction status");
               return;
             }
@@ -145,7 +136,7 @@ export function useTransfer() {
       return hash;
     } catch (err: any) {
       console.error("Transfer error:", err);
-      setStatus("error");
+      setStatus(TransferStatus.Error);
       setError(err.message || "Unknown error");
       throw err;
     }
