@@ -100,7 +100,10 @@ export function useTransfer() {
         while (!signal.cancelled) {
           try {
             const res = await signer.client.getTransaction(hash);
-            if (!res) continue;
+            if (!res) {
+              await sleep(2000);
+              continue;
+            }
             switch (res.status) {
               case "sent":
                 setStatus("sent");
