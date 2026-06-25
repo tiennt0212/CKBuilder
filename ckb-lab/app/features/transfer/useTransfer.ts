@@ -92,26 +92,32 @@ export function useTransfer() {
         while (!signal.cancelled) {
           await sleep(2000);
           if (signal.cancelled) return;
-          const res = await signer.client.getTransaction(hash);
-          if (!res) continue;
-          switch (res.status) {
-            case "sent":
-              setStatus("sent");
-              break;
-            case "pending":
-              setStatus("pending");
-              break;
-            case "proposed":
-              setStatus("proposed");
-              break;
-            case "committed":
-              setStatus("committed");
-              setBlockNumber(res.blockNumber ?? null);
-              return;
-            case "rejected":
-              setStatus("rejected");
-              setError(res.reason ?? "Rejected by node");
-              return;
+          try {
+            const res = await signer.client.getTransaction(hash);
+            if (!res) continue;
+            switch (res.status) {
+              case "sent":
+                setStatus("sent");
+                break;
+              case "pending":
+                setStatus("pending");
+                break;
+              case "proposed":
+                setStatus("proposed");
+                break;
+              case "committed":
+                setStatus("committed");
+                setBlockNumber(res.blockNumber ?? null);
+                return;
+              case "rejected":
+                setStatus("rejected");
+                setError(res.reason ?? "Rejected by node");
+                return;
+            }
+          } catch (err: any) {
+            setStatus("error");
+            setError(err?.message ?? "Failed to fetch transaction status");
+            return;
           }
         }
       };
