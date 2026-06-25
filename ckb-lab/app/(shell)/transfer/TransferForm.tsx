@@ -77,9 +77,15 @@ export function TransferForm() {
     }
   }, [address]);
 
-  const isInProgress = ["building", "signing", "sending", "sent", "pending", "proposed"].includes(
-    status
-  );
+  const isInProgress = [
+    "building",
+    "signing",
+    "sending",
+    "sent",
+    "pending",
+    "proposed",
+    "committed",
+  ].includes(status);
 
   return (
     <div>

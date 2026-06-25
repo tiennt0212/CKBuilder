@@ -4,7 +4,7 @@ import type { TransferStatus } from "@/features/transfer/useTransfer";
 import { Network } from "@/lib";
 import { useNetworkStore } from "@/stores/network";
 import { CheckOutlined, ExclamationCircleOutlined, LoadingOutlined } from "@ant-design/icons";
-import { Spin } from "antd";
+import { Button, Spin } from "antd";
 
 export interface TxStatusBannerProps {
   status: TransferStatus;
@@ -138,16 +138,30 @@ export function TxStatusBanner({ status, txHash, blockNumber, error, onRetry }: 
       ) : (
         "Committed on-chain"
       ),
-      action: txHash ? (
-        <a
-          href={`${explorerBase}/${txHash}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg border border-app-border text-text-2 hover:border-primary hover:text-primary transition-colors no-underline"
-        >
-          Explorer ↗
-        </a>
-      ) : undefined,
+      action: (
+        <>
+          {txHash && explorerBase && (
+            <a
+              href={`${explorerBase}/${txHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg border border-app-border text-text-2 hover:border-primary hover:text-primary transition-colors no-underline"
+            >
+              Explorer ↗
+            </a>
+          )}
+          {onRetry && (
+            <Button
+              type="text"
+              size="small"
+              onClick={onRetry}
+              className="text-xs! font-semibold! px-3! py-1.5! h-auto! rounded-lg! border! border-app-border! text-text-2! hover:border-primary! hover:text-primary!"
+            >
+              New Transfer
+            </Button>
+          )}
+        </>
+      ),
     },
     rejected: {
       variant: "rust",
