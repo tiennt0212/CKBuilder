@@ -71,6 +71,8 @@ export function useTransfer() {
     if (pollSignal.current) pollSignal.current.cancelled = true;
     pollSignal.current = null;
     setError(null);
+    setTxHash(null);
+    setBlockNumber(null);
 
     try {
       setStatus("building");
