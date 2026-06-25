@@ -65,7 +65,9 @@ export function TxStatusBanner({ status, txHash, blockNumber, error, onRetry }: 
   const explorerBase =
     network === Network.Mainnet
       ? "https://explorer.nervos.org/transaction"
-      : "https://testnet.explorer.nervos.org/transaction";
+      : network === Network.Testnet
+        ? "https://testnet.explorer.nervos.org/transaction"
+        : null; // devnet — no public explorer
 
   const shortHash = txHash ? `${txHash.slice(0, 10)}…${txHash.slice(-4)}` : null;
 
