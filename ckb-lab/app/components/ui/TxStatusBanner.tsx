@@ -52,6 +52,31 @@ function Spinner({ color }: { color: string }) {
   return <Spin indicator={<LoadingOutlined style={{ fontSize: 20, color }} spin />} />;
 }
 
+function PendingBadge() {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
+      style={{ color: "var(--status-pend)", background: "var(--status-pend-bg)" }}
+    >
+      <span className="w-1.5 h-1.5 rounded-full bg-current" />
+      Pending
+    </span>
+  );
+}
+
+function RetryButton({ onClick, label = "← Retry" }: { onClick: () => void; label?: string }) {
+  return (
+    <Button
+      type="text"
+      size="small"
+      onClick={onClick}
+      className="text-xs! font-semibold! px-3! py-1.5! h-auto! rounded-lg! border! border-app-border! text-text-2! hover:border-primary! hover:text-primary!"
+    >
+      {label}
+    </Button>
+  );
+}
+
 type BannerConfig = {
   variant: BannerVariant;
   icon: React.ReactNode;
@@ -80,27 +105,6 @@ export function TxStatusBanner({
 
   const shortHash = txHash ? `${txHash.slice(0, 10)}…${txHash.slice(-4)}` : null;
 
-  const pendingBadge = (
-    <span
-      className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
-      style={{ color: "var(--status-pend)", background: "var(--status-pend-bg)" }}
-    >
-      <span className="w-1.5 h-1.5 rounded-full bg-current" />
-      Pending
-    </span>
-  );
-
-  const retryBtn = onRetry && (
-    <Button
-      type="text"
-      size="small"
-      onClick={onRetry}
-      className="text-xs! font-semibold! px-3! py-1.5! h-auto! rounded-lg! border! border-app-border! text-text-2! hover:border-primary! hover:text-primary!"
-    >
-      ← Retry
-    </Button>
-  );
-
   const configs: Partial<Record<TransferStatus, BannerConfig>> = {
     sending: {
       variant: "amber",
@@ -119,14 +123,14 @@ export function TxStatusBanner({
       ) : (
         "Propagating to peers"
       ),
-      action: pendingBadge,
+      action: <PendingBadge />,
     },
     pending: {
       variant: "amber",
       icon: <Spinner color="var(--status-pend)" />,
       title: "Pending",
       subtitle: "In mempool · awaiting block inclusion",
-      action: pendingBadge,
+      action: <PendingBadge />,
     },
     proposed: {
       variant: "primary",
@@ -165,16 +169,7 @@ export function TxStatusBanner({
               Explorer ↗
             </a>
           )}
-          {onRetry && (
-            <Button
-              type="text"
-              size="small"
-              onClick={onRetry}
-              className="text-xs! font-semibold! px-3! py-1.5! h-auto! rounded-lg! border! border-app-border! text-text-2! hover:border-primary! hover:text-primary!"
-            >
-              New Transfer
-            </Button>
-          )}
+          {onRetry && <RetryButton onClick={onRetry} label="New Transfer" />}
         </>
       ),
     },
@@ -189,14 +184,14 @@ export function TxStatusBanner({
       ) : (
         "Rejected by node"
       ),
-      action: retryBtn,
+      action: onRetry ? <RetryButton onClick={onRetry} /> : undefined,
     },
     error: {
       variant: "rust",
       icon: <ExclamationCircleOutlined style={{ fontSize: 20, color: "var(--rust)" }} />,
       title: "Error",
       subtitle: error ?? "Something went wrong",
-      action: retryBtn,
+      action: onRetry ? <RetryButton onClick={onRetry} /> : undefined,
     },
   };
 
