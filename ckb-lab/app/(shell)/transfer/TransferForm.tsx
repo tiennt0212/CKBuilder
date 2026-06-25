@@ -116,6 +116,7 @@ export function TransferForm() {
             requiredMark={false}
             colon={false}
             onValuesChange={async (_, values) => {
+              if (isInProgress) return;
               const { to, amount, feeRate } = values;
               if (!to || !amount) return;
               try {
@@ -123,12 +124,11 @@ export function TransferForm() {
               } catch (error: any) {
                 if (error?.errorFields?.length > 0) return;
               }
-              await rawTx(() => buildTx({ to, amountCkb: amount.toString(), feeRate }));
-              console.group("Transaction Preview");
-              console.log("Form Values:", values);
-              console.log("Tx JSON:", txJson);
-              console.log("Tx Bytes:", txBytes);
-              console.groupEnd();
+              try {
+                await rawTx(() => buildTx({ to, amountCkb: amount.toString(), feeRate }));
+              } catch {
+                // build errors are display-only; suppress unhandled rejection
+              }
             }}
             onFinish={(values) => {
               const { to, amount, feeRate } = values;
