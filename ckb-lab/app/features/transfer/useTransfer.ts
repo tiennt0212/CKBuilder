@@ -142,5 +142,15 @@ export function useTransfer() {
     }
   };
 
-  return { transfer, buildTx, fee, status, error, txHash, blockNumber, reset };
+  const isInProgress = [
+    TransferStatus.Building,
+    TransferStatus.Signing,
+    TransferStatus.Sending,
+    TransferStatus.Sent,
+    TransferStatus.Pending,
+    TransferStatus.Proposed,
+    TransferStatus.Committed,
+  ].some((s) => s === status);
+
+  return { transfer, buildTx, fee, status, isInProgress, error, txHash, blockNumber, reset };
 }

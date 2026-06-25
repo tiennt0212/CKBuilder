@@ -61,7 +61,7 @@ const MOCK_TX = {
 
 export function TransferForm() {
   const [activeTab, setActiveTab] = useState("summary");
-  const { buildTx, fee, transfer, status, error, txHash, blockNumber, reset } = useTransfer();
+  const { buildTx, fee, transfer, status, isInProgress, error, txHash, blockNumber, reset } = useTransfer();
   const { network, lockLabelMap, cccClient } = useNetworkStore();
   const addressPlaceholder = network === Network.Testnet ? "ckt…" : "ckb…";
   const { address, balance } = useWalletAccount();
@@ -77,16 +77,6 @@ export function TransferForm() {
       form.setFieldValue("from", address);
     }
   }, [address]);
-
-  const isInProgress = [
-    "building",
-    "signing",
-    "sending",
-    "sent",
-    "pending",
-    "proposed",
-    "committed",
-  ].includes(status);
 
   return (
     <div>
