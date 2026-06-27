@@ -1,282 +1,237 @@
 # Cell Explorer — Feature Documentation
 
-> Lesson 06 · `lessons/06-cell-explorer/src/index.ts`
-
-Tài liệu này mô tả các tính năng của trang Cell Explorer, API tương ứng từ CCC SDK, và các điểm cần lưu ý khi maintain hoặc mở rộng.
+Tài liệu này mô tả các tính năng của trang **Cell Explorer** trong CKBuilder app, từ góc độ người dùng và developer maintain.
 
 ---
 
 ## Tổng quan
 
-Cell Explorer là công cụ để truy vấn, lọc và phân tích các on-chain cells trên mạng CKB. Tất cả dữ liệu được lấy từ CKB Indexer thông qua CCC SDK (`@ckb-ccc/core`).
+Cell Explorer là công cụ để query, lọc và phân tích live cells trên mạng CKB. Layout gồm 3 vùng:
+
+- **Sidebar (trái):** Form query — lock script, type script, advanced filters
+- **Main area (phải):** Table kết quả — cells, stats, classification pills
+- **Drawer (overlay):** Chi tiết một cell khi click vào row
+
+Tất cả data lấy từ CKB Indexer qua `findCellsPaged`. Lock Script và Type Script đều là optional — có thể fill một hoặc cả hai.
 
 ---
 
-## Danh sách tính năng
+## Query Form (Sidebar)
 
-### 1. Query Cells by Lock Script
+### Lock Script (Address)
 
-**Mô tả:** Liệt kê tất cả live cells mà một địa chỉ đang sở hữu.
+Nhập CKB address (testnet `ckt1…` hoặc mainnet `ckb1…`) → app decode thành lock script.
 
-```typescript
-client.findCellsByLock(
-  lockScript,  // Script
-  undefined,   // type?: Script — lọc thêm theo type script
-  true,        // withData?: boolean
-  "desc",      // order?: "asc" | "desc"
-  10           // limit?: number
-);
-// => AsyncGenerator<Cell>
+```
+API: findCellsPaged({ script: lockScript, scriptType: "lock", ... })
 ```
 
----
+Để trống = không filter theo lock.
 
-### 2. Query Cells by Type Script
+### Type Script
 
-**Mô tả:** Tìm tất cả cells được quản lý bởi một smart contract (ví dụ: Nervos DAO), không phân biệt chủ sở hữu.
+Combobox cho phép chọn nhanh từ danh sách preset hoặc nhập thủ công. Xem chi tiết trong phần **Type Script Presets & Saved Type Scripts** bên dưới.
 
-```typescript
-// Lấy info của well-known script
-const daoInfo = await client.getKnownScript(ccc.KnownScript.NervosDao);
-const daoTypeScript = ccc.Script.from({
-  codeHash: daoInfo.codeHash,
-  hashType: daoInfo.hashType,
-  args: "0x",
-});
+Khi cả hai lock và type đều được điền:
+```
+API: findCellsPaged({ script: lockScript, scriptType: "lock", filter: { script: typeScript }, ... })
+```
+→ Trả về cells owned by địa chỉ đó VÀ có type script được chọn.
 
-client.findCellsByType(
-  daoTypeScript,
-  true,    // withData
-  "desc",  // order
-  5        // limit
-);
-// => AsyncGenerator<Cell>
+Khi chỉ có type script:
+```
+API: findCellsPaged({ script: typeScript, scriptType: "type", ... })
+```
+→ Trả về tất cả cells của type script đó, không phân biệt owner.
+
+Để trống = không filter theo type.
+
+### Advanced Filters
+
+Gửi lên indexer qua `filter` object. **Khi thay đổi bất kỳ filter nào, cursor reset và query chạy lại.**
+
+#### Capacity Range
+
+Lọc cells trong khoảng capacity. Semantics: `[min inclusive, max exclusive)`.
+- Đơn vị nhập: CKB → app convert sang shannons (`× 100_000_000n`)
+- Optional ở cả hai đầu
+
+```
+API: filter.outputCapacityRange = [minShannons, maxShannons]
 ```
 
-**Lưu ý về Nervos DAO cell data:**
-- Deposit cell: `outputData === "0x0000000000000000"` (8 zero bytes)
-- Withdraw phase 1 cell: `outputData` = block number của deposit (8 bytes little-endian)
+#### Data Length
 
----
+Lọc theo độ dài output data (bytes). Semantics: `[min inclusive, max exclusive)`.
+Hữu ích để tìm UDT cells (= 16 bytes).
 
-### 3. Filter by Capacity Range
-
-**Mô tả:** Lọc cells trong khoảng giá trị CKB chỉ định. Semantics `[inclusive, exclusive)`.
-
-```typescript
-client.findCells({
-  script: lockScript,
-  scriptType: "lock",
-  scriptSearchMode: "exact",
-  filter: {
-    outputCapacityRange: [
-      100n * 100_000_000n,    // min (inclusive) — 100 CKB
-      1_000n * 100_000_000n,  // max (exclusive) — 1000 CKB
-    ],
-  },
-  withData: true,
-}, "desc", 5);
+```
+API: filter.outputDataLenRange = [minBytes, maxBytes]
 ```
 
-**Đơn vị:** 1 CKB = 100,000,000 shannons (tương tự satoshi trong Bitcoin).
+#### Data Pattern
 
----
-
-### 4. Filter by Data Pattern
-
-**Mô tả:** Tìm cells có output data khớp pattern hex. Ba mode tìm kiếm:
+Tìm cells có output data khớp hex pattern.
 
 | Mode | Ý nghĩa |
 |---|---|
-| `"prefix"` | Data bắt đầu bằng pattern |
-| `"exact"` | Data khớp chính xác |
-| `"partial"` | Data chứa pattern ở bất kỳ vị trí nào |
+| `prefix` | Data bắt đầu bằng pattern |
+| `exact` | Data khớp chính xác |
+| `partial` | Data chứa pattern ở bất kỳ vị trí nào |
 
-```typescript
-client.findCells({
-  script: lockScript,
-  scriptType: "lock",
-  scriptSearchMode: "exact",
-  filter: {
-    outputData: "0x00",
-    outputDataSearchMode: "prefix",
-  },
-  withData: true,
-}, "desc", 5);
 ```
+API: filter.outputData + filter.outputDataSearchMode
+```
+
+### Query Button
+
+Trigger fetch từ đầu (cursor reset). Disabled khi cả lock lẫn type đều trống.
 
 ---
 
-### 5. Filter by Data Length
+## Type Script Presets & Saved Type Scripts
 
-**Mô tả:** Lọc cells theo độ dài output data (bytes). Hữu ích để tìm UDT cells (16 bytes).
+### Built-in Presets
 
-```typescript
-client.findCells({
-  script: lockScript,
-  scriptType: "lock",
-  scriptSearchMode: "exact",
-  filter: {
-    outputDataLenRange: [16n, 17n],  // exactly 16 bytes
-  },
-  withData: true,
-});
+Các type script phổ biến được pre-loaded, network-aware (code_hash khác nhau trên testnet/mainnet):
+
+| Preset | Nguồn code_hash |
+|---|---|
+| Nervos DAO | `client.getKnownScript(KnownScript.NervosDao)` |
+| xUDT | `client.getKnownScript(KnownScript.XUdt)` |
+| Spore / DOB | hardcoded per network |
+
+### User-Saved Type Scripts
+
+Người dùng có thể lưu type script tùy chỉnh với memo để tái sử dụng và chia sẻ.
+
+**Cách thêm:** Nhấn nút **"+ Add type script…"** ở cuối dropdown → mở inline form với các trường:
+- `code_hash` (hex, required)
+- `hash_type` — `type` / `data1` / `data2`
+- `args` (hex, mặc định `0x`)
+- **Memo** — nhãn hoặc ghi chú ngắn (ví dụ: "test xUDT devnet", "NFT collection XYZ")
+
+### Persistence
+
+Saved type scripts lưu tại `localStorage` key `ckbuilder:typeScriptPresets`. Format:
+
+```json
+[
+  {
+    "label": "My Token",
+    "codeHash": "0x1a2b…",
+    "hashType": "type",
+    "args": "0x",
+    "memo": "test xUDT on devnet",
+    "network": "testnet"
+  }
+]
 ```
+
+Entries được filter theo network hiện tại khi hiển thị trong dropdown.
+
+### Export / Import
+
+- **Export:** Download file JSON chứa toàn bộ saved type scripts (tất cả networks)
+- **Import:** Upload file JSON để merge vào localStorage (dedup theo `codeHash + network`)
+
+Mục đích: chia sẻ type script collection với teammates hoặc sync giữa các thiết bị.
 
 ---
 
-### 6. Balance Query (Efficient)
+## Client-side Classification Pills
 
-**Mô tả:** Lấy tổng capacity của một lock script mà không cần iterate từng cell — tính toán server-side.
+Lọc nhanh rows đã fetch theo loại cell. Không trigger re-fetch.
 
-```typescript
-const balance = await client.getBalanceSingle(lockScript);
-// => bigint (shannons)
-// Hiển thị: ccc.fixedPointToString(balance) hoặc tự chia cho 100_000_000n
-```
+| Pill | Điều kiện |
+|---|---|
+| **All** | Hiện tất cả |
+| **Plain CKB** | `!hasType && !hasData` |
+| **Data Cell** | `!hasType && hasData` |
+| **UDT Cell** | `hasType && hasData && dataByteLength === 16` |
+| **Script Cell** | `hasType && (!hasData || dataByteLength !== 16)` |
 
----
+Phân loại UDT Cell (dataByteLength = 16) là heuristic — bao gồm xUDT/sUDT. NFT/Spore với data ≠ 16 bytes → Script Cell.
 
-### 7. Check Live / Dead Cell
-
-**Mô tả:** Kiểm tra một cell cụ thể còn tồn tại hay đã bị tiêu thụ.
-
-```typescript
-const liveCell = await client.getCellLive(
-  { txHash: "0x...", index: 0 }, // OutPoint
-  true,   // withData
-  true    // includeTxPool — bao gồm transactions đang pending, tránh double-spend
-);
-// => Cell nếu còn live, null nếu đã dead
-```
+**Lưu ý:** Pills lọc client-side. Nếu chưa Load More hết, có thể bỏ sót cells ở page sau. Dùng Data Length filter (server-side) nếu cần exhaustive search theo loại.
 
 ---
 
-### 8. Manual Pagination
+## Out-point Text Search
 
-**Mô tả:** Phân trang thủ công với cursor, dùng cho UI "Load More" hoặc infinite scroll.
-
-```typescript
-const searchKey = {
-  script: lockScript,
-  scriptType: "lock" as const,
-  scriptSearchMode: "exact" as const,
-  withData: false,
-};
-
-let cursor: string | undefined = undefined;
-
-const response = await client.findCellsPaged(
-  searchKey,
-  "asc",    // order
-  10,       // page size
-  cursor    // undefined cho page đầu
-);
-
-// response.cells: Cell[]
-// response.lastCursor: string — dùng cho lần gọi tiếp theo
-cursor = response.lastCursor;
-
-// Hết data khi response.cells.length < page size
-```
+Client-side filter theo `txHash` hoặc lock label. Kết hợp với classification pills theo logic AND.
 
 ---
 
-### 9. Cell Classification
+## Statistics Bar
 
-**Mô tả:** Phân loại cell dựa trên type script và output data.
+Aggregate trên toàn bộ cells đã load (không phải tổng on-chain):
 
-| Có Type Script | Có Data | Phân loại |
-|---|---|---|
-| No | No | Plain CKB |
-| No | Yes | Data Cell |
-| Yes | Yes (16 bytes) | UDT Cell (likely) |
-| Yes | Yes (khác kích thước) | Typed Data Cell (NFT / Spore…) |
-| Yes | No | Script Cell |
-
-```typescript
-function classifyCell(cell: ccc.Cell): string {
-  const hasType = !!cell.cellOutput.type;
-  const hasData = cell.outputData !== undefined && cell.outputData !== "0x";
-  const dataByteLength = hasData ? (cell.outputData.length - 2) / 2 : 0;
-
-  if (!hasType && !hasData) return "Plain CKB";
-  if (!hasType && hasData)  return "Data Cell";
-  if (hasType && hasData)   return dataByteLength === 16 ? "UDT Cell" : "Typed Data Cell";
-  return "Script Cell";
-}
-```
+| Stat | Nguồn |
+|---|---|
+| Cells | `cells.length` |
+| Total | Tổng capacity → CKB |
+| Avg | Total / Cells |
+| Has type | Số cells có `cellOutput.type != null` |
+| Has data | Số cells có `outputData !== "0x"` |
 
 ---
 
-### 10. Statistics Aggregation
+## Manual Pagination (Load More)
 
-**Mô tả:** Thu thập thống kê trong quá trình iterate — tổng cells, tổng capacity, min/max/avg, số cells có type, số cells có data.
-
-```typescript
-const stats = {
-  totalCells: 0,
-  totalCapacity: 0n,
-  cellsWithType: 0,
-  cellsWithData: 0,
-  minCapacity: BigInt(Number.MAX_SAFE_INTEGER),
-  maxCapacity: 0n,
-};
-
-for await (const cell of client.findCellsByLock(lockScript)) {
-  const capacity = cell.cellOutput.capacity;
-  stats.totalCells++;
-  stats.totalCapacity += capacity;
-  if (cell.cellOutput.type) stats.cellsWithType++;
-  if (cell.outputData && cell.outputData !== "0x") stats.cellsWithData++;
-  if (capacity < stats.minCapacity) stats.minCapacity = capacity;
-  if (capacity > stats.maxCapacity) stats.maxCapacity = capacity;
-}
-
-const avgCapacity = stats.totalCapacity / BigInt(stats.totalCells);
 ```
+API: findCellsPaged(searchKey, "desc", PAGE_SIZE, cursor)
+```
+
+- Page đầu: `cursor = undefined`
+- `response.lastCursor` → cursor cho lần gọi tiếp
+- `hasMore = response.cells.length >= PAGE_SIZE`
+- Cursor reset khi: thay đổi lock/type input hoặc advanced filter
 
 ---
 
-## Tóm tắt API
+## Cell Detail (Drawer)
 
-| Hàm | Trả về | Mục đích |
-|---|---|---|
-| `client.getTip()` | `bigint` | Block number hiện tại |
-| `ccc.Address.fromString(addr, client)` | `Address` | Decode address → lock script |
-| `client.findCellsByLock(lock, type?, withData?, order?, limit?)` | `AsyncGenerator<Cell>` | Query by lock script |
-| `client.findCellsByType(type, withData?, order?, limit?)` | `AsyncGenerator<Cell>` | Query by type script |
-| `client.findCells(searchKey, order?, limit?)` | `AsyncGenerator<Cell>` | Query với filter đầy đủ |
-| `client.findCellsPaged(searchKey, order?, limit?, cursor?)` | `{ cells, lastCursor }` | Manual pagination |
-| `client.getBalanceSingle(lock)` | `bigint` | Tổng balance (shannons) |
-| `client.getCellLive(outPoint, withData?, includeTxPool?)` | `Cell \| null` | Check live/dead |
-| `client.getKnownScript(KnownScript.NervosDao)` | `ScriptInfo` | Lấy well-known script info |
+Click một row → Drawer mở từ bên phải, overlay lên phần table. Close bằng nút ✕ hoặc click ra ngoài.
+
+### Capacity Breakdown
+
+| Field | Nguồn |
+|---|---|
+| Capacity | `cell.cellOutput.capacity` → CKB |
+| Occupied | `ccc.fixedPointFrom(cell.occupiedSize)` |
+| Free | `cell.capacityFree` = Capacity − Occupied |
+
+### Metadata
+
+- **Class:** Plain CKB / Data Cell / UDT Cell / Script Cell
+- **Status:** Live (indexer chỉ trả về live cells)
+
+### Collapsible Sections
+
+- **Out-point:** txHash + index
+- **Lock script:** code_hash, hash_type, args + lock label
+- **Type script:** code_hash, hash_type, args — `null` nếu không có
+- **Output data:** raw hex — `0x` nếu không có data
 
 ---
 
-## Cấu trúc Cell Object (ccc.Cell)
+## API thực sự sử dụng
 
-```typescript
-interface Cell {
-  outPoint: {
-    txHash: string;  // 0x + 64 hex chars
-    index: number;
-  };
-  cellOutput: {
-    capacity: bigint;     // shannons
-    lock: Script;         // lock script (bắt buộc)
-    type?: Script;        // type script (tuỳ chọn)
-  };
-  outputData: string;     // hex string, "0x" nếu rỗng
-}
-```
+| Hàm | Mục đích |
+|---|---|
+| `ccc.Address.fromString(addr, client)` | Decode address → lock script |
+| `client.findCellsPaged(searchKey, order, limit, cursor)` | Fetch cells với pagination |
+| `client.getBalanceSingle(lock)` | Tổng balance (không iterate từng cell) |
+| `client.getKnownScript(KnownScript.X)` | Code_hash của well-known scripts (DAO, xUDT…) |
 
 ---
 
 ## Lưu ý quan trọng
 
-- **AsyncGenerator:** Tất cả hàm trả về nhiều cells đều dùng async generator — iterate bằng `for await...of`, có thể `break` sớm.
-- **Shannons vs CKB:** Mọi capacity đều tính bằng shannons (bigint). 1 CKB = 100,000,000 shannons.
-- **Dead cells:** Indexer chỉ trả về live cells. Dead cells (đã spent) không xuất hiện trong query results.
-- **includeTxPool:** Trong `getCellLive`, set `true` để tránh race condition với pending transactions.
-- **scriptSearchMode:** Luôn dùng `"exact"` trừ khi muốn match prefix của args (advanced use case).
+- **Shannons vs CKB:** Mọi capacity là `bigint` shannons. 1 CKB = 100,000,000 shannons.
+- **Dead cells:** Indexer chỉ trả về live cells. Drawer luôn hiển thị "Live".
+- **scriptSearchMode:** Luôn dùng `"exact"`.
+- **Network-aware presets:** Built-in presets gọi `getKnownScript` mỗi lần query để đảm bảo code_hash đúng với network hiện tại.
+- **Saved scripts & network:** Entries trong localStorage có trường `network` — chỉ hiển thị entries khớp với network đang active.
+- **Nervos DAO cell data:** Deposit = `"0x0000000000000000"` (8 zero bytes). Withdrawal phase 1 = block number deposit (8 bytes LE).
