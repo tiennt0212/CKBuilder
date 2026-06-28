@@ -9,7 +9,7 @@ Tài liệu này mô tả các tính năng của trang **Cell Explorer** trong C
 Cell Explorer là công cụ để query, lọc và phân tích live cells trên mạng CKB. Layout gồm 3 vùng:
 
 - **Sidebar (trái):** Form query — lock script, type script, advanced filters
-- **Main area (phải):** Table kết quả — cells, stats, classification pills
+- **Main area (phải):** Table kết quả — cells, classification pills, load more
 - **Drawer (overlay):** Chi tiết một cell khi click vào row
 
 Tất cả data lấy từ CKB Indexer qua `findCellsPaged`. Lock Script và Type Script đều là optional — có thể fill một hoặc cả hai.
@@ -85,7 +85,7 @@ API: filter.outputData + filter.outputDataSearchMode
 
 ### Query Button
 
-Trigger fetch từ đầu (cursor reset). Disabled khi cả lock lẫn type đều trống.
+Trigger fetch từ đầu (cursor reset). Disabled khi cả lock lẫn type đều trống. Nút sticky ở đáy sidebar — luôn hiển thị dù form fields dài hơn viewport.
 
 ---
 
@@ -165,7 +165,16 @@ Client-side filter theo `txHash` hoặc lock label. Kết hợp với classifica
 
 ## Cell Count & Loaded State
 
-Số cells đã load hiện thị trong card subtitle: **"N cells loaded"**. Không hiển thị stats bar riêng vì aggregate trên partial data (chỉ cells đã fetch, không phải toàn bộ on-chain) dễ gây hiểu nhầm.
+Card subtitle của Live Cells phản ánh trạng thái load hiện tại:
+
+| Trạng thái | Subtitle |
+|---|---|
+| Chưa query | `"Enter a query to explore cells"` |
+| Query xong, không có kết quả | `"No cells found"` |
+| Đang xem partial (còn trang tiếp) | `"10+ cells · 12,480 / 15,000 CKB"` |
+| Đã load hết | `"7 cells · 12,480 CKB"` |
+
+Dấu `+` sau cell count cho biết đây là partial load. Phần `loadedCKB / totalCKB` hiện capacity đã load so với tổng toàn bộ query — `totalCKB` lấy từ `getCellsCapacity` chạy song song với page đầu tiên. Khi load hết, chỉ hiển thị tổng mà không có denominator.
 
 ---
 
@@ -181,7 +190,9 @@ API: findCellsPaged(searchKey, "desc", PAGE_SIZE, cursor)
 - `hasMore = response.cells.length >= PAGE_SIZE`
 - Cursor reset khi: thay đổi lock/type input hoặc advanced filter
 
-**Remaining capacity:** Khi nút Load More hiển thị, app tính `remainingCapacity = totalCapacity - loadedCapacity` và hiện `· ~X CKB remaining`. Đây là capacity của các cells chưa được load về (không phải cell count — CKB Indexer không expose total cell count API).
+**Remaining capacity:** Khi nút Load More hiển thị, app tính `remainingCapacity = totalCapacity - loadedCapacity` và hiện `· ~X CKB remaining` ngay trong nút. Đây là capacity của các cells chưa được load về (không phải cell count — CKB Indexer không expose total cell count API). Thông tin tương tự cũng xuất hiện ở card subtitle dưới dạng `loadedCKB / totalCKB`.
+
+Nút Load More sticky ở đáy Live Cells panel — luôn hiển thị mà không cần cuộn xuống.
 
 ---
 
@@ -217,7 +228,7 @@ Click một row → Drawer mở từ bên phải, overlay lên phần table. Clo
 |---|---|
 | `ccc.Address.fromString(addr, client)` | Decode address → lock script |
 | `client.findCellsPaged(searchKey, order, limit, cursor)` | Fetch cells với pagination |
-| `client.getBalanceSingle(lock)` | Tổng balance (không iterate từng cell) |
+| `client.getCellsCapacity(searchKey)` | Tổng capacity của tất cả cells khớp query (chạy song song với page đầu) |
 | `client.getKnownScript(KnownScript.X)` | Code_hash của well-known scripts (DAO, xUDT…) |
 
 ---
