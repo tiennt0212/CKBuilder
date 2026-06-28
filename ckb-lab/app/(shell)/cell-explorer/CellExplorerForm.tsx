@@ -31,8 +31,8 @@ export function CellExplorerForm() {
     addressError,
     hasMore,
     hasSearched,
-    balance,
     stats,
+    totalCapacity,
     selectedOutPoint,
     search,
     loadMore,
@@ -73,8 +73,6 @@ export function CellExplorerForm() {
           dataSearchMode={dataSearchMode}
           loading={loading}
           canQuery={canQuery}
-          balance={balance}
-          hasSearched={hasSearched}
           onLockAddressChange={setLockAddress}
           onTypeScriptChange={setTypeScriptId}
           onCapacityChange={(min, max) => {
@@ -103,6 +101,7 @@ export function CellExplorerForm() {
           hasMore={hasMore}
           hasSearched={hasSearched}
           stats={stats}
+          totalCapacity={totalCapacity}
           selectedOutPoint={selectedOutPoint}
           filter={filter}
           textSearch={textSearch}

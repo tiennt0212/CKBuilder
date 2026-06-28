@@ -163,17 +163,9 @@ Client-side filter theo `txHash` hoặc lock label. Kết hợp với classifica
 
 ---
 
-## Statistics Bar
+## Cell Count & Loaded State
 
-Aggregate trên toàn bộ cells đã load (không phải tổng on-chain):
-
-| Stat | Nguồn |
-|---|---|
-| Cells | `cells.length` |
-| Total | Tổng capacity → CKB |
-| Avg | Total / Cells |
-| Has type | Số cells có `cellOutput.type != null` |
-| Has data | Số cells có `outputData !== "0x"` |
+Số cells đã load hiện thị trong card subtitle: **"N cells loaded"**. Không hiển thị stats bar riêng vì aggregate trên partial data (chỉ cells đã fetch, không phải toàn bộ on-chain) dễ gây hiểu nhầm.
 
 ---
 
@@ -181,12 +173,15 @@ Aggregate trên toàn bộ cells đã load (không phải tổng on-chain):
 
 ```
 API: findCellsPaged(searchKey, "desc", PAGE_SIZE, cursor)
+     getCellsCapacity(searchKey)  ← chạy song song với page đầu
 ```
 
-- Page đầu: `cursor = undefined`
+- Page đầu: `cursor = undefined`; đồng thời fetch `totalCapacity` = tổng capacity của **tất cả** cells khớp query (không giới hạn PAGE_SIZE)
 - `response.lastCursor` → cursor cho lần gọi tiếp
 - `hasMore = response.cells.length >= PAGE_SIZE`
 - Cursor reset khi: thay đổi lock/type input hoặc advanced filter
+
+**Remaining capacity:** Khi nút Load More hiển thị, app tính `remainingCapacity = totalCapacity - loadedCapacity` và hiện `· ~X CKB remaining`. Đây là capacity của các cells chưa được load về (không phải cell count — CKB Indexer không expose total cell count API).
 
 ---
 

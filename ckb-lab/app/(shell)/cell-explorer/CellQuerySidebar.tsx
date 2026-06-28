@@ -65,10 +65,7 @@ export function CellQuerySidebar({
 }: CellQuerySidebarProps) {
   const { network } = useNetworkStore();
 
-  const subtitle =
-    hasSearched && balance !== null
-      ? `${formatCapacity(balance)} CKB · ${NETWORK_LABELS[network]}`
-      : `CKB Indexer · ${NETWORK_LABELS[network]}`;
+  const subtitle = `CKB Indexer · ${NETWORK_LABELS[network]}`;
 
   return (
     <Card
@@ -94,6 +91,12 @@ export function CellQuerySidebar({
               status={addressError ? "error" : undefined}
               style={{ height: 40 }}
             />
+            {hasSearched && balance !== null && (
+              <div className="text-hint text-text-3 mt-1">
+                Balance ·{" "}
+                <span className="font-semibold text-text-2">{formatCapacity(balance)} CKB</span>
+              </div>
+            )}
             {addressError && <div className="text-rust text-hint mt-1">{addressError}</div>}
           </FormItem>
 

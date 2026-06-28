@@ -116,25 +116,12 @@ export interface QueryParams {
 export interface CellStats {
   count: number;
   totalCkb: bigint;
-  avgCkb: bigint;
-  hasTypeCount: number;
-  hasDataCount: number;
 }
 
 function computeStats(cells: ccc.Cell[]): CellStats {
   const count = cells.length;
   const totalCkb = cells.reduce((s, c) => s + BigInt(c.cellOutput.capacity.toString()), 0n);
-  const hasTypeCount = cells.filter((c) => !!c.cellOutput.type).length;
-  const hasDataCount = cells.filter(
-    (c) => c.outputData !== undefined && c.outputData !== "0x"
-  ).length;
-  return {
-    count,
-    totalCkb,
-    avgCkb: count > 0 ? totalCkb / BigInt(count) : 0n,
-    hasTypeCount,
-    hasDataCount,
-  };
+  return { count, totalCkb };
 }
 
 // ─── Type resolution helper ───────────────────────────────────────────────────
@@ -187,6 +174,7 @@ export interface CellExplorerHookReturn {
   hasSearched: boolean;
   balance: bigint | null;
   stats: CellStats | null;
+  totalCapacity: bigint | null;
   selectedOutPoint: string | null;
   search: (params: QueryParams) => Promise<void>;
   loadMore: () => Promise<void>;
@@ -211,6 +199,7 @@ export function useCellExplorer(): CellExplorerHookReturn {
   const [hasSearched, setHasSearched] = useState(false);
   const [balance, setBalance] = useState<bigint | null>(null);
   const [stats, setStats] = useState<CellStats | null>(null);
+  const [totalCapacity, setTotalCapacity] = useState<bigint | null>(null);
   const [selectedOutPoint, setSelectedOutPoint] = useState<string | null>(null);
   // WHY: cache the full searchKey so loadMore can reuse it without re-parsing params.
   const [lastSearchKey, setLastSearchKey] = useState<
@@ -225,6 +214,7 @@ export function useCellExplorer(): CellExplorerHookReturn {
       setHasMore(false);
       setBalance(null);
       setStats(null);
+      setTotalCapacity(null);
       setLastCursor(undefined);
       setSelectedOutPoint(null);
       setLastSearchKey(null);
@@ -306,12 +296,17 @@ export function useCellExplorer(): CellExplorerHookReturn {
         };
         setLastSearchKey(searchKey);
 
-        const response = await cccClient.findCellsPaged(searchKey, "desc", PAGE_SIZE, undefined);
+        // WHY: run in parallel — getCellsCapacity gives total across all pages without fetching them.
+        const [response, totalCap] = await Promise.all([
+          cccClient.findCellsPaged(searchKey, "desc", PAGE_SIZE, undefined),
+          cccClient.getCellsCapacity(searchKey),
+        ]);
 
         setCells(response.cells);
         setLastCursor(response.lastCursor);
         setHasMore(response.cells.length >= PAGE_SIZE);
         setStats(computeStats(response.cells));
+        setTotalCapacity(BigInt(totalCap.toString()));
 
         // Balance only meaningful when querying by lock (owner)
         if (lockScript) {
@@ -362,6 +357,7 @@ export function useCellExplorer(): CellExplorerHookReturn {
     hasSearched,
     balance,
     stats,
+    totalCapacity,
     selectedOutPoint,
     search,
     loadMore,
