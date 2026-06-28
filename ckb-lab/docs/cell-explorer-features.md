@@ -211,8 +211,8 @@ Click một row → Drawer mở từ bên phải, overlay lên phần table. Clo
 
 - **Out-point:** txHash + index
 - **Lock script:** code_hash, hash_type, args + lock label
-- **Type script:** code_hash, hash_type, args — `null` nếu không có
-- **Output data:** raw hex — `0x` nếu không có data
+- **Type script:** code_hash, hash_type, args — **ẩn hoàn toàn** nếu cell không có type script
+- **Output data:** raw hex + byte count — **ẩn hoàn toàn** nếu `outputData === "0x"` (plain cell không có data)
 
 ---
 
@@ -234,4 +234,4 @@ Click một row → Drawer mở từ bên phải, overlay lên phần table. Clo
 - **scriptSearchMode:** Luôn dùng `"exact"`.
 - **Network-aware presets:** Built-in presets gọi `getKnownScript` mỗi lần query để đảm bảo code_hash đúng với network hiện tại.
 - **Saved scripts & network:** Entries trong localStorage có trường `network` — chỉ hiển thị entries khớp với network đang active.
-- **Nervos DAO cell data:** Deposit = `"0x0000000000000000"` (8 zero bytes). Withdrawal phase 1 = block number deposit (8 bytes LE).
+- **Nervos DAO cell data:** DAO type script yêu cầu output data đúng 8 bytes (uint64 little-endian). Deposit cell = `"0x0000000000000000"` (value 0 = chưa vào withdrawal phase). Withdrawal cell (phase 1) = block number của block chứa deposit transaction (LE uint64) — DAO type script dùng con số này để tra header và tính interest khi hoàn tất rút (phase 2).

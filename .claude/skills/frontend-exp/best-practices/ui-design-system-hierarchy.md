@@ -15,6 +15,20 @@ Follow this decision order before writing any UI element. Stop at the first matc
 3. **`components/ui/` has a domain-specific wrapper** → use that wrapper.
 4. **Nothing fits** → build a new `ui/` component composing design system primitives.
 
+This applies to **all** component categories — not just display elements, but interactive and structural patterns too. Developers most often rebuild these unnecessarily:
+
+| Pattern | Check the library for… |
+|---|---|
+| Status chip / badge | `Tag`, `Badge` |
+| Slide-in panel | `Drawer` |
+| Collapsible section | `Collapse` |
+| Pop-up dialog | `Modal` |
+| Dropdown list | `Select`, `Dropdown` |
+| Tab bar | `Tabs` |
+| Tooltip / hint | `Tooltip`, `Popover` |
+
+When in doubt about usage patterns: **`ui/` wrappers** → see the Storybook story (`stories/components/<Name>.stories.tsx`). **Raw library components** (Drawer, Collapse, Modal…) → see the library's official docs.
+
 Writing custom `<span>` or `<div>` markup for elements that the design system already provides (Badge, Tag, Avatar, Tooltip…) duplicates styling logic and drifts from the design system.
 
 **Incorrect (hand-rolled badge using a `<span>`):**

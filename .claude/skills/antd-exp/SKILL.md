@@ -17,6 +17,7 @@ Accumulated knowledge for working with Ant Design v5. Organized into three layer
 
 ## When to Apply
 
+- Before building any overlay, panel, accordion, dialog, tab bar, or dropdown — check the Antd catalog first
 - Using `Card`, `Button`, `Tag`, `Menu`, `Table`, or other Antd components
 - Applying Tailwind utility classes to override Antd default styles
 - Passing a framework `<Link>` inside Antd `Menu` item labels
@@ -34,6 +35,7 @@ Accumulated knowledge for working with Ant Design v5. Organized into three layer
 
 | Reminder | Type |
 |---|---|
+| `interactive-components-catalog` — Check Antd for Drawer/Collapse/Modal/Tabs before building custom HTML | gotcha |
 | `deprecated-v5-apis` — `Card.bodyStyle` → `styles={{ body: ... }}` | api-change |
 | `link-color-reset` — `text-inherit!` to reset `<Link>` color inside Menu items | gotcha |
 
