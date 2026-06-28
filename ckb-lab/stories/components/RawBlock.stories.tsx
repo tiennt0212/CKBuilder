@@ -29,21 +29,42 @@ const MOCK_TX = {
   witnesses: ["0x5500000010000000…"],
 };
 
+const MOCK_LOCK = { code_hash: "0x9bd7e06f…", hash_type: "type", args: "0xdeadbeef…" };
+const MOCK_TYPE = { code_hash: "0x82d76d1b…", hash_type: "type", args: "0x" };
+
 function RawBlockStory() {
   return (
-    <div className="flex flex-col gap-6 max-w-[580px]">
+    <div className="flex flex-col gap-8 max-w-[580px]">
       <div>
         <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-text-3 mb-3">
-          Open (default)
+          Single item (open by default)
         </div>
-        <RawBlock data={MOCK_TX} byteCount={320} defaultOpen />
+        <RawBlock
+          items={[{ key: "tx", label: "Raw Transaction · ~320 bytes", data: MOCK_TX }]}
+        />
       </div>
 
       <div>
         <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-text-3 mb-3">
-          Collapsed
+          Single item (collapsed)
         </div>
-        <RawBlock data={MOCK_TX} byteCount={320} defaultOpen={false} />
+        <RawBlock
+          items={[{ key: "tx", label: "Raw Transaction · ~320 bytes", data: MOCK_TX, defaultOpen: false }]}
+        />
+      </div>
+
+      <div>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-text-3 mb-3">
+          Multiple items — cell detail pattern
+        </div>
+        <RawBlock
+          items={[
+            { key: "outpoint", label: "Out-point", data: { tx_hash: "0xabc123…", index: 0 }, defaultOpen: false },
+            { key: "lock", label: "Lock script · secp256k1", data: MOCK_LOCK },
+            { key: "type", label: "Type script", data: MOCK_TYPE, defaultOpen: false },
+            { key: "data", label: "Output data · 8 bytes", data: { outputData: "0x0000000000000000", bytes: 8 }, defaultOpen: false },
+          ]}
+        />
       </div>
     </div>
   );

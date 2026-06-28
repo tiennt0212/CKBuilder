@@ -146,7 +146,17 @@ export function TransferPreviewCard({
           </SummaryPanel>
         </div>
       ) : (
-        !!txJson && <RawBlock data={txJson} byteCount={txBytes?.length} />
+        !!txJson && (
+          <RawBlock
+            items={[
+              {
+                key: "tx",
+                label: txBytes?.length ? `Raw Transaction · ~${txBytes.length} bytes` : "Raw Transaction",
+                data: txJson,
+              },
+            ]}
+          />
+        )
       )}
     </Card>
   );

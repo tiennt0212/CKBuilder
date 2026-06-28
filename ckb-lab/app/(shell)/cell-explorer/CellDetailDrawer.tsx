@@ -2,8 +2,8 @@
 
 import { Drawer } from "antd";
 import { ccc } from "@ckb-ccc/core";
+import { RawBlock, type RawBlockItem } from "@/components/ui/RawBlock";
 import { SummaryPanel, SummaryRow } from "@/components/ui/SummaryPanel";
-import { RawBlock } from "@/components/ui/RawBlock";
 import { StatusChip } from "@/components/ui/StatusChip";
 import { formatCapacity, truncateAddress } from "@/lib/format";
 import { useNetworkStore } from "@/stores/network";
@@ -34,6 +34,40 @@ export function CellDetailDrawer({ cell, onClose }: CellDetailDrawerProps) {
 
   const hasData = cell.outputData !== undefined && cell.outputData !== "0x";
   const dataByteLength = hasData ? (cell.outputData.length - 2) / 2 : 0;
+
+  const rawItems: RawBlockItem[] = [
+    {
+      key: "outpoint",
+      label: "Out-point",
+      data: { tx_hash: cell.outPoint.txHash, index: Number(cell.outPoint.index) },
+      defaultOpen: false,
+    },
+    {
+      key: "lock",
+      label: `Lock script · ${lockLabel}`,
+      data: scriptToDisplayObj(cell.cellOutput.lock),
+    },
+    ...(cell.cellOutput.type
+      ? [
+          {
+            key: "type",
+            label: "Type script",
+            data: scriptToDisplayObj(cell.cellOutput.type),
+            defaultOpen: false,
+          },
+        ]
+      : []),
+    ...(hasData
+      ? [
+          {
+            key: "data",
+            label: `Output data · ${dataByteLength} bytes`,
+            data: { outputData: cell.outputData, bytes: dataByteLength },
+            defaultOpen: false,
+          },
+        ]
+      : []),
+  ];
 
   return (
     <Drawer
@@ -75,33 +109,7 @@ export function CellDetailDrawer({ cell, onClose }: CellDetailDrawerProps) {
         <SummaryRow label="Class" value={cellClass} divider />
       </SummaryPanel>
 
-      <RawBlock
-        data={{ tx_hash: cell.outPoint.txHash, index: Number(cell.outPoint.index) }}
-        label="Out-point"
-        defaultOpen={false}
-      />
-
-      <RawBlock
-        data={scriptToDisplayObj(cell.cellOutput.lock)}
-        label={`Lock script · ${lockLabel}`}
-        defaultOpen
-      />
-
-      {cell.cellOutput.type && (
-        <RawBlock
-          data={scriptToDisplayObj(cell.cellOutput.type)}
-          label="Type script"
-          defaultOpen={false}
-        />
-      )}
-
-      {hasData && (
-        <RawBlock
-          data={{ outputData: cell.outputData, bytes: dataByteLength }}
-          label={`Output data · ${dataByteLength} bytes`}
-          defaultOpen={false}
-        />
-      )}
+      <RawBlock items={rawItems} />
     </Drawer>
   );
 }
