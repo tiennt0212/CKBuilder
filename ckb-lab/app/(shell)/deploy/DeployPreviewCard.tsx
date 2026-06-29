@@ -1,6 +1,7 @@
 "use client";
 
 import { CopyText } from "@/components/ui/CopyText";
+import { NoteBox } from "@/components/ui/NoteBox";
 import { RawBlock } from "@/components/ui/RawBlock";
 import { SummaryPanel, SummaryRow } from "@/components/ui/SummaryPanel";
 import { formatCapacity, shannonToCKB } from "@/lib";
@@ -29,6 +30,12 @@ interface DeployPreviewCardProps {
   status: TransferStatus;
   txHash: string | null;
   blockNumber: bigint | null;
+  /** Blake2b-256 hash of the deployed binary. Populated after preview build. */
+  dataHash: string | null;
+  /** Type ID args (stable code_hash). Only populated when enableTypeId = true. */
+  typeIdArgs: string | null;
+  /** Whether the user enabled Type ID for this deploy. */
+  enableTypeId: boolean;
 }
 
 export function DeployPreviewCard({
@@ -43,12 +50,26 @@ export function DeployPreviewCard({
   status,
   txHash,
   blockNumber,
+  dataHash,
+  typeIdArgs,
+  enableTypeId,
 }: DeployPreviewCardProps) {
   const isCommitted = status === TransferStatus.Committed;
 
   // buildDeployTx always places the script cell at outputs[0].
-  // Reading it here drives both the capacity display and balance-after calculation.
   const cellCapacity = txJson?.outputs?.[0]?.capacity;
+
+  // For the Raw tab, show only the output cell (not the full transaction).
+  // This is the data that gets stored on-chain and is the primary artifact of a deploy.
+  const outputCell =
+    txJson != null
+      ? {
+          capacity: txJson.outputs?.[0]?.capacity,
+          lock: txJson.outputs?.[0]?.lock,
+          type: txJson.outputs?.[0]?.type ?? null,
+          data: txJson.outputsData?.[0] ?? "0x",
+        }
+      : null;
 
   return (
     <Card
@@ -101,10 +122,9 @@ export function DeployPreviewCard({
                   Script deployed successfully
                   {blockNumber != null && (
                     <>
-                      {" "}in block{" "}
-                      <span className="font-mono">
-                        #{Number(blockNumber).toLocaleString()}
-                      </span>
+                      {" "}
+                      in block{" "}
+                      <span className="font-mono">#{Number(blockNumber).toLocaleString()}</span>
                     </>
                   )}
                 </span>
@@ -137,54 +157,69 @@ export function DeployPreviewCard({
               {binarySize != null && (
                 <div className="text-hint text-text-3">
                   Script size:{" "}
-                  <span className="font-mono text-text-2">
-                    {binarySize.toLocaleString()} bytes
-                  </span>
+                  <span className="font-mono text-text-2">{binarySize.toLocaleString()} bytes</span>
                 </div>
               )}
             </div>
           ) : (
-            // Idle / building state: show capacity and fee summary from the preview build.
-            <SummaryPanel>
-              {cellCapacity != null && (
-                <SummaryRow
-                  label="Cell Capacity"
-                  value={formatCapacity(cellCapacity)}
-                  unit="CKB"
-                />
-              )}
-              {binarySize != null && (
-                <SummaryRow
-                  label="Binary Size"
-                  value={binarySize.toLocaleString()}
-                  unit="bytes"
-                />
-              )}
-              {fee !== null && <SummaryRow label="Fee" value={shannonToCKB(fee)} unit="CKB" />}
-              {balance != null && fee !== null && cellCapacity != null && (
-                <SummaryRow
-                  label="Balance after"
-                  // Use String() to normalise ccc.Num (bigint or hex string) before BigInt().
-                  // BigInt("0x...") and BigInt("decimal") both work in modern JS engines.
-                  value={shannonToCKB(balance - BigInt(String(cellCapacity)) - fee)}
-                  unit="CKB"
-                  strong
-                  divider
-                />
-              )}
-            </SummaryPanel>
+            // Idle / building state: show the deployment summary rows.
+            // Rows are hidden individually until their data is available from the preview build.
+            <div className="flex flex-col gap-4">
+              <SummaryPanel>
+                {dataHash != null && (
+                  <div className="flex items-baseline justify-between py-[6px]">
+                    <span className="text-body text-text-2">Data Hash</span>
+                    <CopyText
+                      text={dataHash}
+                      display={`${dataHash.slice(0, 10)}…${dataHash.slice(-6)}`}
+                      textClassName="font-mono text-hint text-text-1"
+                    />
+                  </div>
+                )}
+                {enableTypeId && typeIdArgs != null && (
+                  <div className="flex items-baseline justify-between py-[6px]">
+                    <span className="text-body text-text-2">Code Hash (Type ID)</span>
+                    <CopyText
+                      text={typeIdArgs}
+                      display={`${typeIdArgs.slice(0, 10)}…${typeIdArgs.slice(-6)}`}
+                      textClassName="font-mono text-hint text-primary font-semibold"
+                    />
+                  </div>
+                )}
+                {cellCapacity != null && (
+                  <SummaryRow label="Capacity" value={formatCapacity(cellCapacity)} unit="CKB" />
+                )}
+                {fee !== null && (
+                  <SummaryRow label="Network Fee" value={shannonToCKB(fee)} unit="CKB" />
+                )}
+                {/* Balance-after row retained only when all values are present for context */}
+                {balance != null && fee !== null && cellCapacity != null && (
+                  <SummaryRow
+                    label="Balance after"
+                    // Use String() to normalise ccc.Num (bigint or hex) before BigInt().
+                    value={shannonToCKB(balance - BigInt(String(cellCapacity)) - fee)}
+                    unit="CKB"
+                    strong
+                    divider
+                  />
+                )}
+              </SummaryPanel>
+              <NoteBox>
+                Reference via out_point in cell_deps and code_hash in lock/type script.
+              </NoteBox>
+            </div>
           )}
         </div>
       ) : (
-        !!txJson && (
+        !!outputCell && (
           <RawBlock
             items={[
               {
-                key: "tx",
+                key: "output-cell",
                 label: txBytes?.length
-                  ? `Raw Transaction · ~${txBytes.length} bytes`
-                  : "Raw Transaction",
-                data: txJson,
+                  ? `Output Cell · ~${txBytes.length} bytes tx`
+                  : "Output Cell",
+                data: outputCell,
               },
             ]}
           />

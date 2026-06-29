@@ -1,7 +1,8 @@
 "use client";
 
+import { CapacityInfoPanel } from "@/components/ui/CapacityInfoPanel";
 import { FormItem } from "@/components/ui/FormItem";
-import { NoteBox } from "@/components/ui/NoteBox";
+import { SwitchRow } from "@/components/ui/SwitchRow";
 import { UploadZone } from "@/components/ui/UploadZone";
 import { RocketOutlined } from "@ant-design/icons";
 import { Button, Card, Form, Segmented } from "antd";
@@ -12,6 +13,8 @@ const FEE_RATES = [
   { value: 2000, name: "Standard", sub: "2,000 sh/KB" },
   { value: 5000, name: "Fast", sub: "5,000 sh/KB" },
 ];
+
+const HASH_TYPES = ["type", "data1", "data2"] as const;
 
 const CARD_STYLE = {
   borderRadius: 12,
@@ -24,6 +27,9 @@ const BODY_STYLE = { padding: "18px" };
 interface DeployInputCardProps {
   form: FormInstance;
   isInProgress: boolean;
+  isBalanceInsufficient: boolean;
+  required: bigint | null;
+  balance: bigint | null | undefined;
   onValuesChange: (changedValues: unknown, allValues: Record<string, unknown>) => void;
   onFinish: (values: Record<string, unknown>) => void;
 }
@@ -31,6 +37,9 @@ interface DeployInputCardProps {
 export function DeployInputCard({
   form,
   isInProgress,
+  isBalanceInsufficient,
+  required,
+  balance,
   onValuesChange,
   onFinish,
 }: DeployInputCardProps) {
@@ -39,9 +48,7 @@ export function DeployInputCard({
       title={
         <div>
           <div className="text-subhead font-semibold text-text-1">Deploy Script</div>
-          <div className="text-hint text-text-3 font-normal">
-            Upload a compiled RISC-V binary
-          </div>
+          <div className="text-hint text-text-3 font-normal">Upload a compiled RISC-V binary</div>
         </div>
       }
       style={CARD_STYLE}
@@ -71,7 +78,7 @@ export function DeployInputCard({
         <FormItem
           name="feeRate"
           label="Fee Rate"
-          style={{ marginBottom: 20 }}
+          style={{ marginBottom: 14 }}
           initialValue={FEE_RATES[0].value}
         >
           <Segmented
@@ -89,16 +96,46 @@ export function DeployInputCard({
           />
         </FormItem>
 
-        <div className="mb-5">
+        <FormItem
+          name="hashType"
+          label="Hash Type"
+          style={{ marginBottom: 14 }}
+          initialValue="data1"
+        >
+          <Segmented
+            block
+            options={HASH_TYPES.map((h) => ({
+              value: h,
+              label: (
+                <div className="py-1.5">
+                  <div className="text-body font-medium font-mono">{h}</div>
+                </div>
+              ),
+            }))}
+            style={{ background: "var(--seg-bg)" }}
+          />
+        </FormItem>
+
+        {/*
+         * valuePropName="checked" makes Form.Item pass the field value as the `checked` prop
+         * to SwitchRow instead of the default `value` prop. The Antd Switch inside SwitchRow
+         * fires onChange(checked: boolean), which Form.Item captures as the new field value.
+         */}
+        <Form.Item name="enableTypeId" valuePropName="checked" initialValue={false} noStyle>
+          <SwitchRow
+            title="Enable Type ID"
+            subtitle="Makes the script upgradeable at a stable code_hash"
+          />
+        </Form.Item>
+
+        <div className="mt-4 mb-5">
           {/*
            * Capacity rule: minimum = (lock_script_bytes + 8 + binary_size) × 10^8 shannons.
            * The exact amount varies by wallet lock type (secp256k1 args = 20 bytes, others differ).
-           * CCC's completeFeeBy computes this automatically from the signer's lock — never hardcode.
+           * When Type ID is enabled the output gains a type script, increasing occupied capacity.
+           * CCC's completeInputsByCapacity + completeFeeBy compute this automatically.
            */}
-          <NoteBox>
-            Required capacity ≈ binary size + 61 CKB overhead for lock script and cell metadata.
-            The exact amount is computed automatically from your wallet&apos;s lock script.
-          </NoteBox>
+          <CapacityInfoPanel required={required} balance={balance} />
         </div>
 
         <Button
@@ -108,10 +145,10 @@ export function DeployInputCard({
           icon={isInProgress ? undefined : <RocketOutlined />}
           iconPosition="end"
           loading={isInProgress}
-          disabled={isInProgress}
+          disabled={isBalanceInsufficient || isInProgress}
           style={{ height: 44 }}
         >
-          {isInProgress ? "Processing…" : "Deploy Script"}
+          {isInProgress ? "Processing…" : "Deploy to Testnet"}
         </Button>
       </Form>
     </Card>
