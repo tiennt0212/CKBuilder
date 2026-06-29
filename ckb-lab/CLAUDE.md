@@ -194,11 +194,14 @@ The visual design lives in a Claude Design project (accessible via `DesignSync` 
 
 | Design file | Contents |
 |---|---|
-| `CKBuilder.html` | All CSS + screen gallery (Transfer, Invoke, Assets) with per-screen state artboards |
-| `ckb-screens.jsx` | JSX artboards for every screen state — tab between states using the `S` selector at top |
+| `CKBuilder.html` | All CSS + screen gallery entry list + artboard renderer |
+| `ckb-screens.jsx` | Transfer, Invoke screens |
+| `ckb-screens-2.jsx` | Cell Explorer, Tokens, Deploy Script, Deploy Script · States, DAO, Multisig, History, Assets screens |
 | `ds-catalog.jsx` | Design System foundations (Brand, Color, Typography, Metrics, Icons) + helper primitives (`Section`, `Spec`, `Stage`, `Var`) |
 | `ds-components.jsx` | Design System components (Buttons, Inputs, Badges, `TxStatusBanner`, Cards, Cells…) + app shell |
 | `ckb-icons.jsx` | Icon definitions used across all files |
+
+> **Important:** Always read ALL design files (`ckb-screens.jsx` AND `ckb-screens-2.jsx`) before implementing any screen — not just the first file. Missing `ckb-screens-2.jsx` will cause the implementation to diverge from the design spec.
 
 ### DesignSync workflow
 

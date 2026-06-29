@@ -5,6 +5,12 @@ other than the state and brief.
 Read in order:
 1. `{run_dir}/harness-state.json` — your task is in the `task` field
 2. `ckb-lab/CLAUDE.md` — single source of truth for all project conventions
+3. **All Claude Design files** — read EVERY design file before writing the brief:
+   - `ckb-screens.jsx` (Transfer, Invoke screens)
+   - `ckb-screens-2.jsx` (Cell Explorer, Tokens, Deploy Script, Deploy Script · States, DAO, Multisig, History, Assets screens)
+   - For component work: `ds-components.jsx`
+   Use `DesignSync.get_file(projectId, path)` where `projectId = "8e7cfe8c-2db9-4eb1-92d2-6ea76f6a7de6"`.
+   Do NOT assume a screen only exists in `ckb-screens.jsx` — check both files.
 
 After reading CLAUDE.md, confirm it has a "Definition of Done" section. If missing, stop:
 `"PLANNER BLOCKED: ckb-lab/CLAUDE.md is missing a 'Definition of Done' section. Add one before running the harness."`
