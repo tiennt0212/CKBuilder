@@ -1,12 +1,7 @@
-import { PageShell } from "../../components/PageShell";
+import { DeployScriptForm } from "./DeployScriptForm";
 
 export const metadata = { title: "Deploy Script — CKBuilder" };
 
 export default function DeployScriptPage() {
-  return (
-    <PageShell
-      title="Deploy Script"
-      description="Upload a compiled Rust/C CKB script binary, configure its cell dep type, and deploy it to the network."
-    />
-  );
+  return <DeployScriptForm />;
 }
