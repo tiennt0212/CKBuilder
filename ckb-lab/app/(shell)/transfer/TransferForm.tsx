@@ -87,6 +87,7 @@ export function TransferForm() {
         blockNumber={blockNumber}
         error={error}
         onRetry={handleReset}
+        retryLabel="New Transfer"
       />
       <div className="grid grid-cols-[1fr_1.07fr] gap-5 items-start">
         <TransferInputCard

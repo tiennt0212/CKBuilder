@@ -20,9 +20,13 @@ const CARD_STYLE = {
   borderRadius: 12,
   border: "1px solid var(--border)",
   boxShadow: "var(--shadow)",
+  height: "100%",
+  display: "flex",
+  flexDirection: "column" as const,
+  minHeight: 0,
 };
 const HEAD_STYLE = { padding: "16px 18px", borderBottom: "1px solid var(--border)" };
-const BODY_STYLE = { padding: "18px" };
+const BODY_STYLE = { padding: "18px", flex: 1, overflowY: "auto" as const, minHeight: 0 };
 
 interface DeployInputCardProps {
   form: FormInstance;

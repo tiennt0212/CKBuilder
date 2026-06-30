@@ -105,15 +105,16 @@ export function DeployScriptForm() {
   };
 
   return (
-    <div>
+    <div className="flex flex-col h-[calc(100vh-var(--height-header)-44px)]">
       <TxStatusBanner
         status={status}
         txHash={txHash}
         blockNumber={blockNumber}
         error={error}
         onRetry={handleReset}
+        retryLabel="New Deploy"
       />
-      <div className="grid grid-cols-[1fr_1.07fr] gap-5 items-start">
+      <div className="grid grid-cols-[1fr_1.07fr] gap-5 flex-1 min-h-0">
         <DeployInputCard
           form={form}
           isInProgress={isInProgress}

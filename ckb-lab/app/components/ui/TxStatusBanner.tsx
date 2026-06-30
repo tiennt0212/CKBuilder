@@ -1,20 +1,22 @@
 "use client";
 
-import { TransferStatus } from "@/lib/ckb/transfer-status";
+import { TxStatus } from "@/lib/ckb/tx-status";
 import { Network } from "@/lib";
 import { useNetworkStore } from "@/stores/network";
 import { CheckOutlined, ExclamationCircleOutlined, LoadingOutlined } from "@ant-design/icons";
 import { Button, Spin } from "antd";
 
 export interface TxStatusBannerProps {
-  status: TransferStatus;
+  status: TxStatus;
   txHash?: string | null;
   blockNumber?: bigint | null;
   error?: string | null;
   onRetry?: () => void;
+  /** Label for the retry/reset button shown in committed and rejected states. Defaults to "← Retry". */
+  retryLabel?: string;
 }
 
-const HIDDEN: TransferStatus[] = [TransferStatus.Idle, TransferStatus.Building, TransferStatus.Signing];
+const HIDDEN: TxStatus[] = [TxStatus.Idle, TxStatus.Building, TxStatus.Signing];
 
 type BannerVariant = "amber" | "primary" | "green" | "rust";
 
@@ -91,6 +93,7 @@ export function TxStatusBanner({
   blockNumber,
   error,
   onRetry,
+  retryLabel = "← Retry",
 }: TxStatusBannerProps) {
   const { network } = useNetworkStore();
 
@@ -105,7 +108,7 @@ export function TxStatusBanner({
 
   const shortHash = txHash ? `${txHash.slice(0, 10)}…${txHash.slice(-4)}` : null;
 
-  const configs: Partial<Record<TransferStatus, BannerConfig>> = {
+  const configs: Partial<Record<TxStatus, BannerConfig>> = {
     sending: {
       variant: "amber",
       icon: <Spinner color="var(--status-pend)" />,
@@ -169,7 +172,7 @@ export function TxStatusBanner({
               Explorer ↗
             </a>
           )}
-          {onRetry && <RetryButton onClick={onRetry} label="New Transfer" />}
+          {onRetry && <RetryButton onClick={onRetry} label={retryLabel} />}
         </>
       ),
     },

@@ -5,7 +5,7 @@ import { NoteBox } from "@/components/ui/NoteBox";
 import { RawBlock } from "@/components/ui/RawBlock";
 import { SummaryPanel, SummaryRow } from "@/components/ui/SummaryPanel";
 import { formatCapacity, shannonToCKB } from "@/lib";
-import { TransferStatus } from "@/lib/ckb/transfer-status";
+import { TxStatus } from "@/lib/ckb/tx-status";
 import { CheckCircleOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
 import type { Bytes, ccc } from "@ckb-ccc/core";
 import { Card } from "antd";
@@ -14,9 +14,12 @@ const CARD_STYLE = {
   borderRadius: 12,
   border: "1px solid var(--border)",
   boxShadow: "var(--shadow)",
+  height: "100%",
+  display: "flex",
+  flexDirection: "column" as const,
 };
 const HEAD_STYLE = { padding: "16px 18px", borderBottom: "1px solid var(--border)" };
-const BODY_STYLE = { padding: "18px" };
+const BODY_STYLE = { padding: "18px", flex: 1, overflowY: "auto" as const, minHeight: 0 };
 
 interface DeployPreviewCardProps {
   activeTab: string;
@@ -27,7 +30,7 @@ interface DeployPreviewCardProps {
   binarySize: number | null;
   balance: bigint | null | undefined;
   buildError?: string | null;
-  status: TransferStatus;
+  status: TxStatus;
   txHash: string | null;
   blockNumber: bigint | null;
   /** Blake2b-256 hash of the deployed binary. Populated after preview build. */
@@ -54,7 +57,7 @@ export function DeployPreviewCard({
   typeIdArgs,
   enableTypeId,
 }: DeployPreviewCardProps) {
-  const isCommitted = status === TransferStatus.Committed;
+  const isCommitted = status === TxStatus.Committed;
 
   // buildDeployTx always places the script cell at outputs[0].
   const cellCapacity = txJson?.outputs?.[0]?.capacity;
