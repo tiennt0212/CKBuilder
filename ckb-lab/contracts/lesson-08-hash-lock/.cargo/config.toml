@@ -1,0 +1,5 @@
+[build]
+# CKB contracts must target the RISC-V VM. Setting it here means plain `cargo build`
+# works without --target flags, and the entry! macro's panic_handler (riscv64-only)
+# is correctly compiled in.
+target = "riscv64imac-unknown-none-elf"
