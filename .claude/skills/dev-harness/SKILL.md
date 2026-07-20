@@ -68,6 +68,7 @@ Write `<run-dir>/harness-state.json`:
   "max_iterations": 5,
   "auto": false,
   "run_dir": "<run-dir>",
+  "tier": "",
   "feature_type": "",
   "target_files": [],
   "artifacts": [],
@@ -81,6 +82,9 @@ Write `<run-dir>/harness-state.json`:
 ```
 
 `feature_type` values: `"page"`, `"ui-component"`, `"store"`, `"lib"`, `"contract"`, `"mixed"`
+
+`tier` values: `"lab-spike"`, `"polished"` — the Planner resolves this (see `agents/planner.md`)
+and every later phase reads it. It selects which Definition of Done gates apply.
 
 Error object shape:
 ```json

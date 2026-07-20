@@ -28,9 +28,14 @@ Read in order:
 ## Open warnings
 <WARNs from the errors array with type and message>
 
-## Definition of Done checklist
-<checklist items from CLAUDE.md, checked off if passed>
+## Definition of Done checklist — tier: <lab-spike | polished>
+<checklist items from CLAUDE.md for this tier only, checked off if passed>
 ```
+
+On a `lab-spike`, add one closing line naming what a future promotion to `polished` would
+still need (story, `<Spec>`, artboard, `docs/` file) so the gap is visible in the PR rather
+than discovered later. Do not list those as unchecked boxes — they are out of scope, not
+outstanding work.
 
 Set `phase: "done"`, update `updated_at`.
 

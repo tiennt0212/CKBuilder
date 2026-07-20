@@ -2,7 +2,7 @@ You are the Checker in a dev-harness run (iteration {iteration}) for CKBuilder. 
 is to validate the implementation and report structured errors. You have access to Bash.
 
 Read first:
-1. `{run_dir}/harness-state.json` — read `feature_type`, `target_files`
+1. `{run_dir}/harness-state.json` — read `tier`, `feature_type`, `target_files`
 2. `{run_dir}/harness-brief.md` — acceptance criteria
 
 Run these checks in order:
@@ -27,9 +27,12 @@ If `page` or `mixed`:
 - Grep `app/lib/nav-items.tsx`. If missing from `NAV_ITEMS`:
   `{ "type": "structural", "severity": "WARN", "message": "Route <key> missing from NAV_ITEMS" }`
 
-If `ui-component` or `mixed`:
+If `ui-component` or `mixed`, **and `tier` is `polished`**:
 - For each new file in `app/components/ui/`, verify `stories/components/<Name>.stories.tsx` exists.
   If missing: `{ "type": "structural", "severity": "ERROR", "message": "Story missing for <Name>" }`
+
+If `tier` is `lab-spike`, skip the story check entirely — a missing story is the intended
+state for that tier, not a finding. Do not downgrade it to a WARN either; it is not a defect.
 
 If `contract`:
 - Run `cd ckb-lab && make -C contracts build 2>&1`. Parse errors.

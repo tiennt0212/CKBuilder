@@ -5,15 +5,27 @@ other than the state and brief.
 Read in order:
 1. `{run_dir}/harness-state.json` — your task is in the `task` field
 2. `ckb-lab/CLAUDE.md` — single source of truth for all project conventions
-3. **All Claude Design files** — read EVERY design file before writing the brief:
+
+After reading CLAUDE.md, confirm it has a "Definition of Done" section. If missing, stop:
+`"PLANNER BLOCKED: ckb-lab/CLAUDE.md is missing a 'Definition of Done' section. Add one before running the harness."`
+
+**Determine the tier before reading anything else.** CLAUDE.md defines two tiers,
+`lab-spike` and `polished`, with different gate sets. Resolve in this order:
+
+1. The `task` field names a tier explicitly → use it.
+2. The task references a GitHub issue number → `gh issue view <n> --json labels` and read
+   the `lab-spike` / `polished` label.
+3. Neither → `lab-spike`. Note the assumption in the brief; do not default to `polished`.
+
+Write the result to `tier` in `{run_dir}/harness-state.json` before continuing.
+
+3. **Claude Design files — `polished` only. Skip this entire step on a `lab-spike`.**
+   When the tier is `polished`, read EVERY design file before writing the brief:
    - `ckb-screens.jsx` (Transfer, Invoke screens)
    - `ckb-screens-2.jsx` (Cell Explorer, Tokens, Deploy Script, Deploy Script · States, DAO, Multisig, History, Assets screens)
    - For component work: `ds-components.jsx`
    Use `DesignSync.get_file(projectId, path)` where `projectId = "8e7cfe8c-2db9-4eb1-92d2-6ea76f6a7de6"`.
    Do NOT assume a screen only exists in `ckb-screens.jsx` — check both files.
-
-After reading CLAUDE.md, confirm it has a "Definition of Done" section. If missing, stop:
-`"PLANNER BLOCKED: ckb-lab/CLAUDE.md is missing a 'Definition of Done' section. Add one before running the harness."`
 
 Then write `{run_dir}/harness-brief.md` with these sections:
 
@@ -21,19 +33,27 @@ Then write `{run_dir}/harness-brief.md` with these sections:
 
 **Feature type**: one of `page`, `ui-component`, `store`, `lib`, `contract`, `mixed`.
 
+**Tier**: `lab-spike` or `polished`, plus one line on how it was resolved.
+
 **Target files**: list of file paths to create or modify (relative to repo root).
 For a new page, include: the page file, route entry in `app/lib/routes.ts`, nav item
-in `app/lib/nav-items.tsx`. For a new `ui/` component, include its story.
+in `app/lib/nav-items.tsx`.
+
+On `polished`, also include a story for each new `ui/` component and the
+`docs/<route>-features.md` file. On `lab-spike`, list neither — and prefer keeping markup
+inline in the page over creating a `ui/` component at all.
 
 **Reuse opportunities**: existing `app/components/ui/` components, stores in
 `app/stores/`, and `@/lib/` functions that should be used — not reimplemented.
 Read the relevant files to confirm they exist before listing them.
 
-**Acceptance criteria**: numbered list keyed to CLAUDE.md's "Definition of Done" section.
+**Acceptance criteria**: numbered list keyed to CLAUDE.md's "Definition of Done" section —
+the universal gates plus, on `polished` only, the additional polished gates.
 
 **Risks**: anything that could cause the Implementer to go wrong.
 
 Update `{run_dir}/harness-state.json`:
+- Set `tier` to the resolved value
 - Set `feature_type` to the determined value
 - Set `target_files` to the full list of file paths
 - Append to `artifacts`: `{ "phase": "planner", "iteration": 0, "file": "harness-brief.md", "status": "written" }`
