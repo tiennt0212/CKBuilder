@@ -119,7 +119,7 @@ Before building any new UI piece, check if `app/components/ui/` already has it:
 | `TxStatusBanner` | Lifecycle banner for CKB tx status: sending → sent → pending → proposed → committed / rejected |
 | `UploadZone` | File drag-and-drop upload area |
 
-Every component in `ui/` must have a corresponding story in `stories/components/`.
+Every component in `ui/` must have a corresponding story in `stories/components/` — on `polished` tasks. A `lab-spike` may keep its JSX inline in the page instead of promoting it to `ui/`; see "Definition of Done — two tiers".
 
 ## Gotchas
 
@@ -157,11 +157,13 @@ Key lib exports (`@/lib/format`): `shannonToCKB`, `formatCapacity`, `utf8ToHex`,
 
 1. Create `app/components/ui/<ComponentName>.tsx`
 2. Export it as a named export
-3. Create `stories/components/<ComponentName>.stories.tsx` with at least a Default story
+3. Create `stories/components/<ComponentName>.stories.tsx` with at least a Default story — `polished` only
+
+On a `lab-spike`, prefer not to create a `ui/` component at all: keep the markup inline in the page until a second page needs it.
 
 ## Feature documentation
 
-User-facing feature docs live in `docs/`. When implementing or significantly changing a feature, update (or create) the relevant doc:
+User-facing feature docs live in `docs/`. **This whole section applies to `polished` tasks only** — a `lab-spike` writes no `docs/` file. When implementing or significantly changing a polished feature, update (or create) the relevant doc:
 
 | Path | Contents |
 |---|---|
@@ -224,18 +226,55 @@ Always `get_file` first — write the full file content back (the API replaces, 
 
 ### Workflow convention
 
-Design and code should stay in parallel — update the Claude Design artboard **in the same task** as the code change, not after. The Design System pane (`ds-components.jsx`) is the canonical visual reference; `DESIGN.md` is the prose reference.
+On `polished` tasks, design and code stay in parallel — update the Claude Design artboard **in the same task** as the code change, not after. The Design System pane (`ds-components.jsx`) is the canonical visual reference; `DESIGN.md` is the prose reference.
 
-## Definition of Done
+On `lab-spike` tasks, skip Claude Design entirely. The artboard is caught up later, once and in bulk, if the spike is promoted — see "Promotion path" under Definition of Done.
 
-Before ending any task:
+## Definition of Done — two tiers
+
+Not every page earns the same build cost. This repo is a learning lab: most pages exist to make a CKB concept concrete, and only a subset ships as a main-track feature. Every task is therefore either **`lab-spike`** or **`polished`**.
+
+| | `lab-spike` | `polished` |
+|---|---|---|
+| Intent | Build to understand a concept | Build to ship |
+| Reader | Me, while learning | Someone using CKBuilder |
+| Claude Design artboard | skip | required |
+| Storybook story | skip | required for new `ui/` components |
+| `docs/<route>-features.md` | skip | required |
+| New `ui/` component | optional — inline JSX in the page is fine | extract reusable pieces into `ui/` |
+| Design tokens, no hardcoded values | required | required |
+
+**Picking the tier:** course issues carry a `lab-spike` or `polished` GitHub label — that label is the source of truth. If a task arrives with no tier, treat it as `lab-spike` and say so in your response. Never silently apply the polished gates: they roughly double the file count of a page, and that cost is a decision for the user to make, not for you to assume.
+
+### Gates for every task — both tiers
+
 1. `pnpm build` — must pass with 0 errors
 2. `pnpm lint` — must pass
 3. If you added a route: confirm it appears in `lib/routes.ts` `ROUTES` + `PAGE_TITLES` and `lib/nav-items.tsx` `NAV_ITEMS`
-4. If you added a `ui/` component: confirm its story exists in `stories/components/` **and** a `<Spec>` entry exists in `ds-components.jsx`
-5. If you added a new screen state or component variant: confirm the Claude Design artboard is updated (`ckb-screens.jsx` and/or `ds-components.jsx`)
-6. If you added a new design token: confirm it exists in both `app/globals.css` and `CKBuilder.html` CSS vars
-7. If you added a contract: confirm it builds with `make -C contracts build`
-8. If you added or changed user-visible behavior: confirm `docs/` is updated (see "Feature documentation" section)
-9. **Exp skills consulted** — before writing React/Next.js, Antd, Tailwind, Storybook, or CKB code, the relevant skill must have been read: `frontend-exp`, `antd-exp`, `tailwind-v4-exp`, `storybook-exp`, `ckbuilder-exp`. Do not skip because a change "looks trivial" — known gotchas live there.
-10. **Non-obvious logic is commented** — any workaround, CKB-specific invariant, subtle state transition, or behaviour that would surprise a future reader must have an inline comment explaining WHY (not what). Code that reads straightforwardly from its identifiers needs no comment.
+4. If you added a contract: confirm it builds with `make -C contracts build`
+5. If you added a new design token: confirm it exists in both `app/globals.css` and `CKBuilder.html` CSS vars. A `lab-spike` should rarely need a new token — reach for an existing one first; if you genuinely need a new one, sync both files even though the spike skips every other Claude Design step.
+6. **Exp skills consulted** — before writing React/Next.js, Antd, Tailwind, Storybook, or CKB code, the relevant skill must have been read: `frontend-exp`, `antd-exp`, `tailwind-v4-exp`, `storybook-exp`, `ckbuilder-exp`. Do not skip because a change "looks trivial" — known gotchas live there.
+7. **Non-obvious logic is commented** — any workaround, CKB-specific invariant, subtle state transition, or behaviour that would surprise a future reader must have an inline comment explaining WHY (not what). Code that reads straightforwardly from its identifiers needs no comment.
+
+**A `lab-spike` is done here — stop.** Do not open Claude Design, do not write a story, do not create a `docs/` file. Skipping those is the entire point of the tier, not a corner cut; a spike that quietly grows the polished artifacts has spent the budget the tier exists to protect. If the work genuinely warrants them, say so and let the user promote the issue rather than deciding unilaterally.
+
+### Additional gates for `polished` only
+
+8. If you added a `ui/` component: confirm its story exists in `stories/components/` **and** a `<Spec>` entry exists in `ds-components.jsx`
+9. If you added a new screen state or component variant: confirm the Claude Design artboard is updated (`ckb-screens.jsx` / `ckb-screens-2.jsx` and/or `ds-components.jsx`)
+10. If you added or changed user-visible behavior: confirm `docs/` is updated (see "Feature documentation" section)
+
+### Promotion path: `lab-spike` → `polished`
+
+A spike graduates when it stops being a scratchpad and takes a main-track slot. Promotion is **its own task** — never fold it into an unrelated feature change, because the diff is large and reviewing it alongside behaviour changes hides both.
+
+To promote a spike:
+
+1. Swap the issue label: drop `lab-spike`, add `polished`
+2. Extract the page's repeated or reusable JSX into `app/components/ui/` components
+3. Add a story in `stories/components/` for each extracted component, plus a `<Spec>` entry in `ds-components.jsx`
+4. Add the screen and its states to `ckb-screens-2.jsx`, and register it in the gallery array in `CKBuilder.html`
+5. Write `docs/<route>-features.md` covering every UI state and user flow
+6. Re-run gates 1–10
+
+The reverse never happens: a `polished` page does not get demoted to shed its artifacts.
