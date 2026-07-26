@@ -20,9 +20,18 @@ export interface DeployTxResult {
   dataHash: ccc.Hex;
   /**
    * Type ID args (0x-prefixed hex). Only present when enableTypeId = true.
-   * This becomes the stable code_hash for "type" references after the cell is deployed.
+   * Derived from the first input and the output index; uniquely identifies this cell.
    */
   typeIdArgs?: ccc.Hex;
+  /**
+   * The stable code_hash to use when referencing this cell with hash_type "type".
+   * Only present when enableTypeId = true.
+   *
+   * This is the *hash of the whole Type ID type script*, not its args — a script is
+   * identified by blake2b(code_hash ‖ hash_type ‖ args), so passing the bare args as a
+   * code_hash would reference a script that does not exist.
+   */
+  typeIdCodeHash?: ccc.Hex;
 }
 
 /**
@@ -67,6 +76,7 @@ export async function buildDeployTx({
   await tx.completeInputsByCapacity(signer);
 
   let typeIdArgs: ccc.Hex | undefined;
+  let typeIdCodeHash: ccc.Hex | undefined;
   if (enableTypeId) {
     // hashTypeId MUST be called after completeInputsByCapacity (needs tx.inputs[0] to exist)
     // but BEFORE completeFeeBy — adding the type script increases the occupied size of the
@@ -80,10 +90,11 @@ export async function buildDeployTx({
       hashType: typeIdHashType,
       args: typeIdArgs,
     });
+    typeIdCodeHash = tx.outputs[0].type.hash();
   }
 
   // Pass 2: top up any shortfall from fee so the tx is valid to broadcast.
   await tx.completeFeeBy(signer, feeRate);
 
-  return { tx, dataHash, typeIdArgs };
+  return { tx, dataHash, typeIdArgs, typeIdCodeHash };
 }

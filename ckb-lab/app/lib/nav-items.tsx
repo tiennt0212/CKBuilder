@@ -4,6 +4,7 @@ import {
   GoldOutlined,
   CodeOutlined,
   CloudUploadOutlined,
+  DatabaseOutlined,
   BankOutlined,
   ClockCircleOutlined,
   TeamOutlined,
@@ -75,6 +76,11 @@ export const NAV_ITEMS: MenuProps["items"] = [
           ROUTES.DEPLOY,
           <span className="flex items-center gap-2">Deploy Script {TAG_RUST}</span>
         ),
+      },
+      {
+        key: ROUTES.REGISTRY,
+        icon: <DatabaseOutlined />,
+        label: navLabel(ROUTES.REGISTRY, "Script Registry"),
       },
     ],
   },

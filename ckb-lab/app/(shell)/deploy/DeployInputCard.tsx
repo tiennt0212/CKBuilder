@@ -4,6 +4,7 @@ import { CapacityInfoPanel } from "@/components/ui/CapacityInfoPanel";
 import { FormItem } from "@/components/ui/FormItem";
 import { SwitchRow } from "@/components/ui/SwitchRow";
 import { UploadZone } from "@/components/ui/UploadZone";
+import { HASH_TYPES_CREATE, HashType } from "@/lib/ckb/hash-type";
 import { RocketOutlined } from "@ant-design/icons";
 import { Button, Card, Form, Segmented } from "antd";
 import type { FormInstance } from "antd/es/form";
@@ -13,8 +14,6 @@ const FEE_RATES = [
   { value: 2000, name: "Standard", sub: "2,000 sh/KB" },
   { value: 5000, name: "Fast", sub: "5,000 sh/KB" },
 ];
-
-const HASH_TYPES = ["type", "data1", "data2"] as const;
 
 const CARD_STYLE = {
   borderRadius: 12,
@@ -47,6 +46,8 @@ export function DeployInputCard({
   onValuesChange,
   onFinish,
 }: DeployInputCardProps) {
+  // Drives which hash_type options are selectable; kept in sync with the toggle below.
+  const enableTypeId = Form.useWatch("enableTypeId", form);
   return (
     <Card
       title={
@@ -100,27 +101,10 @@ export function DeployInputCard({
           />
         </FormItem>
 
-        <FormItem
-          name="hashType"
-          label="Hash Type"
-          style={{ marginBottom: 14 }}
-          initialValue="data1"
-        >
-          <Segmented
-            block
-            options={HASH_TYPES.map((h) => ({
-              value: h,
-              label: (
-                <div className="py-1.5">
-                  <div className="text-body font-medium font-mono">{h}</div>
-                </div>
-              ),
-            }))}
-            style={{ background: "var(--seg-bg)" }}
-          />
-        </FormItem>
-
         {/*
+         * Type ID comes before Hash Type on purpose: it is the higher-level decision (fixed vs
+         * upgradeable reference), and it determines which hash_type options are even valid below.
+         *
          * valuePropName="checked" makes Form.Item pass the field value as the `checked` prop
          * to SwitchRow instead of the default `value` prop. The Antd Switch inside SwitchRow
          * fires onChange(checked: boolean), which Form.Item captures as the new field value.
@@ -131,6 +115,32 @@ export function DeployInputCard({
             subtitle="Makes the script upgradeable at a stable code_hash"
           />
         </Form.Item>
+
+        <FormItem
+          name="hashType"
+          label="Hash Type"
+          style={{ margin: "14px 0" }}
+          initialValue={HashType.Data1}
+        >
+          <Segmented
+            block
+            options={HASH_TYPES_CREATE.map((h) => ({
+              value: h,
+              // hash_type and Type ID are one decision, not two. A plain data cell can only
+              // be referenced by its data hash (data1/data2); referencing it by "type"
+              // resolves to nothing (ScriptNotFound). Conversely a Type ID cell is meant to
+              // be referenced by "type". So disable the options that contradict the toggle —
+              // DeployScriptForm keeps the selected value in sync when Type ID flips.
+              disabled: enableTypeId ? h !== HashType.Type : h === HashType.Type,
+              label: (
+                <div className="py-1.5">
+                  <div className="text-body font-medium font-mono">{h}</div>
+                </div>
+              ),
+            }))}
+            style={{ background: "var(--seg-bg)" }}
+          />
+        </FormItem>
 
         <div className="mt-4 mb-5">
           {/*

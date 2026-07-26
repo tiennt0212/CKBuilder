@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { Select, Divider, Input, Button, Segmented } from "antd";
 import { PlusOutlined, UploadOutlined, DownloadOutlined } from "@ant-design/icons";
 import { useNetworkStore } from "@/stores/network";
+import { HASH_TYPES_CREATE } from "@/lib/ckb/hash-type";
 import {
   BUILTIN_DAO,
   BUILTIN_XUDT,
@@ -224,7 +225,7 @@ export function TypeScriptCombobox({ value, onChange, disabled }: TypeScriptComb
                 onChange={(v) =>
                   setForm((f) => ({ ...f, hashType: v as SavedTypeScript["hashType"] }))
                 }
-                options={["type", "data1", "data2"]}
+                options={[...HASH_TYPES_CREATE]}
                 block
               />
             </div>

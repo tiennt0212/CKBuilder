@@ -26,7 +26,7 @@ The Deploy Script page lets a user upload a compiled RISC-V binary, configure de
 |---|---|---|
 | Script Binary | — | Upload zone; any compiled binary file |
 | Fee Rate | Slow (1,000 sh/KB) | Segmented: Slow / Standard / Fast |
-| Hash Type | `data1` | Segmented: `type` / `data1` / `data2` |
+| Hash Type | `data1` | Segmented: `type` / `data1` / `data2`; options are gated by Type ID (see below) |
 | Enable Type ID | Off | SwitchRow; attaches a Type ID type script so `code_hash` stays stable |
 
 ## Hash Type
@@ -40,6 +40,21 @@ The `hash_type` field in CKB Script structs controls how `code_hash` is resolved
 | `data2` | Blake2b-256 of cell data | CKB VM2 scripts |
 | `type` | Type hash of cell type script | Requires Type ID to be enabled |
 
+`data` is omitted from the Deploy control on purpose — there is no reason to publish a new VM0
+script. (Invoke keeps `data` so it can still reference older cells deployed with it.)
+
+### hash_type and Type ID are one decision
+
+`hash_type` and the Type ID toggle are **not** independent. A plain data cell has no type
+script, so referencing it by `type` resolves to nothing — the node fails with `ScriptNotFound`
+at invoke time. The Deploy form therefore couples them:
+
+- **Type ID off** → only `data1` / `data2` are selectable; `type` is disabled.
+- **Type ID on** → `hash_type` is forced to `type`.
+
+The deployed-script registry records whichever `(code_hash, hash_type)` pair actually resolves,
+so `/invoke` never inherits an impossible combination.
+
 ## Type ID
 
 Enabling Type ID attaches a Type ID contract type script to the deployed cell at output index 0.
@@ -52,9 +67,20 @@ typeIdArgs = hashTypeId(tx.inputs[0], outputIndex: 0)
 This computation must occur **after** `completeInputsByCapacity` (so `tx.inputs[0]` exists) and
 **before** `completeFeeBy` (so the type script's additional occupied bytes are counted in the fee).
 
-Once deployed, the `typeIdArgs` value becomes the permanent `code_hash` for all scripts that
-reference this cell using `hash_type: "type"`. Even if you upgrade the binary (replace the cell
-data), the `code_hash` stays the same.
+Once deployed, the **hash of the Type ID type script** becomes the permanent `code_hash` for all
+scripts that reference this cell using `hash_type: "type"`. Even if you upgrade the binary
+(replace the cell data), the `code_hash` stays the same.
+
+Note the distinction the UI now makes explicit:
+
+| Value | What it is | Use it as |
+|---|---|---|
+| Type ID args | `hashTypeId(tx.inputs[0], 0)` — identifies the cell | The type script's `args` |
+| Code Hash (Type ID) | `blake2b(code_hash ‖ hash_type ‖ args)` of that type script | The referencing script's `code_hash` |
+
+A script is identified by the hash of all three of its fields, so passing the bare args as a
+`code_hash` references a script that does not exist. Committed deploys record the correct pair
+in the deployed-script registry — see `invoke-features.md`.
 
 ## CapacityInfoPanel
 

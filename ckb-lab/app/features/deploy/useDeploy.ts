@@ -1,5 +1,9 @@
 import { buildDeployTx } from "@/lib/ckb/deploy";
+import { deployedScriptId } from "@/lib/ckb/deployed-scripts";
+import { HashType } from "@/lib/ckb/hash-type";
+import { useDeployedScriptsStore } from "@/stores/deployed-scripts";
 import { TxStatus } from "@/lib/ckb/tx-status";
+import { useNetworkStore } from "@/stores/network";
 import { ccc } from "@ckb-ccc/core";
 import { useSigner } from "@ckb-ccc/connector-react";
 import type { UploadFile } from "antd";
@@ -27,9 +31,18 @@ export function useDeploy() {
   const [binarySize, setBinarySize] = useState<number | null>(null);
   const [dataHash, setDataHash] = useState<string | null>(null);
   const [typeIdArgs, setTypeIdArgs] = useState<string | null>(null);
+  const [typeIdCodeHash, setTypeIdCodeHash] = useState<string | null>(null);
+  const network = useNetworkStore((s) => s.network);
   const pollSignal = useRef<{ cancelled: boolean } | null>(null);
   // Incrementing counter prevents stale async callbacks from updating state after reset.
   const deployId = useRef(0);
+  // Derived values from the last build, kept in a ref because the poll loop that records
+  // the deploy in the registry runs after commit and would otherwise close over stale state.
+  const lastBuild = useRef<{
+    label: string;
+    codeHash: string;
+    hashType: ccc.HashType;
+  } | null>(null);
 
   const buildTx = async ({
     file,
@@ -51,9 +64,29 @@ export function useDeploy() {
       tx,
       dataHash: dh,
       typeIdArgs: tia,
+      typeIdCodeHash: tich,
     } = await buildDeployTx({ signer, binary, feeRate, hashType, enableTypeId });
     setDataHash(dh);
     setTypeIdArgs(tia ?? null);
+    setTypeIdCodeHash(tich ?? null);
+
+    // With Type ID the cell is referenced by its type script hash at hash_type "type";
+    // without it, by the data hash at hash_type "data*". Record whichever pair actually
+    // resolves, so /invoke can use the entry without the user reasoning about it.
+    //
+    // Guard: never record { data hash, "type" }. A plain data cell has no type script,
+    // so "type" resolves to nothing and /invoke would fail with ScriptNotFound. Even if a
+    // stray "type" reaches here without Type ID, coerce it to a data hash reference.
+    lastBuild.current = {
+      label: file.name,
+      codeHash: enableTypeId && tich ? tich : dh,
+      hashType: enableTypeId
+        ? HashType.Type
+        : hashType === HashType.Data2
+          ? HashType.Data2
+          : HashType.Data1,
+    };
+
     const txFee = await tx.getFee(signer.client);
     setFee(txFee);
     return tx;
@@ -71,6 +104,7 @@ export function useDeploy() {
     setBinarySize(null);
     setDataHash(null);
     setTypeIdArgs(null);
+    setTypeIdCodeHash(null);
   };
 
   const deploy = async ({ file, feeRate, hashType, enableTypeId }: BuildTxParams) => {
@@ -126,6 +160,23 @@ export function useDeploy() {
                 if (signal.cancelled) return;
                 setStatus(TxStatus.Committed);
                 setBlockNumber(res.blockNumber ?? null);
+                // Record the deploy so /invoke can offer it without the user copying an
+                // outpoint and code hash by hand. Only committed deploys are recorded —
+                // a rejected tx leaves no live cell for a cell dep to resolve against.
+                if (lastBuild.current) {
+                  // Write through the store (not the util directly) so /invoke and /registry,
+                  // which read the same singleton, reflect the new entry without a reload.
+                  useDeployedScriptsStore.getState().add({
+                    id: deployedScriptId(hash, 0, network),
+                    label: lastBuild.current.label,
+                    txHash: hash,
+                    index: 0,
+                    codeHash: lastBuild.current.codeHash,
+                    hashType: lastBuild.current.hashType,
+                    network,
+                    deployedAt: new Date().toISOString(),
+                  });
+                }
                 return;
               case TxStatus.Rejected:
                 if (signal.cancelled) return;
@@ -179,5 +230,6 @@ export function useDeploy() {
     reset,
     dataHash,
     typeIdArgs,
+    typeIdCodeHash,
   };
 }
