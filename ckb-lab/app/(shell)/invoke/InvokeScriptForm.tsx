@@ -1,20 +1,17 @@
 "use client";
 
+import { RegistryDrawer } from "@/components/RegistryDrawer";
 import { TxStatusBanner } from "@/components/ui/TxStatusBanner";
 import { useRawTx } from "@/features/common/useRawTx";
 import { useInvoke, type InvokeParams } from "@/features/invoke/useInvoke";
 import { ckbToShannons } from "@/lib";
-import {
-  deployedScriptId,
-  loadDeployedScripts,
-  saveDeployedScript,
-  type DeployedScript,
-} from "@/lib/ckb/deployed-scripts";
+import { type DeployedScript } from "@/lib/ckb/deployed-scripts";
 import { DepType } from "@/lib/ckb/dep-type";
 import { HashType } from "@/lib/ckb/hash-type";
 import { actionsForScript } from "@/lib/ckb/script-actions";
 import { ScriptSource } from "@/features/invoke/script-source";
 import { useDebouncedCallback } from "@/lib/useDebouncedCallback";
+import { useDeployedScriptsStore } from "@/stores/deployed-scripts";
 import { useNetworkStore } from "@/stores/network";
 import type { ccc } from "@ckb-ccc/core";
 import { Form } from "antd";
@@ -77,11 +74,13 @@ function buildInvokeParams(
 export function InvokeScriptForm() {
   const [activeTab, setActiveTab] = useState("summary");
   const [buildError, setBuildError] = useState<string | null>(null);
-  const [scripts, setScripts] = useState<DeployedScript[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [outputData, setOutputData] = useState("0x");
+  // Prefill for the "Save to registry" drawer, opened from Manual mode. null = closed.
+  const [saveDraft, setSaveDraft] = useState<Partial<DeployedScript> | null>(null);
 
   const network = useNetworkStore((s) => s.network);
+  const { scripts, refresh } = useDeployedScriptsStore();
   const {
     invoke,
     buildTx,
@@ -98,11 +97,14 @@ export function InvokeScriptForm() {
   const mode = (Form.useWatch("mode", form) as ScriptSource) ?? ScriptSource.Deployed;
   const { rawTx, txJson, txBytes } = useRawTx();
 
-  // localStorage is unavailable during SSR, so the registry can only be read after mount.
+  // localStorage is unavailable during SSR, so the store can only be filled after mount.
   // Re-reads on network change because entries are network-scoped.
   useEffect(() => {
-    setScripts(loadDeployedScripts(network));
-  }, [network]);
+    refresh(network);
+  }, [network, refresh]);
+
+  // Hidden entries stay in the registry but are kept out of the picker.
+  const visibleScripts = useMemo(() => scripts.filter((s) => !s.hidden), [scripts]);
 
   // In Manual mode there is no registry entry; only Deployed mode has a "selected" script,
   // which drives the read-only hash_type chip and the preview labels.
@@ -147,6 +149,8 @@ export function InvokeScriptForm() {
       .catch((err) => console.error("Invoke failed:", err));
   };
 
+  // Open the registry drawer (Create) prefilled from the Manual fields, rather than saving
+  // straight away — the drawer is the single place entries are created/edited (label, hidden…).
   const handleSaveToRegistry = () => {
     const v = form.getFieldsValue();
     const codeHash = hexOrUndefined(v.manualCodeHash);
@@ -155,25 +159,14 @@ export function InvokeScriptForm() {
       setBuildError("Enter a code hash and cell dep tx hash before saving.");
       return;
     }
-    const index = Number(v.manualDepIndex ?? 0);
-    const entry: DeployedScript = {
-      id: deployedScriptId(txHashValue, index, network),
-      label: (v.manualLabel as string)?.trim() || `${codeHash.slice(0, 10)}…`,
-      txHash: txHashValue,
-      index,
+    setBuildError(null);
+    setSaveDraft({
       codeHash,
+      txHash: txHashValue,
+      index: Number(v.manualDepIndex ?? 0),
       hashType: (v.manualHashType as ccc.HashType) ?? HashType.Data1,
       depType: (v.manualDepType as ccc.DepType) ?? DepType.Code,
-      network,
-      deployedAt: new Date().toISOString(),
-    };
-    saveDeployedScript(entry);
-    setScripts(loadDeployedScripts(network));
-    setBuildError(null);
-    // Jump to Deployed mode with the new entry selected — immediate, visible confirmation
-    // that it landed in the registry, and it becomes the active script for the next invoke.
-    form.setFieldsValue({ mode: ScriptSource.Deployed, scriptId: entry.id });
-    setSelectedId(entry.id);
+    });
   };
 
   const handleReset = () => {
@@ -194,11 +187,11 @@ export function InvokeScriptForm() {
       <div className="grid grid-cols-[1fr_1.07fr] gap-5 flex-1 min-h-0">
         <InvokeInputCard
           form={form}
-          scripts={scripts}
+          scripts={visibleScripts}
           selected={selected}
           actions={actions}
           isInProgress={isInProgress}
-          isDisabled={mode === ScriptSource.Deployed && scripts.length === 0}
+          isDisabled={mode === ScriptSource.Deployed && visibleScripts.length === 0}
           onValuesChange={handleValuesChange}
           onFinish={handleFinish}
           onSaveToRegistry={handleSaveToRegistry}
@@ -221,6 +214,15 @@ export function InvokeScriptForm() {
           outputData={outputData}
         />
       </div>
+
+      {saveDraft && (
+        <RegistryDrawer
+          mode="create"
+          initial={saveDraft}
+          network={network}
+          onClose={() => setSaveDraft(null)}
+        />
+      )}
     </div>
   );
 }

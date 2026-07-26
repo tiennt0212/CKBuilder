@@ -1,6 +1,7 @@
 import { buildDeployTx } from "@/lib/ckb/deploy";
-import { deployedScriptId, saveDeployedScript } from "@/lib/ckb/deployed-scripts";
+import { deployedScriptId } from "@/lib/ckb/deployed-scripts";
 import { HashType } from "@/lib/ckb/hash-type";
+import { useDeployedScriptsStore } from "@/stores/deployed-scripts";
 import { TxStatus } from "@/lib/ckb/tx-status";
 import { useNetworkStore } from "@/stores/network";
 import { ccc } from "@ckb-ccc/core";
@@ -163,7 +164,9 @@ export function useDeploy() {
                 // outpoint and code hash by hand. Only committed deploys are recorded —
                 // a rejected tx leaves no live cell for a cell dep to resolve against.
                 if (lastBuild.current) {
-                  saveDeployedScript({
+                  // Write through the store (not the util directly) so /invoke and /registry,
+                  // which read the same singleton, reflect the new entry without a reload.
+                  useDeployedScriptsStore.getState().add({
                     id: deployedScriptId(hash, 0, network),
                     label: lastBuild.current.label,
                     txHash: hash,

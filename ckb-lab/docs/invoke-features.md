@@ -30,12 +30,13 @@ The form has two sources, chosen by a **Script source** segmented at the top:
 - **Deployed** — pick a script this browser deployed via `/deploy`, from a dropdown. Its
   `(code_hash, hash_type, outpoint)` come from the registry, so nothing can be mistyped. In this
   mode **hash_type is read-only** — it is a property of the deployed script, not a choice, and
-  fixing it removes the trap of selecting a value that yields `ScriptNotFound`.
+  fixing it removes the trap of selecting a value that yields `ScriptNotFound`. The dropdown lists
+  only **non-hidden** registry entries (hide/unhide from the [Script Registry](./registry-features.md)).
 - **Manual** — enter `code_hash`, `hash_type`, the cell dep outpoint (`tx hash` + `index`) and
   `dep_type` by hand. This references *any* script, including ones you did not deploy and legacy
-  `data` (VM0) cells. hash_type is fully editable here. A **Save to registry** button persists the
-  entry so it can be picked from the Deployed dropdown next time (and switches you to Deployed
-  mode with it selected).
+  `data` (VM0) cells. hash_type is fully editable here. A **Save to registry** button opens the
+  registry drawer (Create mode) prefilled from these fields, where you set a label and confirm —
+  the drawer is the single place registry entries are created and edited.
 
 ## User Flow
 
@@ -62,7 +63,6 @@ The form has two sources, chosen by a **Script source** segmented at the top:
 | hash_type | Manual | `data1` | Segmented: `type` / `data` / `data1` / `data2`; editable |
 | Cell dep | Manual | index `0` | Outpoint of the code cell: `tx hash` + output `index` |
 | dep_type | Manual | `code` | Segmented: `code` / `dep_group` — see Cell Deps below |
-| Label | Manual | — | Name used when saving to the registry |
 | Script args | both | `0x` | The script's own `args` field |
 | Action | both | hidden | Only shown when the script is in the action registry — see below |
 | Witness data | both | empty | Hex placed in `WitnessArgs.outputType` |

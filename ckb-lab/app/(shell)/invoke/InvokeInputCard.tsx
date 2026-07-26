@@ -227,15 +227,7 @@ export function InvokeInputCard({
               <Segmented block options={DEP_TYPE_OPTIONS} style={{ background: "var(--seg-bg)" }} />
             </FormItem>
 
-            <FormItem
-              name="manualLabel"
-              label="Label"
-              hint="for the registry"
-              style={{ marginBottom: 10 }}
-            >
-              <Input placeholder="my-script" />
-            </FormItem>
-
+            {/* Opens the registry drawer prefilled from these fields (label is set there). */}
             <Button
               htmlType="button"
               icon={<SaveOutlined />}

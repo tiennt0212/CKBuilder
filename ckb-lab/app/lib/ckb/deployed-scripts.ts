@@ -37,13 +37,20 @@ export interface DeployedScript {
   network: string;
   /** ISO8601 */
   deployedAt: string;
+  /**
+   * Hidden entries stay in the registry but are filtered out of the /invoke picker.
+   * The Registry page still shows them (dimmed) so they can be un-hidden or deleted.
+   */
+  hidden?: boolean;
 }
 
 export function deployedScriptId(txHash: string, index: number, network: string): string {
   return `${txHash}:${index}:${network}`;
 }
 
-function readAll(): DeployedScript[] {
+/** Every entry across all networks. The store needs this to mutate without losing other
+ * networks' entries; UI should prefer loadDeployedScripts(network). */
+export function readAllDeployedScripts(): DeployedScript[] {
   if (typeof window === "undefined") return [];
   try {
     return JSON.parse(localStorage.getItem(LS_DEPLOYED_KEY) ?? "[]") as DeployedScript[];
@@ -53,14 +60,14 @@ function readAll(): DeployedScript[] {
 }
 
 export function loadDeployedScripts(network: string): DeployedScript[] {
-  return readAll()
+  return readAllDeployedScripts()
     .filter((s) => s.network === network)
     .sort((a, b) => b.deployedAt.localeCompare(a.deployedAt));
 }
 
 export function saveDeployedScript(entry: DeployedScript): void {
   if (typeof window === "undefined") return;
-  const all = readAll();
+  const all = readAllDeployedScripts();
   // Re-deploying the same binary yields a new txHash, so collisions only happen when
   // the same commit is recorded twice (e.g. a re-render). Replace rather than append.
   const next = [entry, ...all.filter((s) => s.id !== entry.id)];
@@ -69,5 +76,8 @@ export function saveDeployedScript(entry: DeployedScript): void {
 
 export function removeDeployedScript(id: string): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(LS_DEPLOYED_KEY, JSON.stringify(readAll().filter((s) => s.id !== id)));
+  localStorage.setItem(
+    LS_DEPLOYED_KEY,
+    JSON.stringify(readAllDeployedScripts().filter((s) => s.id !== id))
+  );
 }
