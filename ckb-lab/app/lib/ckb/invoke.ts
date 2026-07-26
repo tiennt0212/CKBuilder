@@ -1,4 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
+import { DepType } from "./dep-type";
 
 export interface BuildTypeInvokeTxParams {
   signer: ccc.Signer;
@@ -6,6 +7,12 @@ export interface BuildTypeInvokeTxParams {
   script: ccc.ScriptLike;
   /** Outpoint of the deployed cell holding the script binary. */
   cellDep: ccc.OutPointLike;
+  /**
+   * How the node reads the cell dep. "code" = its data IS the binary (what /deploy produces).
+   * "depGroup" = its data is a list of outpoints to load (e.g. system scripts like secp256k1).
+   * Defaults to "code".
+   */
+  depType?: ccc.DepType;
   /** Cell data for the output, 0x-prefixed hex. Defaults to empty. */
   outputData?: ccc.Hex;
   /** Script payload, placed in WitnessArgs.outputType. Omit for scripts that read no witness. */
@@ -35,6 +42,7 @@ export async function buildTypeInvokeTx({
   signer,
   script,
   cellDep,
+  depType = DepType.Code,
   outputData = "0x",
   witness,
   extraCapacity = 0n,
@@ -51,7 +59,7 @@ export async function buildTypeInvokeTx({
 
   // Without this dep the node cannot load the script binary and fails to resolve the
   // type script, regardless of whether the script itself would have passed.
-  tx.addCellDeps({ outPoint: ccc.OutPoint.from(cellDep), depType: "code" });
+  tx.addCellDeps({ outPoint: ccc.OutPoint.from(cellDep), depType });
 
   if (witness) {
     // The payload goes in WitnessArgs.outputType, NOT into witnesses[0] as raw bytes.

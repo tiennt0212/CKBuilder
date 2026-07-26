@@ -25,6 +25,11 @@ export interface DeployedScript {
   codeHash: string;
   hashType: ccc.HashType;
   /**
+   * How the cell dep is read. Omitted for /deploy entries (always "code"); set explicitly
+   * when a script is saved from /invoke Manual mode, which can reference a "depGroup" cell.
+   */
+  depType?: ccc.DepType;
+  /**
    * Entries are network-scoped and filtered on read: a devnet outpoint resolves to
    * nothing on testnet, so surfacing it in the picker would only produce a
    * confusing "cell dep not found" rejection at broadcast time.

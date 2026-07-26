@@ -12,6 +12,7 @@ const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 export interface InvokeParams {
   script: ccc.ScriptLike;
   cellDep: ccc.OutPointLike;
+  depType?: ccc.DepType;
   outputData?: ccc.Hex;
   witness?: ccc.Hex;
   extraCapacity?: bigint;

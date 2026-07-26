@@ -23,12 +23,26 @@ This page implements the **Type** path only. Attaching a type script to an outpu
 
 The **Lock** path needs two transactions — one to create a cell locked by the script, another to spend it supplying a witness — and is deferred to issue #6 (Course 08), where the hash lock gives a witness something real to prove.
 
+## Script source: Deployed vs Manual
+
+The form has two sources, chosen by a **Script source** segmented at the top:
+
+- **Deployed** — pick a script this browser deployed via `/deploy`, from a dropdown. Its
+  `(code_hash, hash_type, outpoint)` come from the registry, so nothing can be mistyped. In this
+  mode **hash_type is read-only** — it is a property of the deployed script, not a choice, and
+  fixing it removes the trap of selecting a value that yields `ScriptNotFound`.
+- **Manual** — enter `code_hash`, `hash_type`, the cell dep outpoint (`tx hash` + `index`) and
+  `dep_type` by hand. This references *any* script, including ones you did not deploy and legacy
+  `data` (VM0) cells. hash_type is fully editable here. A **Save to registry** button persists the
+  entry so it can be picked from the Deployed dropdown next time (and switches you to Deployed
+  mode with it selected).
+
 ## User Flow
 
 1. Connect a CKB wallet via the header wallet button.
-2. Deploy a script on **Deploy Script** (`/deploy`) if you have not already. On commit it is recorded automatically and appears here.
+2. Deploy a script on **Deploy Script** (`/deploy`), or have its code hash + outpoint ready for Manual mode.
 3. Navigate to **Invoke Script** (`/invoke`).
-4. Pick a script from the **Script** dropdown. `hash_type` is prefilled from how that script was actually deployed.
+4. Choose **Deployed** and pick a script, or **Manual** and enter the script's identity by hand.
 5. Supply **Script args** if the script expects any.
 6. Supply **Witness data** and **Cell data** if the script reads them.
 7. Optionally attach extra capacity beyond the computed minimum.
@@ -38,15 +52,22 @@ The **Lock** path needs two transactions — one to create a cell locked by the 
 
 ## Form Fields
 
-| Field | Default | Description |
-|---|---|---|
-| Script | — | Deployed scripts recorded by `/deploy` on this network |
-| hash_type | from the deploy record | Segmented: `type` / `data1` / `data2`; editable |
-| Script args | `0x` | The script's own `args` field |
-| Action | hidden | Only shown when the script is in the action registry — see below |
-| Witness data | empty | Hex placed in `WitnessArgs.outputType` |
-| Cell data | empty | Hex stored as the output cell's data |
-| Attach capacity | 0 | CKB added on top of the computed minimum |
+| Field | Mode | Default | Description |
+|---|---|---|---|
+| Script source | both | Deployed | Segmented: `Deployed` / `Manual` |
+| Script | Deployed | — | Dropdown of scripts recorded by `/deploy` on this network |
+| hash_type | Deployed | from the deploy record | **Read-only** — the value the script was deployed with |
+| dep_type | Deployed | from the deploy record | **Read-only** — `code` for `/deploy` entries; shown for parity with Manual |
+| code_hash | Manual | — | 32-byte hex identifying the script code |
+| hash_type | Manual | `data1` | Segmented: `type` / `data` / `data1` / `data2`; editable |
+| Cell dep | Manual | index `0` | Outpoint of the code cell: `tx hash` + output `index` |
+| dep_type | Manual | `code` | Segmented: `code` / `dep_group` — see Cell Deps below |
+| Label | Manual | — | Name used when saving to the registry |
+| Script args | both | `0x` | The script's own `args` field |
+| Action | both | hidden | Only shown when the script is in the action registry — see below |
+| Witness data | both | empty | Hex placed in `WitnessArgs.outputType` |
+| Cell data | both | empty | Hex stored as the output cell's data |
+| Attach capacity | both | 0 | CKB added on top of the computed minimum |
 
 ## The deployed-script registry
 
@@ -81,7 +102,20 @@ Course 10 (issue #8) registers the on-chain counter, at which point the Action d
 
 Without a cell dep pointing at the deployed cell, the node cannot load the script binary and fails to resolve the type script — regardless of whether the script itself would have passed.
 
-The page always uses `dep_type: "code"`, because `/deploy` writes a plain script cell. A `dep_group` cell (whose data is a serialised list of outpoints) would need a different dep type; the built-in secp256k1 lock is deployed that way, which is why CCC resolves it automatically and this page does not.
+`dep_type` controls **what the referenced cell's data holds**:
+
+| dep_type | The cell dep's data is | The node |
+|---|---|---|
+| `code` | the RISC-V binary itself | runs it directly |
+| `dep_group` | a molecule list of outpoints (`OutPointVec`) | loads *every* cell in the list |
+
+`dep_group` bundles several cell deps behind a single outpoint. The classic example is the
+built-in **secp256k1-blake160** lock, which needs both its binary and a pre-computed group table;
+CKB packages them into one `dep_group` cell so every transaction references just one outpoint.
+
+Deployed mode always uses `code`, because `/deploy` writes a plain script cell. Manual mode
+exposes the choice, so a script bundled as a `dep_group` (e.g. a system script) can be referenced
+too. Rule of thumb: **a script you deployed yourself → `code`; a bundled system script → `dep_group`.**
 
 Cell deps must reference **live** cells. If the deployed cell is ever consumed, every transaction referencing it starts failing.
 

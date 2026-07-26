@@ -1,5 +1,6 @@
 import { buildDeployTx } from "@/lib/ckb/deploy";
 import { deployedScriptId, saveDeployedScript } from "@/lib/ckb/deployed-scripts";
+import { HashType } from "@/lib/ckb/hash-type";
 import { TxStatus } from "@/lib/ckb/tx-status";
 import { useNetworkStore } from "@/stores/network";
 import { ccc } from "@ckb-ccc/core";
@@ -71,10 +72,18 @@ export function useDeploy() {
     // With Type ID the cell is referenced by its type script hash at hash_type "type";
     // without it, by the data hash at hash_type "data*". Record whichever pair actually
     // resolves, so /invoke can use the entry without the user reasoning about it.
+    //
+    // Guard: never record { data hash, "type" }. A plain data cell has no type script,
+    // so "type" resolves to nothing and /invoke would fail with ScriptNotFound. Even if a
+    // stray "type" reaches here without Type ID, coerce it to a data hash reference.
     lastBuild.current = {
       label: file.name,
       codeHash: enableTypeId && tich ? tich : dh,
-      hashType: enableTypeId ? "type" : (hashType ?? "data1"),
+      hashType: enableTypeId
+        ? HashType.Type
+        : hashType === HashType.Data2
+          ? HashType.Data2
+          : HashType.Data1,
     };
 
     const txFee = await tx.getFee(signer.client);

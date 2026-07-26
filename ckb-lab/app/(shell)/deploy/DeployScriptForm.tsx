@@ -4,7 +4,9 @@ import { TxStatusBanner } from "@/components/ui/TxStatusBanner";
 import { useRawTx } from "@/features/common/useRawTx";
 import { useDeploy } from "@/features/deploy/useDeploy";
 import { useWalletAccount } from "@/features/wallet/useWalletAccount";
+import { HashType } from "@/lib/ckb/hash-type";
 import { useDebouncedCallback } from "@/lib/useDebouncedCallback";
+import type { ccc } from "@ckb-ccc/core";
 import type { UploadFile } from "antd";
 import { useForm } from "antd/es/form/Form";
 import { useState } from "react";
@@ -12,6 +14,16 @@ import { DeployInputCard } from "./DeployInputCard";
 import { DeployPreviewCard } from "./DeployPreviewCard";
 
 const DEBOUNCE_MS = 400;
+
+/**
+ * hash_type "type" only resolves for a Type ID cell; a plain data cell must be referenced
+ * by its data hash. Force the pair to agree so we never build or record an impossible
+ * combination like { data hash, "type" }, which fails at invoke time with ScriptNotFound.
+ */
+function resolveHashType(hashType: string, enableTypeId: boolean): ccc.HashType {
+  if (enableTypeId) return HashType.Type;
+  return hashType === HashType.Data2 ? HashType.Data2 : HashType.Data1;
+}
 
 export function DeployScriptForm() {
   const [activeTab, setActiveTab] = useState("summary");
@@ -54,8 +66,8 @@ export function DeployScriptForm() {
           buildTx({
             file,
             feeRate,
-            // Cast is safe: the form Segmented control only allows the four HashType values.
-            hashType: hashType as "type" | "data" | "data1" | "data2",
+            // Cast is safe: the form Segmented control only allows valid HashType values.
+            hashType: hashType as ccc.HashType,
             enableTypeId: enableTypeIdVal,
           })
         );
@@ -72,8 +84,14 @@ export function DeployScriptForm() {
     if (isInProgress) return;
     const files = values.file as UploadFile[] | undefined;
     const feeRate = (values.feeRate as number | undefined) ?? 1000;
-    const hashType = (values.hashType as string | undefined) ?? "data1";
     const enableTypeIdVal = (values.enableTypeId as boolean | undefined) ?? false;
+    const hashType = resolveHashType(
+      (values.hashType as string | undefined) ?? "data1",
+      enableTypeIdVal
+    );
+    // Reflect the forced value back into the Segmented control when Type ID flips it,
+    // so what the user sees always matches what will be deployed.
+    if (hashType !== values.hashType) form.setFieldValue("hashType", hashType);
     setEnableTypeId(enableTypeIdVal);
     const currentFile = files?.[0];
     if (!currentFile) {
@@ -86,14 +104,17 @@ export function DeployScriptForm() {
   const handleFinish = (values: Record<string, unknown>) => {
     const files = values.file as UploadFile[] | undefined;
     const feeRate = values.feeRate as number | undefined;
-    const hashType = (values.hashType as string | undefined) ?? "data1";
     const enableTypeIdVal = (values.enableTypeId as boolean | undefined) ?? false;
+    const hashType = resolveHashType(
+      (values.hashType as string | undefined) ?? "data1",
+      enableTypeIdVal
+    );
     const currentFile = files?.[0];
     if (!currentFile) return;
     deploy({
       file: currentFile,
       feeRate,
-      hashType: hashType as "type" | "data" | "data1" | "data2",
+      hashType,
       enableTypeId: enableTypeIdVal,
     })
       .then((hash) => console.log("Script deployed:", hash))

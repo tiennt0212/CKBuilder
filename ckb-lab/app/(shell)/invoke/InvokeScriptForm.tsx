@@ -2,14 +2,22 @@
 
 import { TxStatusBanner } from "@/components/ui/TxStatusBanner";
 import { useRawTx } from "@/features/common/useRawTx";
-import { useInvoke } from "@/features/invoke/useInvoke";
+import { useInvoke, type InvokeParams } from "@/features/invoke/useInvoke";
 import { ckbToShannons } from "@/lib";
-import { loadDeployedScripts, type DeployedScript } from "@/lib/ckb/deployed-scripts";
+import {
+  deployedScriptId,
+  loadDeployedScripts,
+  saveDeployedScript,
+  type DeployedScript,
+} from "@/lib/ckb/deployed-scripts";
+import { DepType } from "@/lib/ckb/dep-type";
+import { HashType } from "@/lib/ckb/hash-type";
 import { actionsForScript } from "@/lib/ckb/script-actions";
+import { ScriptSource } from "@/features/invoke/script-source";
 import { useDebouncedCallback } from "@/lib/useDebouncedCallback";
 import { useNetworkStore } from "@/stores/network";
 import type { ccc } from "@ckb-ccc/core";
-import { useForm } from "antd/es/form/Form";
+import { Form } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { InvokeInputCard } from "./InvokeInputCard";
 import { InvokePreviewCard } from "./InvokePreviewCard";
@@ -20,6 +28,50 @@ const DEBOUNCE_MS = 400;
 function hexOrUndefined(value: unknown): ccc.Hex | undefined {
   const s = typeof value === "string" ? value.trim() : "";
   return s && s !== "0x" ? (s as ccc.Hex) : undefined;
+}
+
+/**
+ * Assemble the invoke params from whichever source the form is in.
+ * Returns null when the required fields for that mode are not filled yet, so the caller can
+ * skip building a preview without treating it as an error.
+ */
+function buildInvokeParams(
+  mode: ScriptSource,
+  values: Record<string, unknown>,
+  scripts: DeployedScript[]
+): InvokeParams | null {
+  const args = (hexOrUndefined(values.args) ?? "0x") as ccc.Hex;
+  const common = {
+    outputData: hexOrUndefined(values.outputData) ?? "0x",
+    witness: hexOrUndefined(values.witness),
+    extraCapacity: ckbToShannons(String(values.extraCapacity ?? 0)),
+  };
+
+  if (mode === ScriptSource.Manual) {
+    const codeHash = hexOrUndefined(values.manualCodeHash);
+    const txHash = hexOrUndefined(values.manualDepTxHash);
+    if (!codeHash || !txHash) return null;
+    return {
+      script: {
+        codeHash,
+        hashType: (values.manualHashType as ccc.HashType) ?? HashType.Data1,
+        args,
+      },
+      cellDep: { txHash, index: Number(values.manualDepIndex ?? 0) },
+      depType: (values.manualDepType as ccc.DepType) ?? DepType.Code,
+      ...common,
+    };
+  }
+
+  const script = scripts.find((s) => s.id === values.scriptId);
+  if (!script) return null;
+  return {
+    // hash_type comes from the registry, not the form: in Deployed mode it is read-only.
+    script: { codeHash: script.codeHash, hashType: script.hashType, args },
+    cellDep: { txHash: script.txHash, index: script.index },
+    depType: script.depType ?? DepType.Code,
+    ...common,
+  };
 }
 
 export function InvokeScriptForm() {
@@ -42,7 +94,8 @@ export function InvokeScriptForm() {
     blockNumber,
     reset,
   } = useInvoke();
-  const [form] = useForm();
+  const [form] = Form.useForm();
+  const mode = (Form.useWatch("mode", form) as ScriptSource) ?? ScriptSource.Deployed;
   const { rawTx, txJson, txBytes } = useRawTx();
 
   // localStorage is unavailable during SSR, so the registry can only be read after mount.
@@ -51,75 +104,76 @@ export function InvokeScriptForm() {
     setScripts(loadDeployedScripts(network));
   }, [network]);
 
+  // In Manual mode there is no registry entry; only Deployed mode has a "selected" script,
+  // which drives the read-only hash_type chip and the preview labels.
   const selected = useMemo(
-    () => scripts.find((s) => s.id === selectedId) ?? null,
-    [scripts, selectedId]
+    () =>
+      mode === ScriptSource.Deployed ? (scripts.find((s) => s.id === selectedId) ?? null) : null,
+    [mode, scripts, selectedId]
   );
   const actions = useMemo(() => (selected ? actionsForScript(selected.codeHash) : []), [selected]);
 
-  const debouncedBuild = useDebouncedCallback(
-    async (script: DeployedScript, values: Record<string, unknown>) => {
-      try {
-        await rawTx(() =>
-          buildTx({
-            script: {
-              codeHash: script.codeHash,
-              hashType: (values.hashType as ccc.HashType) ?? script.hashType,
-              args: (hexOrUndefined(values.args) ?? "0x") as ccc.Hex,
-            },
-            cellDep: { txHash: script.txHash, index: script.index },
-            outputData: hexOrUndefined(values.outputData) ?? "0x",
-            witness: hexOrUndefined(values.witness),
-            extraCapacity: ckbToShannons(String(values.extraCapacity ?? 0)),
-          })
-        );
-        setBuildError(null);
-      } catch (err: unknown) {
-        setBuildError(err instanceof Error ? err.message : "Failed to build transaction");
-      }
-    },
-    DEBOUNCE_MS
-  );
+  const debouncedBuild = useDebouncedCallback(async (params: InvokeParams) => {
+    try {
+      await rawTx(() => buildTx(params));
+      setBuildError(null);
+    } catch (err: unknown) {
+      setBuildError(err instanceof Error ? err.message : "Failed to build transaction");
+    }
+  }, DEBOUNCE_MS);
 
   const handleValuesChange = (_: unknown, values: Record<string, unknown>) => {
     // Don't rebuild during an in-flight invoke — state updates would be ignored anyway.
     if (isInProgress) return;
 
-    const id = values.scriptId as string | undefined;
-    setSelectedId(id ?? null);
+    const currentMode = (values.mode as ScriptSource) ?? ScriptSource.Deployed;
+    setSelectedId((values.scriptId as string | undefined) ?? null);
     setOutputData((hexOrUndefined(values.outputData) ?? "0x") as string);
 
-    const script = scripts.find((s) => s.id === id);
-    if (!script) {
+    const params = buildInvokeParams(currentMode, values, scripts);
+    if (!params) {
       setBuildError(null);
       return;
     }
-
-    // Selecting a script prefills hash_type from how it was actually deployed, so the
-    // common case works without the user reasoning about it. It stays editable.
-    if (values.hashType == null) {
-      form.setFieldValue("hashType", script.hashType);
-    }
-
-    debouncedBuild(script, values);
+    debouncedBuild(params);
   };
 
   const handleFinish = (values: Record<string, unknown>) => {
-    const script = scripts.find((s) => s.id === values.scriptId);
-    if (!script) return;
-    invoke({
-      script: {
-        codeHash: script.codeHash,
-        hashType: (values.hashType as ccc.HashType) ?? script.hashType,
-        args: (hexOrUndefined(values.args) ?? "0x") as ccc.Hex,
-      },
-      cellDep: { txHash: script.txHash, index: script.index },
-      outputData: hexOrUndefined(values.outputData) ?? "0x",
-      witness: hexOrUndefined(values.witness),
-      extraCapacity: ckbToShannons(String(values.extraCapacity ?? 0)),
-    })
+    const currentMode = (values.mode as ScriptSource) ?? ScriptSource.Deployed;
+    const params = buildInvokeParams(currentMode, values, scripts);
+    if (!params) return;
+    invoke(params)
       .then((hash) => console.log("Script invoked:", hash))
       .catch((err) => console.error("Invoke failed:", err));
+  };
+
+  const handleSaveToRegistry = () => {
+    const v = form.getFieldsValue();
+    const codeHash = hexOrUndefined(v.manualCodeHash);
+    const txHashValue = hexOrUndefined(v.manualDepTxHash);
+    if (!codeHash || !txHashValue) {
+      setBuildError("Enter a code hash and cell dep tx hash before saving.");
+      return;
+    }
+    const index = Number(v.manualDepIndex ?? 0);
+    const entry: DeployedScript = {
+      id: deployedScriptId(txHashValue, index, network),
+      label: (v.manualLabel as string)?.trim() || `${codeHash.slice(0, 10)}…`,
+      txHash: txHashValue,
+      index,
+      codeHash,
+      hashType: (v.manualHashType as ccc.HashType) ?? HashType.Data1,
+      depType: (v.manualDepType as ccc.DepType) ?? DepType.Code,
+      network,
+      deployedAt: new Date().toISOString(),
+    };
+    saveDeployedScript(entry);
+    setScripts(loadDeployedScripts(network));
+    setBuildError(null);
+    // Jump to Deployed mode with the new entry selected — immediate, visible confirmation
+    // that it landed in the registry, and it becomes the active script for the next invoke.
+    form.setFieldsValue({ mode: ScriptSource.Deployed, scriptId: entry.id });
+    setSelectedId(entry.id);
   };
 
   const handleReset = () => {
@@ -141,11 +195,13 @@ export function InvokeScriptForm() {
         <InvokeInputCard
           form={form}
           scripts={scripts}
+          selected={selected}
           actions={actions}
           isInProgress={isInProgress}
-          isDisabled={scripts.length === 0}
+          isDisabled={mode === ScriptSource.Deployed && scripts.length === 0}
           onValuesChange={handleValuesChange}
           onFinish={handleFinish}
+          onSaveToRegistry={handleSaveToRegistry}
         />
         <InvokePreviewCard
           activeTab={activeTab}
@@ -154,8 +210,10 @@ export function InvokeScriptForm() {
           txBytes={txBytes}
           fee={fee}
           outputCapacity={outputCapacity}
-          scriptLabel={selected?.label ?? null}
-          codeHash={selected?.codeHash ?? null}
+          scriptLabel={selected?.label ?? (mode === ScriptSource.Manual ? "Manual script" : null)}
+          // Prefer the code_hash from the built tx so Manual mode (no registry entry) still
+          // shows it; fall back to the selected registry entry before a preview exists.
+          codeHash={txJson?.outputs?.[0]?.type?.codeHash ?? selected?.codeHash ?? null}
           buildError={buildError}
           status={status}
           txHash={txHash}
