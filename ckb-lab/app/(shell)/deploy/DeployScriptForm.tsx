@@ -32,6 +32,7 @@ export function DeployScriptForm() {
     reset,
     dataHash,
     typeIdArgs,
+    typeIdCodeHash,
   } = useDeploy();
   const { balance } = useWalletAccount();
   const [form] = useForm();
@@ -138,6 +139,7 @@ export function DeployScriptForm() {
           blockNumber={blockNumber}
           dataHash={dataHash}
           typeIdArgs={typeIdArgs}
+          typeIdCodeHash={typeIdCodeHash}
           enableTypeId={enableTypeId}
         />
       </div>

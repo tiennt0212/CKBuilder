@@ -35,8 +35,10 @@ interface DeployPreviewCardProps {
   blockNumber: bigint | null;
   /** Blake2b-256 hash of the deployed binary. Populated after preview build. */
   dataHash: string | null;
-  /** Type ID args (stable code_hash). Only populated when enableTypeId = true. */
+  /** Type ID args — identifies the cell. Only populated when enableTypeId = true. */
   typeIdArgs: string | null;
+  /** Hash of the Type ID type script — the stable code_hash for "type" references. */
+  typeIdCodeHash: string | null;
   /** Whether the user enabled Type ID for this deploy. */
   enableTypeId: boolean;
 }
@@ -55,6 +57,7 @@ export function DeployPreviewCard({
   blockNumber,
   dataHash,
   typeIdArgs,
+  typeIdCodeHash,
   enableTypeId,
 }: DeployPreviewCardProps) {
   const isCommitted = status === TxStatus.Committed;
@@ -181,10 +184,26 @@ export function DeployPreviewCard({
                 )}
                 {enableTypeId && typeIdArgs != null && (
                   <div className="flex items-baseline justify-between py-[6px]">
-                    <span className="text-body text-text-2">Code Hash (Type ID)</span>
+                    <span className="text-body text-text-2">Type ID args</span>
                     <CopyText
                       text={typeIdArgs}
                       display={`${typeIdArgs.slice(0, 10)}…${typeIdArgs.slice(-6)}`}
+                      textClassName="font-mono text-hint text-text-1"
+                    />
+                  </div>
+                )}
+                {/*
+                 * The code_hash for a hash_type "type" reference is the hash of the whole
+                 * Type ID type script, not its args — a script is identified by
+                 * blake2b(code_hash ‖ hash_type ‖ args). Showing the bare args here would
+                 * hand the user a value that references a script that does not exist.
+                 */}
+                {enableTypeId && typeIdCodeHash != null && (
+                  <div className="flex items-baseline justify-between py-[6px]">
+                    <span className="text-body text-text-2">Code Hash (Type ID)</span>
+                    <CopyText
+                      text={typeIdCodeHash}
+                      display={`${typeIdCodeHash.slice(0, 10)}…${typeIdCodeHash.slice(-6)}`}
                       textClassName="font-mono text-hint text-primary font-semibold"
                     />
                   </div>

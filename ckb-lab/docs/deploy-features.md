@@ -52,9 +52,20 @@ typeIdArgs = hashTypeId(tx.inputs[0], outputIndex: 0)
 This computation must occur **after** `completeInputsByCapacity` (so `tx.inputs[0]` exists) and
 **before** `completeFeeBy` (so the type script's additional occupied bytes are counted in the fee).
 
-Once deployed, the `typeIdArgs` value becomes the permanent `code_hash` for all scripts that
-reference this cell using `hash_type: "type"`. Even if you upgrade the binary (replace the cell
-data), the `code_hash` stays the same.
+Once deployed, the **hash of the Type ID type script** becomes the permanent `code_hash` for all
+scripts that reference this cell using `hash_type: "type"`. Even if you upgrade the binary
+(replace the cell data), the `code_hash` stays the same.
+
+Note the distinction the UI now makes explicit:
+
+| Value | What it is | Use it as |
+|---|---|---|
+| Type ID args | `hashTypeId(tx.inputs[0], 0)` — identifies the cell | The type script's `args` |
+| Code Hash (Type ID) | `blake2b(code_hash ‖ hash_type ‖ args)` of that type script | The referencing script's `code_hash` |
+
+A script is identified by the hash of all three of its fields, so passing the bare args as a
+`code_hash` references a script that does not exist. Committed deploys record the correct pair
+in the deployed-script registry — see `invoke-features.md`.
 
 ## CapacityInfoPanel
 
