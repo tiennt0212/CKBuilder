@@ -37,29 +37,6 @@ ckb-std = { version = "0.16", default-features = false, features = ["allocator",
 # The "ckb-contract" feature selects blake2b_ref (no_std) instead of blake2b_rs (std).
 ckb-hash = { version = "0.119", default-features = false, features = ["ckb-contract"] }
 
-# -------------------------------------------------------------------
-# Profile: Release Build
-# -------------------------------------------------------------------
-# CKB scripts should be as small as possible because:
-#   1. Larger scripts cost more CKB to store on-chain (capacity)
-#   2. Larger scripts consume more execution cycles in CKB-VM
-#
-# These settings optimize for minimal binary size:
-#   - opt-level = "s": Optimize for size rather than speed
-#   - lto = true: Link-Time Optimization eliminates dead code
-#   - codegen-units = 1: Single codegen unit allows better optimization
-#   - panic = "abort": No unwinding support (saves binary size)
-#   - strip = true: Remove debug symbols from the final binary
-# -------------------------------------------------------------------
-# Without panic = "abort", no_std crates require an explicit #[panic_handler].
-# ckb-std's default_alloc!() only sets up the global allocator, not a panic handler.
-# Setting panic = "abort" in both profiles makes the compiler generate one automatically.
-[profile.dev]
-panic = "abort"
-
-[profile.release]
-opt-level = "s"
-lto = true
-codegen-units = 1
-panic = "abort"
-strip = true
+# Release profile (opt-level "s", LTO, panic="abort", strip) lives at the workspace
+# root (../Cargo.toml) now that this crate is a workspace member — Cargo only honors
+# [profile.*] tables at the workspace root, silently ignoring a member's own.

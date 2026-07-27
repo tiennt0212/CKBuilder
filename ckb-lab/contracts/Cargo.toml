@@ -1,0 +1,29 @@
+[workspace]
+# A virtual manifest (no [package]) has no root package to infer an edition/resolver
+# from, so it silently defaults to resolver "1" unless set explicitly. This workspace
+# mixes no_std riscv64imac contract crates with a std native-host test crate, so an
+# explicit "2" is required for correct per-target feature unification.
+resolver = "2"
+members = [
+    "lesson-08-hash-lock",
+    "lesson-10-counter",
+    "tests",
+]
+
+# Cargo only honors [profile.*] tables at the workspace root — once a crate joins a
+# workspace, its own [profile.*] section is silently ignored (with a warning). These
+# settings apply to both riscv64imac contract crates and optimize for minimal binary
+# size (smaller on-chain footprint, fewer CKB-VM cycles).
+#
+# `cargo test` for the native-host `tests` crate is unaffected: Cargo always forces
+# panic=unwind for anything compiled under the test harness regardless of what a
+# shared profile declares, so panic="abort" here is safe to share.
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
