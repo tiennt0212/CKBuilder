@@ -1,13 +1,11 @@
 "use client";
 
-// Side-effect only: must be the first import so the connector patch is applied before
-// CccProvider/the ccc-connector custom element are ever constructed. See that file for why.
-import "./lib/ccc-connector-patch";
-import { useEffect } from "react";
 import { ConfigProvider } from "antd";
-import { Provider as CccProvider, useCcc } from "@ckb-ccc/connector-react";
+import { Provider as CccProvider } from "@ckb-ccc/connector-react";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
-import { useNetworkStore } from "./stores/network";
+import { CLIENT_BY_NETWORK, NETWORK_LABELS, NETWORKS, readEnvNetwork } from "./lib/ccc-client";
+import { NetworkSync } from "./stores/network";
+import { WalletAccountSync } from "./stores/wallet";
 import { ckbTheme } from "./theme";
 import type { ReactNode } from "react";
 
@@ -16,23 +14,21 @@ function AntdThemeProvider({ children }: { children: ReactNode }) {
   return <ConfigProvider theme={ckbTheme(mode)}>{children}</ConfigProvider>;
 }
 
-function NetworkSync() {
-  const cccClient = useNetworkStore((s) => s.cccClient);
-  const { setClient } = useCcc();
-
-  useEffect(() => {
-    setClient(cccClient);
-  }, [cccClient]);
-
-  return null;
-}
+const clientOptions = NETWORKS.map((n) => ({
+  name: NETWORK_LABELS[n],
+  client: CLIENT_BY_NETWORK[n],
+}));
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider>
       <AntdThemeProvider>
-        <CccProvider>
+        <CccProvider
+          defaultClient={CLIENT_BY_NETWORK[readEnvNetwork()]}
+          clientOptions={clientOptions}
+        >
           <NetworkSync />
+          <WalletAccountSync />
           {children}
         </CccProvider>
       </AntdThemeProvider>

@@ -8,6 +8,7 @@ import { useCounterCellsStore } from "@/stores/counter-cells";
 import { useDeployedScriptsStore } from "@/stores/deployed-scripts";
 import { useNetworkStore } from "@/stores/network";
 import { useDebouncedCallback } from "@/lib/useDebouncedCallback";
+import { useCcc } from "@ckb-ccc/connector-react";
 import { Form } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { CounterInputCard } from "./CounterInputCard";
@@ -21,7 +22,8 @@ export function CounterForm() {
   const [buildError, setBuildError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const { network, lockLabelMap, cccClient } = useNetworkStore();
+  const { network, lockLabelMap } = useNetworkStore();
+  const { client: cccClient } = useCcc();
   const { scripts: deployedScripts, refresh: refreshDeployedScripts } = useDeployedScriptsStore();
   const { cells: counterCells, refresh: refreshCounterCells } = useCounterCellsStore();
   const {

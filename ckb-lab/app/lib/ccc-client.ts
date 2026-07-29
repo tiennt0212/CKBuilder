@@ -146,6 +146,28 @@ export function readEnvNetwork(): Network {
   return network as Network;
 }
 
+// Built once per network so <CccProvider> (defaultClient/clientOptions), NetworkPill, and
+// networkOfClient() below all share the exact same instances. A fresh instance per call would
+// give every reselect a new object identity, defeating identity-based lookups and needlessly
+// re-triggering the connector's internal signer refresh (which reacts to `client` changing).
+export const CLIENT_BY_NETWORK: Record<Network, ccc.Client> = {
+  [Network.Devnet]: buildCccClient(Network.Devnet),
+  [Network.Testnet]: buildCccClient(Network.Testnet),
+  [Network.Mainnet]: buildCccClient(Network.Mainnet),
+};
+
+// Reverse lookup by identity — CLIENT_BY_NETWORK's instances are the only ones ever handed to
+// <CccProvider>, so `===` reliably tells us which network is active. Falls back to Testnet (the
+// library's own hardcoded default) for the brief window before defaultClient's own effect
+// commits, when useCcc().client is still a bare `new ccc.ClientPublicTestnet()` the library
+// constructed itself.
+export function networkOfClient(client: ccc.Client): Network {
+  const match = (Object.entries(CLIENT_BY_NETWORK) as [Network, ccc.Client][]).find(
+    ([, c]) => c === client
+  );
+  return match?.[0] ?? Network.Testnet;
+}
+
 const KNOWN_SCRIPT_LABELS: KnownScript[] = [
   KnownScript.Secp256k1Blake160,
   KnownScript.Secp256k1Multisig,
