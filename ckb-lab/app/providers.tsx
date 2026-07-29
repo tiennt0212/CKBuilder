@@ -1,5 +1,8 @@
 "use client";
 
+// Side-effect only: must be the first import so the connector patch is applied before
+// CccProvider/the ccc-connector custom element are ever constructed. See that file for why.
+import "./lib/ccc-connector-patch";
 import { useEffect } from "react";
 import { ConfigProvider } from "antd";
 import { Provider as CccProvider, useCcc } from "@ckb-ccc/connector-react";
