@@ -96,7 +96,7 @@ The artboard shows an **Action** dropdown, but CKB has no ABI — there is no on
 
 `lib/ckb/script-actions.ts` is therefore a client-side map keyed by `code_hash`. It is **empty** in Course 07: no script with a known action set exists yet, and inventing entries for scripts that do not exist would be fiction. Every script currently falls back to the raw witness hex field, which is the only input that works for an arbitrary script.
 
-Course 10 (issue #8) registers the on-chain counter, at which point the Action dropdown starts returning results with no change to the form layout.
+Course 10 (issue #8) ships as its own self-contained [Counter](./counter-features.md) page instead of registering here: `/invoke` can express the counter's *creation* step but has no path to express *increment* (it always sources inputs from the wallet's own plain cells, never a specific existing outpoint), so a "create" entry here would only duplicate Counter's own button.
 
 ## Cell Deps
 

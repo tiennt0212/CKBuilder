@@ -1,4 +1,5 @@
 import { ccc, CellDepInfoLike, KnownScript, Script } from "@ckb-ccc/core";
+import { TESTNET_SCRIPTS } from "@ckb-ccc/core/advanced";
 
 export const Network = {
   Devnet: "devnet",
@@ -12,9 +13,16 @@ export type ScriptInfo = Pick<Script, "codeHash" | "hashType"> & {
   cellDeps: CellDepInfoLike[];
 };
 
-// Devnet scripts from offCKB system-scripts.json
-// Update this when deploying to a new devnet
+// Devnet scripts from offCKB system-scripts.json, layered on top of the full TESTNET_SCRIPTS
+// set. Only the 5 scripts offCKB's devnet genesis actually deploys are overridden below;
+// everything else falls back to the testnet entry so `client.getKnownScript()` never throws
+// for a script we simply haven't listed (getKnownScript does a pure local lookup on this map,
+// no RPC call — a missing key is a hard, synchronous error, not a graceful "not found on
+// this chain"). Wallet connectors that probe several lock types (e.g. MetaMask trying both
+// OmniLock and PWLock) would otherwise throw uncaught mid-connection for any devnet-omitted
+// script. Update the 5 overrides below when deploying to a new devnet.
 export const DEVNET_SCRIPTS: Record<string, ScriptInfo> = {
+  ...(TESTNET_SCRIPTS as unknown as Record<string, ScriptInfo>),
   [KnownScript.Secp256k1Blake160]: {
     codeHash: "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
     hashType: "type",
@@ -125,6 +133,7 @@ export function buildCccClient(network: Network): ccc.Client {
   // devnet — offCKB proxy
   return new ccc.ClientPublicTestnet({
     url: DEVNET_RPC_URL,
+    fallbacks: [DEVNET_RPC_URL],
     scripts: DEVNET_SCRIPTS as any,
   });
 }

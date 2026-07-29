@@ -10,6 +10,12 @@ import { ccc } from "@ckb-ccc/core";
  *
  * A script that is not in this map is not an error: the form falls back to a raw
  * witness hex field, which is the only input that works for an arbitrary script.
+ *
+ * The on-chain counter (Course 10 / issue #8) is deliberately NOT registered here: it ships as
+ * its own self-contained /counter page instead. Registering a "create" action here would only
+ * duplicate that page's own Create button, and /invoke still could not express "increment"
+ * either way — buildTypeInvokeTx always builds a brand-new output and has no path to consume a
+ * specific existing outpoint as an input. See docs/counter-features.md.
  */
 
 export interface ScriptActionArg {
