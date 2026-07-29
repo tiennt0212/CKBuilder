@@ -3,9 +3,9 @@
 import { TxStatusBanner } from "@/components/ui/TxStatusBanner";
 import { useRawTx } from "@/features/common/useRawTx";
 import { useDeploy } from "@/features/deploy/useDeploy";
-import { useWalletAccount } from "@/features/wallet/useWalletAccount";
 import { HashType } from "@/lib/ckb/hash-type";
 import { useDebouncedCallback } from "@/lib/useDebouncedCallback";
+import { useWalletStore } from "@/stores/wallet";
 import type { ccc } from "@ckb-ccc/core";
 import type { UploadFile } from "antd";
 import { useForm } from "antd/es/form/Form";
@@ -46,7 +46,7 @@ export function DeployScriptForm() {
     typeIdArgs,
     typeIdCodeHash,
   } = useDeploy();
-  const { balance } = useWalletAccount();
+  const { balance } = useWalletStore();
   const [form] = useForm();
 
   const { rawTx, txJson, txBytes } = useRawTx();
