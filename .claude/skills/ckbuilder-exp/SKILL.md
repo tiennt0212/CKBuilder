@@ -21,6 +21,13 @@ CKBuilder project-specific knowledge. This skill is intentionally project-scoped
 - Choosing between `findCellsPaged` and async generator APIs
 - Handling `ccc.Address.fromString` errors in a hook
 
+## Best Practices
+
+| Priority | Rule | Impact |
+|----------|------|--------|
+| 1 | `ccc-devnet-client-fallbacks` — always pass `fallbacks: [devnetUrl]` when overriding a CCC client's RPC URL for devnet, or one flaky request permanently mis-routes to testnet | HIGH |
+| 2 | `ccc-devnet-scripts-spread-testnet` — build a devnet `KnownScript` map by spreading `TESTNET_SCRIPTS`, not listing entries from scratch, or `getKnownScript()` throws uncaught for any script you didn't list | HIGH |
+
 ## Reminders
 
 | Reminder | Type |
