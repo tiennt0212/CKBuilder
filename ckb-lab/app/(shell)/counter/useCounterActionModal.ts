@@ -79,18 +79,28 @@ export function useCounterActionModal(
 
   // Increment/Destroy already have a fixed target the instant the modal opens (there's no picker
   // left to wait on, unlike Create) — build the preview immediately instead of waiting for
-  // onValuesChange. Guarded by a ref, not an empty dep array, so this stays exhaustive-deps clean.
+  // onValuesChange. Calls buildTx directly rather than through debouncedBuild: routing this
+  // through the debounce's setTimeout is vulnerable to React Strict Mode's dev-only double-invoke
+  // (mount -> cleanup -> mount) cancelling the just-scheduled timer via useDebouncedCallback's
+  // own unmount cleanup, before it ever fires — silently leaving the preview empty until the user
+  // happens to trigger a real onValuesChange. Guarded by a ref (not an empty dep array) so this
+  // stays exhaustive-deps clean; rawTx/buildTx aren't memoized upstream so they change identity
+  // every render, but the ref makes every re-invocation past the first a harmless no-op.
   const hasAutoBuilt = useRef(false);
   useEffect(() => {
     if (hasAutoBuilt.current || mode === CounterMode.Create || !entry) return;
     hasAutoBuilt.current = true;
     const feeRate = form.getFieldValue("feeRate") as number | undefined;
-    debouncedBuild(
+    const params: CounterRunParams =
       mode === CounterMode.Destroy
         ? { kind: "destroy", entry, feeRate }
-        : { kind: "increment", entry, feeRate }
-    );
-  }, [mode, entry, form, debouncedBuild]);
+        : { kind: "increment", entry, feeRate };
+    rawTx(() => buildTx(params))
+      .then(() => setBuildError(null))
+      .catch((err: unknown) =>
+        setBuildError(err instanceof Error ? err.message : "Failed to build transaction")
+      );
+  }, [mode, entry, form, rawTx, buildTx]);
 
   const handleValuesChange = (_: unknown, values: Record<string, unknown>) => {
     // Don't rebuild during an in-flight tx — state updates would be ignored anyway.
