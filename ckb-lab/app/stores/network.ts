@@ -29,15 +29,18 @@ export function NetworkSync() {
   const client = useCcc().client;
 
   useEffect(() => {
+    // Skip the transient default client CccProvider constructs before its own defaultClient
+    // effect commits (see providers.tsx) — it's not one of our 3 canonical instances, so
+    // networkOfClient() would fall back to "testnet" and briefly flash the wrong network label
+    // even when configured for devnet/mainnet, and any lock-label map built for it would be
+    // thrown away a moment later anyway when this effect re-runs for the real client. Leave
+    // `network`/`lockLabelMap` at whatever they already are (the env-configured initial value)
+    // until the real client commits.
+    if (!Object.values(CLIENT_BY_NETWORK).includes(client)) return;
+
     // Clear immediately so a stale label from the previous network's code hashes never briefly
     // renders against the new network's cells while the async rebuild below is in flight.
     useNetworkStore.setState({ network: networkOfClient(client), lockLabelMap: {} });
-
-    // Skip the transient default client CccProvider constructs before its own defaultClient
-    // effect commits (see providers.tsx) — building a lock-label map for it is thrown away a
-    // moment later when this effect re-runs for the real client, and getKnownScript's per-script
-    // lookups, while local/non-RPC, aren't free to redo on every single page load for nothing.
-    if (!Object.values(CLIENT_BY_NETWORK).includes(client)) return;
 
     let cancelled = false;
     buildLockLabelMap(client).then((lockLabelMap) => {

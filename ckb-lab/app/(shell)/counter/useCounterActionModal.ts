@@ -68,14 +68,16 @@ export function useCounterActionModal(
     return { kind: "increment", entry, feeRate };
   };
 
-  const debouncedBuild = useDebouncedCallback(async (params: CounterRunParams) => {
+  const doBuild = async (params: CounterRunParams) => {
     try {
       await rawTx(() => buildTx(params));
       setBuildError(null);
     } catch (err: unknown) {
       setBuildError(err instanceof Error ? err.message : "Failed to build transaction");
     }
-  }, DEBOUNCE_MS);
+  };
+
+  const debouncedBuild = useDebouncedCallback(doBuild, DEBOUNCE_MS);
 
   // Increment/Destroy already have a fixed target the instant the modal opens (there's no picker
   // left to wait on, unlike Create) — build the preview immediately instead of waiting for
@@ -96,12 +98,7 @@ export function useCounterActionModal(
     hasAutoBuilt.current = true;
     const feeRate = form.getFieldValue("feeRate") as number | undefined;
     const params = buildParams({ feeRate });
-    if (!params) return;
-    rawTx(() => buildTx(params))
-      .then(() => setBuildError(null))
-      .catch((err: unknown) =>
-        setBuildError(err instanceof Error ? err.message : "Failed to build transaction")
-      );
+    if (params) doBuild(params);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

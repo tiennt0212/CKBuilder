@@ -30,13 +30,25 @@ export function WalletAccountSync() {
       return;
     }
     let cancelled = false;
-    useWalletStore.setState({ isConnected: true });
-    signer.getRecommendedAddress().then((address) => {
-      if (!cancelled) useWalletStore.setState({ address });
-    });
-    signer.getBalance().then((balance) => {
-      if (!cancelled) useWalletStore.setState({ balance });
-    });
+    // Clear the previous signer's address/balance rather than leaving them visible under a now-
+    // different signer while the new fetches below are in flight (e.g. switching wallets).
+    useWalletStore.setState({ address: null, balance: null, isConnected: true });
+    signer
+      .getRecommendedAddress()
+      .then((address) => {
+        if (!cancelled) useWalletStore.setState({ address });
+      })
+      .catch(() => {
+        if (!cancelled) useWalletStore.setState({ address: null });
+      });
+    signer
+      .getBalance()
+      .then((balance) => {
+        if (!cancelled) useWalletStore.setState({ balance });
+      })
+      .catch(() => {
+        if (!cancelled) useWalletStore.setState({ balance: null });
+      });
     return () => {
       cancelled = true;
     };
