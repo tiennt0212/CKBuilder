@@ -1,7 +1,7 @@
-import { CounterForm } from "./CounterForm";
+import { CounterPage } from "./CounterPage";
 
 export const metadata = { title: "Counter — CKBuilder" };
 
-export default function CounterPage() {
-  return <CounterForm />;
+export default function CounterRoutePage() {
+  return <CounterPage />;
 }

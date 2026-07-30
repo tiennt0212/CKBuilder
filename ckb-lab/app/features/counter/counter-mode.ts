@@ -4,7 +4,8 @@
  * A single flat, top-level choice — Increment and Destroy both act on a tracked counter cell and
  * share the same "pick a cell" field, differing only in which transaction gets built.
  * Object-as-namespace so modes are compared by name, not magic string — mirrors
- * invoke/script-source.ts. Maps 1:1 to the per-row actions a future Registry table would offer.
+ * invoke/script-source.ts. Maps 1:1 to the per-row actions CounterTable offers (Increment/Destroy)
+ * plus the page-level Create button, each opening CounterActionModal with this as a fixed mode.
  */
 export const CounterMode = {
   Create: "create",
