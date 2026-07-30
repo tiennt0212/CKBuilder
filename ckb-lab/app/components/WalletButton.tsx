@@ -3,36 +3,25 @@
 import { useEffect, useState } from "react";
 import { Button, Dropdown } from "antd";
 import { DownOutlined, PoweroffOutlined, SwapOutlined } from "@ant-design/icons";
-import { useCcc, useSigner } from "@ckb-ccc/connector-react";
-import { truncateAddress } from "@/lib/format";
+import { useCcc } from "@ckb-ccc/connector-react";
+import { shannonToCKB, truncateAddress } from "@/lib/format";
+import { useWalletStore } from "@/stores/wallet";
 import { CopyText } from "./ui/CopyText";
 
 export function WalletButton() {
   const { open, disconnect, wallet } = useCcc();
-  const signer = useSigner();
+  const { address, balance, isConnected } = useWalletStore();
 
+  // Gates the very first client paint only (avoids an SSR/hydration mismatch flash) — address/
+  // balance fetching itself lives in WalletAccountSync (app/stores/wallet.ts), mounted once in
+  // providers.tsx, not here.
   const [hasMounted, setHasMounted] = useState(false);
-  const [address, setAddress] = useState<string | undefined>(undefined);
   const [dropOpen, setDropOpen] = useState(false);
 
-  useEffect(() => {
-    if (!signer) {
-      setAddress(undefined);
-      setHasMounted(true);
-      return;
-    }
-    signer
-      .getRecommendedAddress()
-      .then(setAddress)
-      .catch(() => setAddress(undefined))
-      .finally(() => setHasMounted(true));
-  }, [signer]);
+  useEffect(() => setHasMounted(true), []);
 
-  const isConnected = !!signer;
   const isLoadingAddress = isConnected && !address;
   const truncated = address ? truncateAddress(address) : undefined;
-
-  // TODO: add CKB balance display — requires cccClient.getBalance(address) call with async loading state
 
   const panel = (
     <div
@@ -46,12 +35,14 @@ export function WalletButton() {
           </span>
         )}
         <CopyText
-          text={address}
+          text={address ?? undefined}
           display={truncated}
           className="mb-1"
           textClassName="font-mono text-[12px] text-text-2 truncate flex-1 min-w-0"
         />
-        <span className="text-micro text-text-3">Balance: —</span>
+        <span className="text-micro text-text-3">
+          Balance: {balance !== null ? `${shannonToCKB(balance)} CKB` : "—"}
+        </span>
       </div>
 
       <div className="pt-1.5">

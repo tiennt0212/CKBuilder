@@ -3,8 +3,15 @@
 import { useState } from "react";
 import { Button, Dropdown } from "antd";
 import { CheckOutlined, DownOutlined } from "@ant-design/icons";
+import { useCcc } from "@ckb-ccc/connector-react";
 import { useNetworkStore } from "@/stores/network";
-import { NETWORKS, NETWORK_LABELS, NETWORK_RPC_URLS, type Network } from "@/lib/ccc-client";
+import {
+  CLIENT_BY_NETWORK,
+  NETWORKS,
+  NETWORK_LABELS,
+  NETWORK_RPC_URLS,
+  type Network,
+} from "@/lib/ccc-client";
 
 // Dot colors per design spec:
 // - mainnet: muted grey (var(--text-3)) — not using indigo to avoid false urgency
@@ -17,7 +24,8 @@ const NET_DOT_COLORS: Record<Network, string> = {
 };
 
 export function NetworkPill() {
-  const { network, setNetwork } = useNetworkStore();
+  const network = useNetworkStore((s) => s.network);
+  const { setClient } = useCcc();
   const [open, setOpen] = useState(false);
 
   const panel = (
@@ -31,7 +39,7 @@ export function NetworkPill() {
           <button
             key={n}
             onClick={() => {
-              setNetwork(n);
+              setClient(CLIENT_BY_NETWORK[n]);
               setOpen(false);
             }}
             className={[

@@ -1,0 +1,43 @@
+[package]
+# -------------------------------------------------------------------
+# CKB Counter Type Script
+# -------------------------------------------------------------------
+# This crate contains an on-chain type script for the Nervos CKB
+# blockchain. When compiled, it produces a RISC-V binary that runs
+# inside the CKB-VM (CKB's virtual machine).
+#
+# Type scripts govern the STATE TRANSITION of a cell rather than who
+# may spend it. This particular type script implements a monotonic
+# counter: a cell holding an 8-byte little-endian u64 in its `data`
+# field may only be created with count = 0, and any input->output
+# transition of the cell must increment the count by exactly 1.
+# -------------------------------------------------------------------
+name = "counter"
+version = "0.1.0"
+edition = "2021"
+
+# -------------------------------------------------------------------
+# Dependencies
+# -------------------------------------------------------------------
+# ckb-std: The standard library for CKB script development.
+#   - "allocator": load_cell_data() returns a heap-allocated Vec<u8>,
+#     which needs a global allocator (registered via default_alloc!
+#     in main.rs).
+#   - "ckb-types": gates the `high_level` module (load_cell_data lives
+#     there) in ckb-std 0.16.x — required just to bring the module into
+#     scope. This contract still never calls script().args().unpack()
+#     or otherwise touches ckb_types::bytes::Bytes (the refcounted type
+#     GitHub issue #6 pinned as the source of an unrunnable atomic
+#     instruction in the hash-lock binary) — load_cell_data() returns a
+#     plain Vec<u8>, not Bytes, regardless of this feature.
+#   - "dummy-atomic": defensive guard against RISC-V atomic-extension
+#     codegen, matching the sibling hash-lock crate's convention.
+#
+# "calc-hash" is omitted: this contract does no hashing, unlike
+# hash-lock. No ckb-hash dependency either, for the same reason.
+# -------------------------------------------------------------------
+[dependencies]
+ckb-std = { version = "0.16", default-features = false, features = ["allocator", "ckb-types", "dummy-atomic"] }
+
+# Release profile lives at the workspace root (../Cargo.toml) — Cargo only honors
+# [profile.*] tables at the workspace root, silently ignoring a member's own.

@@ -1,4 +1,5 @@
 import { ccc, CellDepInfoLike, KnownScript, Script } from "@ckb-ccc/core";
+import { TESTNET_SCRIPTS } from "@ckb-ccc/core/advanced";
 
 export const Network = {
   Devnet: "devnet",
@@ -12,9 +13,16 @@ export type ScriptInfo = Pick<Script, "codeHash" | "hashType"> & {
   cellDeps: CellDepInfoLike[];
 };
 
-// Devnet scripts from offCKB system-scripts.json
-// Update this when deploying to a new devnet
+// Devnet scripts from offCKB system-scripts.json, layered on top of the full TESTNET_SCRIPTS
+// set. Only the 5 scripts offCKB's devnet genesis actually deploys are overridden below;
+// everything else falls back to the testnet entry so `client.getKnownScript()` never throws
+// for a script we simply haven't listed (getKnownScript does a pure local lookup on this map,
+// no RPC call — a missing key is a hard, synchronous error, not a graceful "not found on
+// this chain"). Wallet connectors that probe several lock types (e.g. MetaMask trying both
+// OmniLock and PWLock) would otherwise throw uncaught mid-connection for any devnet-omitted
+// script. Update the 5 overrides below when deploying to a new devnet.
 export const DEVNET_SCRIPTS: Record<string, ScriptInfo> = {
+  ...(TESTNET_SCRIPTS as unknown as Record<string, ScriptInfo>),
   [KnownScript.Secp256k1Blake160]: {
     codeHash: "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
     hashType: "type",
@@ -125,6 +133,7 @@ export function buildCccClient(network: Network): ccc.Client {
   // devnet — offCKB proxy
   return new ccc.ClientPublicTestnet({
     url: DEVNET_RPC_URL,
+    fallbacks: [DEVNET_RPC_URL],
     scripts: DEVNET_SCRIPTS as any,
   });
 }
@@ -135,6 +144,28 @@ export function readEnvNetwork(): Network {
     return Network.Testnet;
   }
   return network as Network;
+}
+
+// Built once per network so <CccProvider> (defaultClient/clientOptions), NetworkPill, and
+// networkOfClient() below all share the exact same instances. A fresh instance per call would
+// give every reselect a new object identity, defeating identity-based lookups and needlessly
+// re-triggering the connector's internal signer refresh (which reacts to `client` changing).
+export const CLIENT_BY_NETWORK: Record<Network, ccc.Client> = {
+  [Network.Devnet]: buildCccClient(Network.Devnet),
+  [Network.Testnet]: buildCccClient(Network.Testnet),
+  [Network.Mainnet]: buildCccClient(Network.Mainnet),
+};
+
+// Reverse lookup by identity — CLIENT_BY_NETWORK's instances are the only ones ever handed to
+// <CccProvider>, so `===` reliably tells us which network is active. Falls back to Testnet (the
+// library's own hardcoded default) for the brief window before defaultClient's own effect
+// commits, when useCcc().client is still a bare `new ccc.ClientPublicTestnet()` the library
+// constructed itself.
+export function networkOfClient(client: ccc.Client): Network {
+  const match = (Object.entries(CLIENT_BY_NETWORK) as [Network, ccc.Client][]).find(
+    ([, c]) => c === client
+  );
+  return match?.[0] ?? Network.Testnet;
 }
 
 const KNOWN_SCRIPT_LABELS: KnownScript[] = [

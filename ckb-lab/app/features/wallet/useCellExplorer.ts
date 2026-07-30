@@ -3,6 +3,7 @@
 
 import { useState, useCallback } from "react";
 import { ccc, KnownScript } from "@ckb-ccc/core";
+import { useCcc } from "@ckb-ccc/connector-react";
 import { useNetworkStore } from "@/stores/network";
 import { ckbToShannons } from "@/lib/format";
 
@@ -187,7 +188,8 @@ export interface CellExplorerHookReturn {
 const PAGE_SIZE = 10;
 
 export function useCellExplorer(): CellExplorerHookReturn {
-  const { cccClient, network } = useNetworkStore();
+  const network = useNetworkStore((s) => s.network);
+  const { client: cccClient } = useCcc();
 
   const [cells, setCells] = useState<ccc.Cell[]>([]);
   const [loading, setLoading] = useState(false);

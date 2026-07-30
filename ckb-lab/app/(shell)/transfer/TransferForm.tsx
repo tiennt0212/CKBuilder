@@ -3,10 +3,11 @@
 import { TxStatusBanner } from "@/components/ui/TxStatusBanner";
 import { useRawTx } from "@/features/common/useRawTx";
 import { useTransfer } from "@/features/transfer/useTransfer";
-import { useWalletAccount } from "@/features/wallet/useWalletAccount";
 import { Network } from "@/lib";
 import { useDebouncedCallback } from "@/lib/useDebouncedCallback";
 import { useNetworkStore } from "@/stores/network";
+import { useWalletStore } from "@/stores/wallet";
+import { useCcc } from "@ckb-ccc/connector-react";
 import { Form } from "antd";
 import { useForm } from "antd/es/form/Form";
 import { useEffect, useState } from "react";
@@ -21,9 +22,10 @@ export function TransferForm() {
 
   const { buildTx, fee, transfer, status, isInProgress, error, txHash, blockNumber, reset } =
     useTransfer();
-  const { network, lockLabelMap, cccClient } = useNetworkStore();
+  const { network, lockLabelMap } = useNetworkStore();
+  const { client: cccClient } = useCcc();
   const addressPlaceholder = network === Network.Testnet ? "ckt…" : "ckb…";
-  const { address, balance } = useWalletAccount();
+  const { address, balance } = useWalletStore();
   const [form] = useForm();
   const amountCkb = Form.useWatch("amount", form);
   const from = Form.useWatch("from", form);

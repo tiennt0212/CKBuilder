@@ -5,6 +5,7 @@ import {
   CodeOutlined,
   CloudUploadOutlined,
   DatabaseOutlined,
+  FieldNumberOutlined,
   BankOutlined,
   ClockCircleOutlined,
   TeamOutlined,
@@ -81,6 +82,14 @@ export const NAV_ITEMS: MenuProps["items"] = [
         key: ROUTES.REGISTRY,
         icon: <DatabaseOutlined />,
         label: navLabel(ROUTES.REGISTRY, "Script Registry"),
+      },
+      {
+        key: ROUTES.COUNTER,
+        icon: <FieldNumberOutlined />,
+        label: navLabel(
+          ROUTES.COUNTER,
+          <span className="flex items-center gap-2">Counter {TAG_RUST}</span>
+        ),
       },
     ],
   },

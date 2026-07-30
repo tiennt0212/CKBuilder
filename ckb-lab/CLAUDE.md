@@ -25,7 +25,9 @@ ckb-lab/                    # Next.js 15 (App Router) — single JS package at r
 │   └── providers.tsx       # Client root: ThemeProvider > AntdThemeProvider > CccProvider > NetworkSync
 ├── package.json
 └── contracts/              # Rust CKB scripts — Cargo workspace, pnpm does NOT touch this
-    ├── Cargo.toml          # [workspace] members = ["contracts/*", "tests"]
+    ├── Cargo.toml          # [workspace] members = one dir per contract crate, plus "tests"
+    ├── lesson-08-hash-lock/, lesson-10-counter/  # one crate per lesson contract
+    ├── tests/              # native-host ckb-testtool suite, one module per contract
     ├── Makefile            # `make build` → riscv64imac-unknown-none-elf binaries
     └── build/release/      # compiled binaries — read by web API routes for on-chain deploy
 ```
@@ -183,10 +185,15 @@ This keeps the `docs/` directory the single source of truth for "what does this 
 ```bash
 rustup target add riscv64imac-unknown-none-elf   # one-time setup
 make -C contracts build                           # → contracts/build/release/
-cd contracts && cargo test                        # tests run on native host, no RISC-V needed
+cd contracts && cargo test -p tests               # tests run on native host, no RISC-V needed
 ```
 
-New contract: add crate at `contracts/contracts/<name>/`, register in `contracts/Cargo.toml` workspace members, add build rule to `contracts/Makefile`, add tests in `contracts/tests/src/`.
+Note: bare `cargo test` (no `-p`) fails at the workspace root — Cargo tries to build a test
+harness for every member, including the `#![no_std]#![no_main]` contract crates, whose
+`ckb_std::entry!` macro defines its own `_start` and collides with the host's own at link
+time. Always scope to `-p tests` (or run `make -C contracts test`, which does this).
+
+New contract: add crate at `contracts/<name>/`, register in `contracts/Cargo.toml` workspace members, add build rule to `contracts/Makefile`, add tests in `contracts/tests/src/`.
 
 ## Claude Design integration
 
