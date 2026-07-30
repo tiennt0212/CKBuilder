@@ -14,3 +14,20 @@ export const CounterMode = {
 } as const;
 
 export type CounterMode = (typeof CounterMode)[keyof typeof CounterMode];
+
+/** Shared title/subtitle text — single source so CounterActionModal's title bar and
+ * CounterModalForm's card heading can't drift into wording each mode differently. */
+export const COUNTER_MODE_META: Record<CounterMode, { title: string; subtitle: string }> = {
+  [CounterMode.Create]: {
+    title: "Create counter",
+    subtitle: "Mint a new on-chain counter cell",
+  },
+  [CounterMode.Increment]: {
+    title: "Increment counter",
+    subtitle: "Increment this counter's on-chain value by 1",
+  },
+  [CounterMode.Destroy]: {
+    title: "Destroy counter",
+    subtitle: "Consume this cell and reclaim its capacity",
+  },
+};

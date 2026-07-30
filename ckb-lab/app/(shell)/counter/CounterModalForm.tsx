@@ -4,7 +4,7 @@ import { CopyText } from "@/components/ui/CopyText";
 import { FormItem } from "@/components/ui/FormItem";
 import { NoteBox } from "@/components/ui/NoteBox";
 import { SummaryPanel, SummaryRow } from "@/components/ui/SummaryPanel";
-import { CounterMode } from "@/features/counter/counter-mode";
+import { COUNTER_MODE_META, CounterMode } from "@/features/counter/counter-mode";
 import type { CounterCell } from "@/lib/ckb/counter-cells";
 import type { DeployedScript } from "@/lib/ckb/deployed-scripts";
 import { ROUTES } from "@/lib/routes";
@@ -22,21 +22,6 @@ const FEE_RATES = [
 const CARD_STYLE = { borderRadius: 12, border: "1px solid var(--border)", height: "100%" };
 const HEAD_STYLE = { padding: "16px 18px", borderBottom: "1px solid var(--border)" };
 const BODY_STYLE = { padding: "18px", overflowY: "auto" as const };
-
-const MODE_HEADINGS: Record<CounterMode, { title: string; subtitle: string }> = {
-  [CounterMode.Create]: {
-    title: "Create counter",
-    subtitle: "Mint a new on-chain counter cell",
-  },
-  [CounterMode.Increment]: {
-    title: "Increment counter",
-    subtitle: "Increment this counter's on-chain value by 1",
-  },
-  [CounterMode.Destroy]: {
-    title: "Destroy counter",
-    subtitle: "Consume this cell and reclaim its capacity",
-  },
-};
 
 interface CounterModalFormProps {
   form: FormInstance;
@@ -60,7 +45,7 @@ export function CounterModalForm({
   onFinish,
 }: CounterModalFormProps) {
   const isDisabled = mode === CounterMode.Create ? deployedScripts.length === 0 : !entry;
-  const heading = MODE_HEADINGS[mode];
+  const heading = COUNTER_MODE_META[mode];
 
   return (
     <Card

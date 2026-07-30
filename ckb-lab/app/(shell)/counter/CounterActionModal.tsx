@@ -1,7 +1,7 @@
 "use client";
 
 import { TxStatusBanner } from "@/components/ui/TxStatusBanner";
-import { CounterMode } from "@/features/counter/counter-mode";
+import { COUNTER_MODE_META, CounterMode } from "@/features/counter/counter-mode";
 import type { CounterCell } from "@/lib/ckb/counter-cells";
 import { useNetworkStore } from "@/stores/network";
 import { useCcc } from "@ckb-ccc/connector-react";
@@ -17,11 +17,12 @@ interface CounterActionModalProps {
   onClose: () => void;
 }
 
-const MODE_TITLES: Record<CounterMode, (entry: CounterCell | null) => string> = {
-  [CounterMode.Create]: () => "Create counter",
-  [CounterMode.Increment]: (entry) => `Increment · ${entry?.label || "Counter"}`,
-  [CounterMode.Destroy]: (entry) => `Destroy · ${entry?.label || "Counter"}`,
-};
+// Shares COUNTER_MODE_META with CounterModalForm's card heading so the modal's title bar and the
+// form inside it never word the same mode differently.
+function modalTitle(mode: CounterMode, entry: CounterCell | null): string {
+  const { title } = COUNTER_MODE_META[mode];
+  return entry ? `${title} · ${entry.label || "Counter"}` : title;
+}
 
 export function CounterActionModal({ mode, entry, onClose }: CounterActionModalProps) {
   const lockLabelMap = useNetworkStore((s) => s.lockLabelMap);
@@ -61,7 +62,7 @@ export function CounterActionModal({ mode, entry, onClose }: CounterActionModalP
       keyboard={!isInProgress}
       footer={null}
       width={960}
-      title={MODE_TITLES[mode](entry)}
+      title={modalTitle(mode, entry)}
       styles={{ body: { maxHeight: "80vh", overflowY: "auto" } }}
     >
       <TxStatusBanner
