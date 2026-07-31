@@ -121,6 +121,37 @@ drops out of the `/invoke` picker without being destroyed. Editing an identity f
 duplicating it. Reason: stated in the report as the intended behaviour of a parked entry.
 (source: `weekly-report/w11.md:36`, `app/components/RegistryDrawer.tsx:64`)
 
+[2026-07-31] **An unbuilt route states its milestone and tracking issue, in `info` tone** —
+`PageShell`'s placeholder no longer renders an amber `warning` reading "Connect your wallet to
+get started". Reason: that copy addressed the developer, not the person clicking, and named the
+wallet on pages that have nothing to do with it — a reviewer read it as a broken app or a broken
+wallet. An unbuilt feature is not an error condition, so it renders `info` and says which
+milestone it belongs to and where to follow it.
+(source: issue #50, `app/components/PageShell.tsx`)
+
+[2026-07-31] **`/tokens` and `/history` are marked `designed`, contradicting issue #50's text** —
+#50 asserts only `/dao` and `/multisig` have artboards. The `SCREENS` object in Claude Design's
+`ckb-app.jsx` and the gallery `SCREENS` array in `CKBuilder.html` both also carry `tokens` and
+`history` with light + dark artboards, so four of the five placeholders are designed. Only
+`/time-lock` is genuinely undesigned — the `lock` gallery entry is titled "Time Lock · Multisig"
+but renders `MultisigScreen`. Reason: the human chose the artboards over the issue text, because
+the epic's whole point is that the app tells the truth. The route ↔ design drift itself stays
+tracked in #75.
+
+[2026-07-31] **The devnet entry in the network picker is disabled on an https origin** — Reason:
+a devnet node serves plain `http://localhost:28114`, which a browser blocks from an https page
+as active mixed content. Offering the switch on the deployed app would hand the user a network
+where every RPC call fails with no explanation. Detected after mount rather than during render,
+because `NetworkPill` is server-rendered inside the header and reading `window` during render
+breaks hydration.
+(source: issue #52, `app/components/NetworkPill.tsx`)
+
+[2026-07-31] **The README lives at the repository root, with a short pointer in `ckb-lab/`** —
+Reason: the GitHub repo is `tiennt0212/CKBuilder` and its root page is the first thing a reviewer
+opens; a README only inside `ckb-lab/` would be invisible there. The root file carries the full
+document, `ckb-lab/README.md` carries only the commands and links back.
+(source: issue #51)
+
 ## Verified constraints
 
 These are not choices — they are limitations found while investigating, recorded so a later

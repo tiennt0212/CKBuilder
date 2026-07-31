@@ -50,6 +50,7 @@ ckb-lab/                         # single pnpm package at root — no workspace 
 │       │                        # truncateAddress, formatCapacity
 │       ├── routes.ts            # ROUTES + PAGE_TITLES (group + title per route)
 │       ├── nav-items.tsx        # NAV_ITEMS — sidebar entries
+│       ├── github.ts            # repo URL + issueUrl(n) — links out to the roadmap
 │       ├── useDebouncedCallback.ts
 │       ├── index.ts             # re-exports ccc-client + format only
 │       └── ckb/                 # chain logic — pure functions, no React
@@ -164,6 +165,16 @@ Because `NEXT_PUBLIC_NETWORK` only picks the *initial* client, the user can stil
 at runtime through `CccProvider`'s `clientOptions`. Code must therefore read the network from
 `useNetworkStore`, never from the env var.
 
+### Hosting
+
+The deploy target is Vercel on `testnet` (`NEXT_PUBLIC_NETWORK=testnet`, Vercel Root Directory
+`ckb-lab` — the repo root is a workspace with no manifest). Nothing else is configured: there are
+no secrets, no route handlers, and `next build` prerenders every route as static content.
+
+Devnet is the one network that cannot work there — its node serves plain
+`http://localhost:28114`, which a browser blocks from an https page as active mixed content, so
+`NetworkPill` disables that entry on an https origin.
+
 ## Deliberately not done
 
 Listing only what exists reads as an invitation to add more. These are absences by choice:
@@ -176,4 +187,7 @@ Listing only what exists reads as an invitation to add more. These are absences 
 - **No `tailwind.config.ts`.** Tailwind v4 tokens live in `app/globals.css` `@theme inline` only.
 - **No state library beyond Zustand**, and no Context beyond theme.
 - **Not every route is implemented.** `dao/`, `time-lock/`, `multisig/`, `history/`, `tokens/`
-  are `PageShell` placeholders awaiting their course lesson. A placeholder page is not a bug.
+  are `PageShell` placeholders awaiting their course lesson. A placeholder page is not a bug —
+  and it says so on the page: each passes a `planned` prop naming its milestone and tracking
+  issue, so the screen reads as unbuilt rather than broken. `PageShell` is used by these five
+  routes and nothing else; an implemented page renders its own `<Name>Form` directly.
