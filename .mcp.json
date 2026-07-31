@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "ckb-ai": {
+      "type": "http",
+      "url": "https://mcp.ckbdev.com/ckbai"
+    },
+    "Claude Design": {
+      "type": "http",
+      "url": "https://api.anthropic.com/v1/design/mcp"
+    }
+  }
+}
