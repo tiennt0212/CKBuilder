@@ -7,6 +7,7 @@ export default function TimeLockPage() {
     <PageShell
       title="Time Lock"
       description="Lock CKB until a specific block number or timestamp using the since field in CKB transaction inputs."
+      planned={{ milestone: "Custom locks", issue: 65 }}
     />
   );
 }

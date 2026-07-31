@@ -50,6 +50,7 @@ ckb-lab/                         # single pnpm package at root — no workspace 
 │       │                        # truncateAddress, formatCapacity
 │       ├── routes.ts            # ROUTES + PAGE_TITLES (group + title per route)
 │       ├── nav-items.tsx        # NAV_ITEMS — sidebar entries
+│       ├── github.ts            # repo URL + issueUrl(n) — links out to the roadmap
 │       ├── useDebouncedCallback.ts
 │       ├── index.ts             # re-exports ccc-client + format only
 │       └── ckb/                 # chain logic — pure functions, no React
@@ -164,6 +165,33 @@ Because `NEXT_PUBLIC_NETWORK` only picks the *initial* client, the user can stil
 at runtime through `CccProvider`'s `clientOptions`. Code must therefore read the network from
 `useNetworkStore`, never from the env var.
 
+### Hosting
+
+Deployed to Vercel on `testnet` at **https://ck-builder-s1eo.vercel.app**, tracking the default
+branch. Two settings matter, and both have a failure mode that does not name itself:
+
+- **Root Directory `ckb-lab`** — set in the Vercel dashboard, not in a file. The repo root is a
+  workspace with no manifest, so leaving it at the root fails with
+  `ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND`.
+- **Framework preset `nextjs`** — pinned in `vercel.json` because auto-detection can land on
+  Vite: `vite`, `@tailwindcss/vite` and `vite-tsconfig-paths` are devDependencies for
+  Storybook's builder. A misdetect fails with `No Output Directory named "dist" found`. Never
+  set an Output Directory by hand for Next.js — Vercel derives it from the preset, and pointing
+  it at `.next` makes Vercel serve the build folder as static files instead.
+
+`NEXT_PUBLIC_NETWORK` is optional: `readEnvNetwork()` already falls back to `testnet` when the
+variable is absent or invalid. Set it anyway, so the target is stated rather than inferred.
+
+Nothing else is configured: there are no secrets, no route handlers, and `next build` prerenders
+every route as static content.
+
+Devnet still works from the deployed app: `http://localhost` is a potentially-trustworthy origin
+(exempt from mixed-content blocking) and the node answers with permissive CORS, so a developer
+running `offckb node` can point the hosted build at their own chain. Chrome 142+ asks for Local
+Network Access permission first. What devnet cannot do is *assume* a node is there, so
+`NetworkPill` probes it on click via `isDevnetReachable()` and reports the result instead of
+switching into a dead network — see `../processes/gotchas.md`.
+
 ## Deliberately not done
 
 Listing only what exists reads as an invitation to add more. These are absences by choice:
@@ -176,4 +204,7 @@ Listing only what exists reads as an invitation to add more. These are absences 
 - **No `tailwind.config.ts`.** Tailwind v4 tokens live in `app/globals.css` `@theme inline` only.
 - **No state library beyond Zustand**, and no Context beyond theme.
 - **Not every route is implemented.** `dao/`, `time-lock/`, `multisig/`, `history/`, `tokens/`
-  are `PageShell` placeholders awaiting their course lesson. A placeholder page is not a bug.
+  are `PageShell` placeholders awaiting their course lesson. A placeholder page is not a bug —
+  and it says so on the page: each passes a `planned` prop naming its milestone and tracking
+  issue, so the screen reads as unbuilt rather than broken. `PageShell` is used by these five
+  routes and nothing else; an implemented page renders its own `<Name>Form` directly.

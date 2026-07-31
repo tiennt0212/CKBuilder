@@ -7,6 +7,7 @@ export default function HistoryPage() {
     <PageShell
       title="Transaction History"
       description="Browse all transactions associated with your connected wallet address. Expand any transaction to inspect inputs, outputs, and witnesses."
+      planned={{ milestone: "M1 · Bootcamp demo", issue: 49, designed: true }}
     />
   );
 }

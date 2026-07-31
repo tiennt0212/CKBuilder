@@ -79,6 +79,17 @@ confirm the trap still holds, delete the entry if the code moved on.
   lock** — the primary script slot holds the lock; the type goes in the filter. (source:
   `app/features/wallet/useCellExplorer.ts:268`)
 
+- **A deployed https app *can* reach `http://localhost:28114`; "mixed content blocks it" is
+  wrong** — `http://localhost`, `http://127.0.0.1` and `http://[::1]` are *potentially
+  trustworthy* origins under the Secure Contexts spec, so all three engines exempt them from
+  mixed-content blocking. CORS is not a barrier either: CKB's RPC server mounts
+  `CorsLayer::permissive()` and offckb's 28114 proxy is an `http-proxy` pass-through that
+  forwards those headers. The real gate is Chrome 142+ **Local Network Access**, which puts a
+  *permission prompt* (not a block) in front of a public origin reaching loopback — and a
+  request the user permits is additionally exempted from the mixed-content check. Consequence
+  for this repo: never gate devnet on `location.protocol`; probe the node and report what
+  actually happened. (source: `app/lib/ccc-client.ts` `isDevnetReachable`)
+
 ## Rust contracts
 
 - **A `riscv64imac` build can emit atomics that CKB-VM will never execute** — LR/SC/AMO
