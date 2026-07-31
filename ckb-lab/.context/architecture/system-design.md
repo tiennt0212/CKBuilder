@@ -1,0 +1,179 @@
+# System design
+
+## What this is
+
+A CKB developer "lab": a Next.js 15 app where each page makes one CKB concept concrete by
+building a real transaction against a real chain, plus the Rust contracts some of those pages
+deploy and exercise. It follows a 24-lesson course, so pages accumulate roughly one per lesson.
+
+**Constraint — there is no backend.** Not "the backend is small": there are zero route handlers,
+zero server actions, and nothing in the tree imports `fs` or `next/server`. Every chain
+interaction runs in the browser against a CKB node's JSON-RPC, signed by the user's wallet
+extension, and every piece of persistence is `localStorage`. This is why there is no auth layer,
+no session, no database, and no API spec — and why a compiled contract binary reaches the chain
+by the user *uploading* it in the browser (`UploadZone` sets `beforeUpload={() => false}` so
+Antd never POSTs it anywhere), never by the server reading `contracts/build/release/`.
+
+Do not add a route handler to "simplify" a chain call. If something appears to need one, that is
+a design change to raise, not an implementation detail.
+
+## Repo structure
+
+```
+ckb-lab/                         # single pnpm package at root — no workspace packages
+├── app/                         # Next.js App Router
+│   ├── page.tsx                 # redirects "/" → "/transfer"
+│   ├── layout.tsx, providers.tsx
+│   ├── globals.css              # @theme inline tokens — single source of truth for design tokens
+│   ├── theme.ts                 # ckbTheme(mode) — the Antd ConfigProvider theme object
+│   │
+│   ├── (shell)/                 # route group — every page wrapped in AppLayout
+│   │   ├── transfer/  cell-explorer/  tokens/          # group: Wallet
+│   │   ├── deploy/  invoke/  registry/  counter/       # group: Smart Contracts
+│   │   ├── dao/  time-lock/  multisig/                 # group: Advanced
+│   │   └── history/                                    # group: Activity
+│   │       └── page.tsx + co-located <Name>Card/Form/Table/Modal .tsx
+│   │
+│   ├── components/              # AppLayout, Header, Sidebar, PageShell, CubeMark,
+│   │   │                        # NetworkPill, WalletButton, RegistryDrawer
+│   │   └── ui/                  # reusable domain UI — see ../design/component-library.md
+│   │
+│   ├── contexts/                # ThemeContext (light/dark) only — all other state is a store
+│   ├── stores/                  # Zustand singletons (see "State" below)
+│   ├── features/                # feature-scoped React hooks — NOT page components
+│   │   ├── common/useRawTx.ts
+│   │   ├── counter/  deploy/  invoke/  transfer/  wallet/
+│   │
+│   └── lib/
+│       ├── ccc-client.ts        # Network enum, per-network client singletons, devnet script map
+│       ├── format.ts            # shannonToCKB, ckbToShannons, utf8ToHex, hexToUtf8,
+│       │                        # truncateAddress, formatCapacity
+│       ├── routes.ts            # ROUTES + PAGE_TITLES (group + title per route)
+│       ├── nav-items.tsx        # NAV_ITEMS — sidebar entries
+│       ├── useDebouncedCallback.ts
+│       ├── index.ts             # re-exports ccc-client + format only
+│       └── ckb/                 # chain logic — pure functions, no React
+│
+├── contracts/                   # standalone Cargo workspace — pnpm does NOT touch this
+├── stories/                     # Storybook: chrome/, components/, foundations/
+├── docs/                        # end-user feature docs, one per polished route
+├── DESIGN.md                    # full design-token reference (prose)
+└── .storybook/                  # Vite + React builder, resolves @/ → app/
+```
+
+Path alias: `@/*` → `./app/*` (`tsconfig.json`). Always import via the alias, never a relative
+climb out of a route directory.
+
+### `app/lib/ckb/` — the chain-logic layer
+
+Pure TypeScript, no React, no hooks. A page never builds a transaction itself; it calls a hook
+in `features/`, which calls one of these.
+
+| File | Responsibility |
+|---|---|
+| `transfer.ts` | Build a plain capacity-transfer tx |
+| `deploy.ts` | Build a script-deployment tx; optional Type ID; returns `dataHash` + `typeIdCodeHash` |
+| `invoke.ts` | Build a tx that attaches a deployed script to `outputs[0].type` so the node runs it |
+| `counter.ts` | Build create / increment / destroy txs for the lesson-10 counter type script |
+| `counter-cells.ts` | `localStorage` layer for tracked counter cells (`CounterCell` shape, network-scoped ids) |
+| `deployed-scripts.ts` | `localStorage` layer for the deployed-script registry (`DeployedScript`) |
+| `script-actions.ts` | Shared helpers for acting on a registry entry |
+| `tx-status.ts` | `TxStatus` enum + `TX_STATUSES` — the canonical tx lifecycle |
+| `transfer-status.ts` | Re-export shim onto `tx-status.ts`; do not add to it |
+| `hash-type.ts` | `HashType` object-namespace (`data1` / `data2` / `type`) |
+| `dep-type.ts` | `DepType` object-namespace (`code` / `dep_group`) |
+| `utils.ts` | Small shared chain helpers |
+
+`hash-type.ts` and `dep-type.ts` exist so the JS side has a namespace instead of magic strings;
+the wire types stay `ccc.HashType` / `ccc.DepType`.
+
+### `contracts/` — Cargo workspace
+
+```
+contracts/
+├── Cargo.toml                   # [workspace], resolver "2", root-only [profile.*]
+├── Makefile                     # CRATES := hash-lock counter
+├── lesson-08-hash-lock/         # crate name: hash-lock
+├── lesson-10-counter/           # crate name: counter   ← dir name ≠ crate name
+├── tests/                       # crate name: tests — native-host ckb-testtool suite
+└── build/release/               # compiled riscv64imac binaries, produced by `make build`
+```
+
+`build/release/` is consumed two ways, both local: `ckb-testtool`'s `Context::default()` reads it
+during `cargo test`, and the developer picks the binary out of it by hand to upload on `/deploy`.
+Nothing in `app/` reads this directory.
+
+## State
+
+Four Zustand singletons in `app/stores/`. React Context is used for the theme and nothing else.
+
+| Store | Holds | Backing |
+|---|---|---|
+| `network.ts` | Active `network`, the `cccClient` for it, `lockLabelMap` | Derived cache — `CccProvider` is the source of truth; `NetworkSync` mirrors it |
+| `wallet.ts` | Connected address + balance | Derived from the signer; `WalletAccountSync` refetches on signer change |
+| `deployed-scripts.ts` | The script registry read by `/deploy`, `/invoke`, `/registry` | Mirrors `lib/ckb/deployed-scripts.ts`, writes through on every mutation |
+| `counter-cells.ts` | Tracked counter cells for `/counter` | Mirrors `lib/ckb/counter-cells.ts`, writes through |
+
+Both `*Sync` components mount once in `providers.tsx`. The two persisted stores fill **after
+mount** (localStorage does not exist during SSR) and re-read on network change, because every
+entry is network-scoped.
+
+Provider chain (`app/providers.tsx`):
+
+```
+ThemeProvider > AntdThemeProvider (ConfigProvider + ckbTheme) > CccProvider
+  ├── NetworkSync
+  ├── WalletAccountSync
+  └── children
+```
+
+## Data flow — building and sending a transaction
+
+Every chain page follows the same shape, and a new one should too:
+
+1. **Page** (`app/(shell)/<route>/page.tsx`) renders `PageShell` + a co-located
+   `<Name>InputCard` / `<Name>PreviewCard`, or a `<Name>Form` that owns both.
+2. **Hook** (`app/features/<domain>/use<Name>.ts`) owns `TxStatus`, error, fee, txHash, and the
+   poll loop. It debounces field changes into a preview build.
+3. **Builder** (`app/lib/ckb/<name>.ts`) takes a signer + params and returns a
+   `ccc.Transaction`. It never touches React state.
+4. The hook signs and broadcasts, then polls until the tx reaches a terminal `TxStatus` and
+   renders that through `TxStatusBanner`.
+
+A **preview build** runs on every field change so the user sees fee and capacity before
+committing — this is why builders must be callable without side effects, and why they take the
+signer rather than reading a store.
+
+Two invariants that hold across all builders and are easy to break:
+
+- Leave output `capacity` at `0`; `completeInputsByCapacity()` computes the real occupied size.
+- Call order is `completeInputsByCapacity()` → (`hashTypeId()`) → `completeFeeBy()`.
+
+See `../processes/gotchas.md` for why each of those fails silently rather than loudly.
+
+## Environment
+
+| Variable | Read by | Values |
+|---|---|---|
+| `NEXT_PUBLIC_NETWORK` | `readEnvNetwork()` in `app/lib/ccc-client.ts` | `devnet` \| `testnet` \| `mainnet` — defaults to `testnet` |
+
+Set in `.env.local`. Devnet additionally needs `offckb node` running; its RPC is
+`http://localhost:28114` (`DEVNET_RPC_URL`).
+
+Because `NEXT_PUBLIC_NETWORK` only picks the *initial* client, the user can still switch networks
+at runtime through `CccProvider`'s `clientOptions`. Code must therefore read the network from
+`useNetworkStore`, never from the env var.
+
+## Deliberately not done
+
+Listing only what exists reads as an invitation to add more. These are absences by choice:
+
+- **No backend, no API routes, no server actions.** See the constraint at the top.
+- **No database.** Persistence is `localStorage`, network-scoped, and disposable by design — this
+  is a lab, and losing a registry entry costs a redeploy, not data.
+- **No test suite for the web app.** Only the Rust contracts have tests (`contracts/tests/`). The
+  gate is `pnpm build` + `pnpm lint`; do not add a JS test runner without asking.
+- **No `tailwind.config.ts`.** Tailwind v4 tokens live in `app/globals.css` `@theme inline` only.
+- **No state library beyond Zustand**, and no Context beyond theme.
+- **Not every route is implemented.** `dao/`, `time-lock/`, `multisig/`, `history/`, `tokens/`
+  are `PageShell` placeholders awaiting their course lesson. A placeholder page is not a bug.

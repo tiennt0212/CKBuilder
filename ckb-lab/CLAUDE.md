@@ -1,287 +1,159 @@
-# CKBuilder
+# ckb-lab
 
-Next.js 15 frontend + Rust CKB smart contracts. CKB-specific APIs via `@ckb-ccc/core`.
+Next.js 15 app + Rust CKB smart contracts — a developer "lab" where each page makes one CKB
+concept concrete by building a real transaction. CKB APIs via `@ckb-ccc/core`.
 
-## Repo structure
+The directory and pnpm package are `ckb-lab`; the app's user-facing brand is **CKBuilder** (page
+titles, the Claude Design file `CKBuilder.html`). `CKBuilder` is also the name of the parent
+workspace directory — it is not this project.
 
-```
-ckb-lab/                    # Next.js 15 (App Router) — single JS package at root
-├── .storybook/             # Storybook config (Vite + React, resolves @/ → app/)
-├── stories/
-│   ├── chrome/             # Header, Sidebar stories
-│   ├── components/         # Stories for every ui/ component
-│   └── foundations/        # Colors, Spacing, Typography
-├── app/
-│   ├── (shell)/            # Route group — wraps all pages in AppLayout
-│   │   └── <route>/        # Each route may co-locate a <Name>Form.tsx beside page.tsx
-│   ├── components/
-│   │   ├── ui/             # Reusable domain UI — use these before creating new components
-│   │   └── *.tsx           # AppLayout, Header, Sidebar, PageShell, CubeMark
-│   ├── contexts/           # ThemeContext (light/dark) — network state lives in stores/
-│   ├── stores/             # Zustand stores — network.ts (network + cccClient)
-│   ├── features/           # Feature-scoped logic (hooks, utils) — not page components
-│   ├── lib/                # CKB utilities — format.ts, ccc-client.ts, routes.ts, nav-items.tsx, index.ts
-│   ├── globals.css         # @theme inline tokens — single source of truth for design tokens
-│   └── providers.tsx       # Client root: ThemeProvider > AntdThemeProvider > CccProvider > NetworkSync
-├── package.json
-└── contracts/              # Rust CKB scripts — Cargo workspace, pnpm does NOT touch this
-    ├── Cargo.toml          # [workspace] members = one dir per contract crate, plus "tests"
-    ├── lesson-08-hash-lock/, lesson-10-counter/  # one crate per lesson contract
-    ├── tests/              # native-host ckb-testtool suite, one module per contract
-    ├── Makefile            # `make build` → riscv64imac-unknown-none-elf binaries
-    └── build/release/      # compiled binaries — read by web API routes for on-chain deploy
-```
+> **Constraint: this is a browser-only dapp, not a full-stack app.** There are zero route
+> handlers, zero server actions, and nothing imports `fs` or `next/server`. Every chain call runs
+> in the browser against a CKB node's JSON-RPC, signed by the user's wallet extension; all
+> persistence is `localStorage`. That is why there is no auth, no session, no database — and why
+> a compiled contract binary reaches the chain by the user *uploading* it on `/deploy`, never by
+> the server reading `contracts/build/release/`. If something looks like it needs a route
+> handler, raise it; do not add one.
+
+## Context files
+
+Read on demand — start at `.context/INDEX.md`. Two are worth reaching for by default:
+
+- **`.context/processes/gotchas.md`** — CKB failures surface far from their cause. Check here
+  before debugging anything that "should work".
+- **`.context/glossary/ckb-terms.md`** — before reasoning about cells, capacity, scripts,
+  `hash_type`, or Type ID. CKB is UTXO-style; an account/contract-storage mental model is wrong.
+
+Also: `.context/architecture/system-design.md` (structure, state, data flow),
+`.context/processes/definition-of-done.md` (**resolve the task tier here before starting**),
+`.context/processes/decisions-log.md`, `.context/design/`.
+
+`DESIGN.md` is the full design-token reference. `docs/<route>-features.md` is what a feature does
+for the end user.
+
+## MCP servers
+
+Configured in `.mcp.json` at the **workspace root** (one level up), so they are shared with the
+other projects there.
+
+- **`mcp__ckb-ai__*`** — CKB RPC and indexer queries, devnet helpers, testnet faucet. Use it to
+  check chain state directly instead of writing throwaway script. It uses deferred loading:
+  call `search_tools` first. Its CKB knowledge is general — it does **not** override
+  `.context/glossary/ckb-terms.md`, which records how *this repo* uses those terms.
+- **`mcp__Claude_Design__*`** — the design project. Prefer these over the built-in `DesignSync`
+  tool; see `.context/design/claude-design-sync.md` for why and for the API differences.
 
 ## Tech stack
 
 | Layer | Library |
 |---|---|
-| Framework | Next.js 15 (App Router) |
-| UI | Ant Design 5.x |
+| Framework | Next.js 15 (App Router), React 18 |
+| UI | Ant Design 5 |
 | Styling | Tailwind CSS v4 (no `tailwind.config.ts`) |
+| State | Zustand 5 (`app/stores/`) — Context only for theme |
 | CKB wallet | `@ckb-ccc/connector-react` |
 | CKB transactions | `@ckb-ccc/core` |
-| Package manager | pnpm (single package at repo root, no workspace packages) |
-| Smart contracts | Rust + `ckb-std` (target: `riscv64imac-unknown-none-elf`) |
+| Package manager | pnpm — single package at root, no workspace packages |
+| Smart contracts | Rust + `ckb-std`, target `riscv64imac-unknown-none-elf` |
 | Contract testing | `ckb-testtool` (native host) |
-| Component dev | Storybook 8 (Vite, `@storybook/react-vite`) |
+| Component dev | Storybook 8 (Vite builder) |
 
 ## Commands
 
 ```bash
-pnpm install              # install deps
 pnpm dev                  # dev server
-pnpm build                # production build (also runs TypeScript check)
+pnpm build                # production build — also runs the TypeScript check
 pnpm lint                 # lint
-pnpm storybook            # Storybook dev server on :6006
-pnpm build-storybook      # static Storybook build
+pnpm format               # prettier --write .
+pnpm storybook            # Storybook on :6006
+
+rustup target add riscv64imac-unknown-none-elf   # one-time
+make -C contracts build   # → contracts/build/release/
+make -C contracts test    # builds first, then `cargo test -p tests`
 ```
 
-App defaults to testnet (`NEXT_PUBLIC_NETWORK=testnet` in `.env.local`).
-For devnet: set `NEXT_PUBLIC_NETWORK=devnet` and run `offckb node`.
+`contracts/` is a standalone Cargo workspace — no pnpm command touches it. Bare `cargo test` at
+its root fails to link; always scope to `-p tests`.
+
+Network comes from `NEXT_PUBLIC_NETWORK` in `.env.local` (defaults to `testnet`). For devnet, set
+it to `devnet` and run `offckb node`. Read the active network from `useNetworkStore`, never from
+the env var — the user can switch at runtime.
 
 ## Constraints
 
-- Do NOT hardcode colors, font sizes, or font weights — use design tokens from `globals.css`
-- Do NOT create `tailwind.config.ts` — all tokens live in `globals.css` `@theme inline` only
-- Do NOT install new dependencies without asking first
+- Do NOT hardcode colors, font sizes, or font weights — use tokens from `app/globals.css`
+- Do NOT create `tailwind.config.ts` — all tokens live in `globals.css` `@theme inline`
+- Do NOT install a new dependency without asking first
 - Do NOT push directly to `canary` — create a branch
 - Do NOT refactor code outside the direct scope of the current task
+- Import via the `@/` alias (`@/*` → `./app/*`), never a relative climb out of a route directory
+- When a session produced several independent changes, split them into one commit per unit of
+  change — do not lump them together, even if asked to "commit this" once
+- Don't decide alone: new dependencies, adding any server-side code, changing the tx-building
+  call order in `app/lib/ckb/`, deleting existing code
+- Arbitrary Tailwind values like `px-[5px]`, `size-[7px]`, `py-[22px]` are intentional — they
+  have no named token equivalent. Do NOT replace them with approximations
 
 ## UI component decision order (follow strictly)
 
-Before writing any UI code, go through this checklist in order — stop at the first match:
+Before writing any UI code, stop at the first match:
 
-1. **Ant Design has it** → use it. Apply Tailwind `className` or inline `style` for visual tweaks.
-2. **Ant Design has it but needs heavier restyling** → use it with a CSS override on the wrapping element. Do NOT duplicate Antd's logic in a custom component.
-3. **`components/ui/` has a domain-specific wrapper** → use that wrapper.
-4. **Nothing fits** → build a new `ui/` component, composing Antd primitives inside it.
+1. **Ant Design has it** → use it, with Tailwind `className` or inline `style` for visual tweaks
+2. **Ant Design has it but needs heavier restyling** → still use it, with a CSS override on the
+   wrapper. Do NOT reimplement Antd's logic in a custom component
+3. **`app/components/ui/` has a domain wrapper** → use it. Inventory + purposes:
+   `.context/design/component-library.md`
+4. **Nothing fits** → build a new `ui/` component composing Antd primitives
 
-CSS tweak examples (preferred over custom components):
 ```tsx
 // Tighten padding on an Antd Button — no custom component needed
 <Button size="small" className="px-2! h-7! text-xs">Copy</Button>
 
-// Give an Antd Card a custom background — use `styles` not `bodyStyle` (deprecated in v5)
+// Antd Card background — use `styles`, not `bodyStyle` (deprecated in v5)
 <Card className="bg-bg-elev border-app-border" styles={{ body: { padding: 12 } }}>…</Card>
-
-// Style an Antd Tag with a token color
-<Tag className="border-0 bg-primary-tint text-primary text-xs">Active</Tag>
 ```
 
-## Tailwind design tokens
+Tailwind v4's important modifier is a **suffix**: `px-2!`, not `!px-2`. The prefix form fails
+silently.
 
-All tokens live in `app/globals.css` → `@theme inline`. Adding a token there automatically creates the Tailwind utility class. Runtime values (light/dark) are in `.theme-light` / `.theme-dark` in the same file.
+Consult the relevant `*-exp` skill before writing React/Next.js, Antd, Tailwind, Storybook, or
+CKB code — `frontend-exp`, `antd-exp`, `tailwind-v4-exp`, `storybook-exp`, `ckbuilder-exp`. This
+is gate 6, not a suggestion.
 
-Key classes: `text-text-1/2/3`, `bg-bg-body`, `bg-bg-elev`, `border-app-border`, `text-primary`, `bg-primary-tint`, `font-brand` (weight 650), `font-mono`, `text-body` (13.5px), `text-title` (17px).
+## Design tokens
 
-See `DESIGN.md` for the full token reference and component patterns.
-Component-level design specs live in `docs/design/` (e.g. `docs/design/header.md`).
+All tokens live in `app/globals.css` → `@theme inline`; adding one there creates the Tailwind
+utility automatically. Light/dark runtime values are in `.theme-light` / `.theme-dark` in the
+same file.
 
-## Component library (`components/ui/`)
-
-Before building any new UI piece, check if `app/components/ui/` already has it:
-
-| Component | Purpose |
-|---|---|
-| `Badge` | Status/count badge |
-| `CopyText` | Inline text with clipboard copy button (idle/copied/failed states) |
-| `CellChip` | CKB cell summary card (capacity, lock, address, optional accent stripe) |
-| `CellFlow` | Visual input→output cell flow diagram |
-| `DaoPosition` | Nervos DAO deposit/withdraw position card |
-| `FormItem` | Form field label with optional right-aligned hint |
-| `MultisigParticipant` | Multisig co-signer row (key, weight) |
-| `NoteBox` | Info/warning callout box |
-| `RawBlock` | Monospace pre-formatted data block (hex, JSON) |
-| `StatePanel` | Two-column key-value state display panel |
-| `StatusChip` | Small colored chip for on-chain status |
-| `SummaryPanel` | Transaction summary row list |
-| `SwitchRow` | Labeled toggle row |
-| `TokenListItem` | Token balance list item |
-| `TxStatusBanner` | Lifecycle banner for CKB tx status: sending → sent → pending → proposed → committed / rejected |
-| `UploadZone` | File drag-and-drop upload area |
-
-Every component in `ui/` must have a corresponding story in `stories/components/` — on `polished` tasks. A `lab-spike` may keep its JSX inline in the page instead of promoting it to `ui/`; see "Definition of Done — two tiers".
-
-## Gotchas
-
-- `px-[5px]`, `size-[7px]`, `py-[22px]` — intentional arbitrary values with no named token equivalent. Do NOT replace with approximations.
-- Tailwind v4 important modifier is a **suffix**: `px-2!` not `!px-2`. Using `!` prefix will silently fail.
-- `contracts/` is a standalone Cargo workspace — `pnpm` commands do not apply to it.
-- `app/lib/` was previously named `ckb-utils`. Always import via path alias `@/lib/...`.
-- Complex pages extract a co-located `<Name>Form.tsx` (e.g. `TransferForm.tsx` beside `transfer/page.tsx`). Follow this pattern for pages with non-trivial forms.
+Common: `text-text-1/2/3`, `bg-bg-body`, `bg-bg-elev`, `border-app-border`, `text-primary`,
+`bg-primary-tint`, `font-brand` (weight 650), `font-mono`, `text-body` (13.5px), `text-title`
+(17px). Full reference: `DESIGN.md`.
 
 ## Adding a feature page
 
-1. Create `app/(shell)/<route>/page.tsx` using `PageShell`:
-   ```tsx
-   import { PageShell } from "../../components/PageShell";
-   export const metadata = { title: "My Feature — CKBuilder" };
-   export default function MyPage() {
-     return <PageShell title="My Feature" description="..." status="todo" />;
-   }
-   ```
-2. Add the route constant to `ROUTES` in `app/lib/routes.ts` and add its nav item to `NAV_ITEMS` in `app/lib/nav-items.tsx`
-3. Add a `PAGE_TITLES` entry in `app/lib/routes.ts`
-4. If the page has a non-trivial form, extract it into `<route>/<FeatureName>Form.tsx`
-
-For pages that read/write chain state:
+1. Create `app/(shell)/<route>/page.tsx` rendering `PageShell`
+2. Register the route in **both** `ROUTES` and `PAGE_TITLES` in `app/lib/routes.ts`, and in
+   `NAV_ITEMS` in `app/lib/nav-items.tsx` — this is gate 3
+3. Non-trivial form → extract it into `<route>/<FeatureName>Form.tsx` beside `page.tsx`
+4. Chain logic goes in `app/lib/ckb/` (pure, no React); the hook wrapping it goes in
+   `app/features/<domain>/`. A page never builds a transaction itself
 
 ```tsx
 "use client";
 import { useNetworkStore } from "@/stores/network"; // network-aware CKB client
-import { useCcc } from "@ckb-ccc/connector-react";     // wallet signer (null if disconnected)
+import { useSigner } from "@ckb-ccc/connector-react"; // null while disconnected
 ```
 
-Key lib exports (`@/lib/format`): `shannonToCKB`, `formatCapacity`, `utf8ToHex`, `hexToUtf8`, `truncateAddress`.
+## Definition of Done
 
-## Adding a UI component
+Every task is `lab-spike` or `polished`, set by the GitHub issue label. **No label → treat it as
+`lab-spike` and say so.** Never silently apply the polished gates; they roughly double a page's
+file count and that cost is the user's call.
 
-1. Create `app/components/ui/<ComponentName>.tsx`
-2. Export it as a named export
-3. Create `stories/components/<ComponentName>.stories.tsx` with at least a Default story — `polished` only
+Both tiers: `pnpm build` and `pnpm lint` pass, routes registered, contracts build, new tokens
+synced to both files, `*-exp` skills consulted, non-obvious logic commented with WHY.
 
-On a `lab-spike`, prefer not to create a `ui/` component at all: keep the markup inline in the page until a second page needs it.
-
-## Feature documentation
-
-User-facing feature docs live in `docs/`. **This whole section applies to `polished` tasks only** — a `lab-spike` writes no `docs/` file. When implementing or significantly changing a polished feature, update (or create) the relevant doc:
-
-| Path | Contents |
-|---|---|
-| `docs/design/` | Component-level design specs (one file per component, e.g. `header.md`) |
-| `docs/<feature>-features.md` | End-user feature description, states, and edge cases (e.g. `cell-explorer-features.md`) |
-
-**When to update docs:**
-
-- New page or route → create `docs/<route>-features.md` describing all UI states and user flows
-- New `ui/` component with non-trivial behavior → create `docs/design/<ComponentName>.md` with prop table and state diagram
-- Changed user-visible behavior (status transitions, error messages, copy text) → update the relevant `docs/` file
-
-This keeps the `docs/` directory the single source of truth for "what does this feature do" — separate from `DESIGN.md` (token reference) and `CLAUDE.md` (build conventions).
-
-## Rust contracts
-
-```bash
-rustup target add riscv64imac-unknown-none-elf   # one-time setup
-make -C contracts build                           # → contracts/build/release/
-cd contracts && cargo test -p tests               # tests run on native host, no RISC-V needed
-```
-
-Note: bare `cargo test` (no `-p`) fails at the workspace root — Cargo tries to build a test
-harness for every member, including the `#![no_std]#![no_main]` contract crates, whose
-`ckb_std::entry!` macro defines its own `_start` and collides with the host's own at link
-time. Always scope to `-p tests` (or run `make -C contracts test`, which does this).
-
-New contract: add crate at `contracts/<name>/`, register in `contracts/Cargo.toml` workspace members, add build rule to `contracts/Makefile`, add tests in `contracts/tests/src/`.
-
-## Claude Design integration
-
-The visual design lives in a Claude Design project (accessible via `DesignSync` MCP tool, available in this environment). Project ID: `8e7cfe8c-2db9-4eb1-92d2-6ea76f6a7de6`.
-
-### File map
-
-| Design file | Contents |
-|---|---|
-| `CKBuilder.html` | All CSS + screen gallery entry list + artboard renderer |
-| `ckb-screens.jsx` | Transfer, Invoke screens |
-| `ckb-screens-2.jsx` | Cell Explorer, Tokens, Deploy Script, Deploy Script · States, DAO, Multisig, History, Assets screens |
-| `ds-catalog.jsx` | Design System foundations (Brand, Color, Typography, Metrics, Icons) + helper primitives (`Section`, `Spec`, `Stage`, `Var`) |
-| `ds-components.jsx` | Design System components (Buttons, Inputs, Badges, `TxStatusBanner`, Cards, Cells…) + app shell |
-| `ckb-icons.jsx` | Icon definitions used across all files |
-
-> **Important:** Always read ALL design files (`ckb-screens.jsx` AND `ckb-screens-2.jsx`) before implementing any screen — not just the first file. Missing `ckb-screens-2.jsx` will cause the implementation to diverge from the design spec.
-
-### DesignSync workflow
-
-```
-1. DesignSync.get_file(projectId, path)       → read current file content
-2. DesignSync.finalize_plan(writes, deletes)  → declare intent (always pass deletes: [])
-3. DesignSync.write_files(planId, files)      → push updated content (must pass projectId)
-```
-
-Always `get_file` first — write the full file content back (the API replaces, not patches).
-
-### When to update Claude Design
-
-| Action | Files to update |
-|---|---|
-| New CSS class for a component | `CKBuilder.html` — add the class in the relevant CSS block |
-| New screen state or artboard | `ckb-screens.jsx` + update the gallery array in `CKBuilder.html` |
-| New `ui/` component | `ds-components.jsx` — add a `<Spec>` with all variants inside the relevant `Section` |
-| New design token | `CKBuilder.html` CSS vars + `app/globals.css` (keep both in sync) |
-
-### Workflow convention
-
-On `polished` tasks, design and code stay in parallel — update the Claude Design artboard **in the same task** as the code change, not after. The Design System pane (`ds-components.jsx`) is the canonical visual reference; `DESIGN.md` is the prose reference.
-
-On `lab-spike` tasks, skip Claude Design entirely. The artboard is caught up later, once and in bulk, if the spike is promoted — see "Promotion path" under Definition of Done.
-
-## Definition of Done — two tiers
-
-Not every page earns the same build cost. This repo is a learning lab: most pages exist to make a CKB concept concrete, and only a subset ships as a main-track feature. Every task is therefore either **`lab-spike`** or **`polished`**.
-
-| | `lab-spike` | `polished` |
-|---|---|---|
-| Intent | Build to understand a concept | Build to ship |
-| Reader | Me, while learning | Someone using CKBuilder |
-| Claude Design artboard | skip | required |
-| Storybook story | skip | required for new `ui/` components |
-| `docs/<route>-features.md` | skip | required |
-| New `ui/` component | optional — inline JSX in the page is fine | extract reusable pieces into `ui/` |
-| Design tokens, no hardcoded values | required | required |
-
-**Picking the tier:** course issues carry a `lab-spike` or `polished` GitHub label — that label is the source of truth. If a task arrives with no tier, treat it as `lab-spike` and say so in your response. Never silently apply the polished gates: they roughly double the file count of a page, and that cost is a decision for the user to make, not for you to assume.
-
-### Gates for every task — both tiers
-
-1. `pnpm build` — must pass with 0 errors
-2. `pnpm lint` — must pass
-3. If you added a route: confirm it appears in `lib/routes.ts` `ROUTES` + `PAGE_TITLES` and `lib/nav-items.tsx` `NAV_ITEMS`
-4. If you added a contract: confirm it builds with `make -C contracts build`
-5. If you added a new design token: confirm it exists in both `app/globals.css` and `CKBuilder.html` CSS vars. A `lab-spike` should rarely need a new token — reach for an existing one first; if you genuinely need a new one, sync both files even though the spike skips every other Claude Design step.
-6. **Exp skills consulted** — before writing React/Next.js, Antd, Tailwind, Storybook, or CKB code, the relevant skill must have been read: `frontend-exp`, `antd-exp`, `tailwind-v4-exp`, `storybook-exp`, `ckbuilder-exp`. Do not skip because a change "looks trivial" — known gotchas live there.
-7. **Non-obvious logic is commented** — any workaround, CKB-specific invariant, subtle state transition, or behaviour that would surprise a future reader must have an inline comment explaining WHY (not what). Code that reads straightforwardly from its identifiers needs no comment.
-
-**A `lab-spike` is done here — stop.** Do not open Claude Design, do not write a story, do not create a `docs/` file. Skipping those is the entire point of the tier, not a corner cut; a spike that quietly grows the polished artifacts has spent the budget the tier exists to protect. If the work genuinely warrants them, say so and let the user promote the issue rather than deciding unilaterally.
-
-### Additional gates for `polished` only
-
-8. If you added a `ui/` component: confirm its story exists in `stories/components/` **and** a `<Spec>` entry exists in `ds-components.jsx`
-9. If you added a new screen state or component variant: confirm the Claude Design artboard is updated (`ckb-screens.jsx` / `ckb-screens-2.jsx` and/or `ds-components.jsx`)
-10. If you added or changed user-visible behavior: confirm `docs/` is updated (see "Feature documentation" section)
-
-### Promotion path: `lab-spike` → `polished`
-
-A spike graduates when it stops being a scratchpad and takes a main-track slot. Promotion is **its own task** — never fold it into an unrelated feature change, because the diff is large and reviewing it alongside behaviour changes hides both.
-
-To promote a spike:
-
-1. Swap the issue label: drop `lab-spike`, add `polished`
-2. Extract the page's repeated or reusable JSX into `app/components/ui/` components
-3. Add a story in `stories/components/` for each extracted component, plus a `<Spec>` entry in `ds-components.jsx`
-4. Add the screen and its states to `ckb-screens-2.jsx`, and register it in the gallery array in `CKBuilder.html`
-5. Write `docs/<route>-features.md` covering every UI state and user flow
-6. Re-run gates 1–10
-
-The reverse never happens: a `polished` page does not get demoted to shed its artifacts.
+Full gate list, the polished-only gates, the promotion path, and the table of which context file
+each kind of change invalidates: **`.context/processes/definition-of-done.md`**. Read it before
+declaring anything done.
