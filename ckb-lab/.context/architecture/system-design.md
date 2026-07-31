@@ -171,9 +171,12 @@ The deploy target is Vercel on `testnet` (`NEXT_PUBLIC_NETWORK=testnet`, Vercel 
 `ckb-lab` — the repo root is a workspace with no manifest). Nothing else is configured: there are
 no secrets, no route handlers, and `next build` prerenders every route as static content.
 
-Devnet is the one network that cannot work there — its node serves plain
-`http://localhost:28114`, which a browser blocks from an https page as active mixed content, so
-`NetworkPill` disables that entry on an https origin.
+Devnet still works from the deployed app: `http://localhost` is a potentially-trustworthy origin
+(exempt from mixed-content blocking) and the node answers with permissive CORS, so a developer
+running `offckb node` can point the hosted build at their own chain. Chrome 142+ asks for Local
+Network Access permission first. What devnet cannot do is *assume* a node is there, so
+`NetworkPill` probes it on click via `isDevnetReachable()` and reports the result instead of
+switching into a dead network — see `../processes/gotchas.md`.
 
 ## Deliberately not done
 

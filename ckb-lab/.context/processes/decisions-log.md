@@ -145,6 +145,20 @@ where every RPC call fails with no explanation. Detected after mount rather than
 because `NetworkPill` is server-rendered inside the header and reading `window` during render
 breaks hydration.
 (source: issue #52, `app/components/NetworkPill.tsx`)
+**Superseded the same day by the entry below — its premise was factually wrong.**
+
+[2026-07-31] **Devnet is probed on click, not gated on `location.protocol`** — supersedes the
+entry directly above. Its premise does not hold: `http://localhost` is a potentially-trustworthy
+origin and is exempt from mixed-content blocking in all three engines, CKB's RPC server mounts
+`CorsLayer::permissive()`, and offckb's 28114 proxy forwards those headers — so a deployed https
+app *can* drive a local devnet. The only real gate is Chrome 142+ Local Network Access, a
+permission prompt rather than a block. Reason the human gave for reversing: disabling the entry
+removed a capability that works, and the demo should not cost a developer their local node.
+`NetworkPill` now calls `isDevnetReachable()` on click and reports what actually happened, which
+also fixes the same silent breakage on localhost when `offckb node` is not running. Probed on
+click rather than on mount so Chrome's permission prompt follows a user action instead of a page
+load. See `processes/gotchas.md` → "CKB client and network state".
+(source: `app/lib/ccc-client.ts`, `app/components/NetworkPill.tsx`)
 
 [2026-07-31] **The README lives at the repository root, with a short pointer in `ckb-lab/`** —
 Reason: the GitHub repo is `tiennt0212/CKBuilder` and its root page is the first thing a reviewer

@@ -111,6 +111,30 @@ export const DEVNET_SCRIPTS: Record<string, ScriptInfo> = {
 
 export const DEVNET_RPC_URL = "http://localhost:28114";
 
+/**
+ * Ask the devnet node whether it is there. Unlike testnet and mainnet, devnet is a process the
+ * user runs themselves, so it is the one network that can simply be absent — and switching to an
+ * absent node makes every page fail its queries with no explanation.
+ *
+ * Works from a deployed https origin too: `http://localhost` is a potentially-trustworthy origin,
+ * so it is exempt from mixed-content blocking, and the node answers with permissive CORS. Chrome
+ * 142+ does gate a public origin reaching loopback behind a Local Network Access permission
+ * prompt — a denied or dismissed prompt reads here as "unreachable", which is the right outcome.
+ */
+export async function isDevnetReachable(timeoutMs = 2000): Promise<boolean> {
+  try {
+    const res = await fetch(DEVNET_RPC_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: 1, jsonrpc: "2.0", method: "local_node_info", params: [] }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export const NETWORK_LABELS: Record<Network, string> = {
   mainnet: "Mainnet",
   testnet: "Testnet",

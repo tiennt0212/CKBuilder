@@ -29,9 +29,12 @@ Set `NEXT_PUBLIC_NETWORK` in `.env.local` to `testnet` (default), `devnet`, or `
 only picks the *initial* network; the header's picker switches at runtime, which is why code
 reads the active network from `useNetworkStore` and never from the env var.
 
-`devnet` needs a local node — `offckb node`, JSON-RPC on `http://localhost:28114`. It is
-unavailable on an https deployment, because a browser blocks the plain-http call as mixed
-content.
+`devnet` needs a local node — `offckb node`, JSON-RPC on `http://localhost:28114`. This works
+from the deployed build too, not just from `localhost`: `http://localhost` is a
+potentially-trustworthy origin, so it is exempt from mixed-content blocking, and the node answers
+with permissive CORS. Chrome 142+ asks for Local Network Access permission the first time. The
+picker probes the node before switching, so a missing one says so instead of silently breaking
+every page.
 
 ## Working on this
 
