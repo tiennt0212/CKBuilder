@@ -167,9 +167,23 @@ at runtime through `CccProvider`'s `clientOptions`. Code must therefore read the
 
 ### Hosting
 
-The deploy target is Vercel on `testnet` (`NEXT_PUBLIC_NETWORK=testnet`, Vercel Root Directory
-`ckb-lab` — the repo root is a workspace with no manifest). Nothing else is configured: there are
-no secrets, no route handlers, and `next build` prerenders every route as static content.
+The deploy target is Vercel on `testnet`. Two settings matter, and both have a failure mode that
+does not name itself:
+
+- **Root Directory `ckb-lab`** — set in the Vercel dashboard, not in a file. The repo root is a
+  workspace with no manifest, so leaving it at the root fails with
+  `ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND`.
+- **Framework preset `nextjs`** — pinned in `vercel.json` because auto-detection can land on
+  Vite: `vite`, `@tailwindcss/vite` and `vite-tsconfig-paths` are devDependencies for
+  Storybook's builder. A misdetect fails with `No Output Directory named "dist" found`. Never
+  set an Output Directory by hand for Next.js — Vercel derives it from the preset, and pointing
+  it at `.next` makes Vercel serve the build folder as static files instead.
+
+`NEXT_PUBLIC_NETWORK` is optional: `readEnvNetwork()` already falls back to `testnet` when the
+variable is absent or invalid. Set it anyway, so the target is stated rather than inferred.
+
+Nothing else is configured: there are no secrets, no route handlers, and `next build` prerenders
+every route as static content.
 
 Devnet still works from the deployed app: `http://localhost` is a potentially-trustworthy origin
 (exempt from mixed-content blocking) and the node answers with permissive CORS, so a developer
