@@ -7,6 +7,7 @@ export default function NervosDaoPage() {
     <PageShell
       title="Nervos DAO"
       description="Deposit CKB into the Nervos DAO to earn compensation. Withdraw after the lock period and claim issuance rewards."
+      planned={{ milestone: "Advanced", issue: 67, designed: true }}
     />
   );
 }

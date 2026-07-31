@@ -7,6 +7,7 @@ export default function TokensPage() {
     <PageShell
       title="Tokens"
       description="Issue and transfer xUDT / sUDT fungible tokens. Your token ID is derived from your lock script hash."
+      planned={{ milestone: "M1 · Bootcamp demo", issue: 47, designed: true }}
     />
   );
 }

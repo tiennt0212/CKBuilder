@@ -7,6 +7,7 @@ export default function MultisigPage() {
     <PageShell
       title="Multisig"
       description="Create M-of-N multisig addresses using secp256k1-blake160-multisig. Collect and combine signatures from multiple participants."
+      planned={{ milestone: "Custom locks", issue: 64, designed: true }}
     />
   );
 }
