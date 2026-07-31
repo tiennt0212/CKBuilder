@@ -10,17 +10,56 @@ through.
 It is a learning instrument, not a product. The point is that nothing is mocked: the preview you
 see is the transaction that gets signed.
 
+**▶ Live on testnet: https://ck-builder-s1eo.vercel.app** — connect a wallet and build a
+transfer. Nothing to install.
+
+## Screenshots
+
+Testnet, wallet connected. Every number in these is real chain data.
+
+![Transfer CKB](ckb-lab/docs/screenshots/transfer.png)
+
+*`/transfer` — the form on the left, the cell-model preview on the right. CKB is UTXO-style, so
+a transfer is not a balance update: one input cell of 56,385.99 CKB is consumed and two output
+cells are created, the 100 CKB going out and the change coming back.*
+
+<details>
+<summary><b>Four more — Cell Explorer, Deploy, Registry, Counter</b></summary>
+
+![Cell Explorer](ckb-lab/docs/screenshots/cell-explorer.png)
+
+*`/cell-explorer` — the live cells behind that balance, queried straight from the CKB indexer
+and filterable by lock, type, capacity range, data length and data prefix.*
+
+![Deploy Script](ckb-lab/docs/screenshots/deploy.png)
+
+*`/deploy` — a compiled RISC-V binary uploaded from the browser, with its `data_hash`, the
+capacity the cell will occupy, and the `hash_type` it will be referenced by.*
+
+![Script Registry](ckb-lab/docs/screenshots/registry.png)
+
+*`/registry` — scripts this browser has deployed or saved, network-scoped and kept in
+`localStorage`. This is what `/invoke` and `/counter` pick from.*
+
+![Counter](ckb-lab/docs/screenshots/counter.png)
+
+*`/counter` — creating a cell governed by the `counter` Rust type script, previewing the state
+transition before signing.*
+
+</details>
+
 ## What works today
 
-Six pages build and broadcast real transactions. Five are routed and navigable but not yet
-implemented — they say so on the page, and they name the issue tracking them.
+Five pages build and broadcast real transactions and a sixth is unverified. Five more are routed
+and navigable but not yet implemented — they say so on the page, and they name the issue tracking
+them.
 
 | Page | Route | Status |
 |---|---|---|
 | Transfer CKB | `/transfer` | ✅ Works — [docs](ckb-lab/docs/transfer-features.md) |
 | Cell Explorer | `/cell-explorer` | ✅ Works — [docs](ckb-lab/docs/cell-explorer-features.md) |
 | Deploy Script | `/deploy` | ✅ Works — [docs](ckb-lab/docs/deploy-features.md) |
-| Invoke Script | `/invoke` | ✅ Works — [docs](ckb-lab/docs/invoke-features.md) |
+| Invoke Script | `/invoke` | ⚠️ Unverified — it builds and broadcasts, but no successful end-to-end run is confirmed. The only script driven through it so far (`hash-lock`) was rejected by CKB-VM for the ISA reason below, so the page's own correctness is still untested — [docs](ckb-lab/docs/invoke-features.md) |
 | Script Registry | `/registry` | ✅ Works — [docs](ckb-lab/docs/registry-features.md) |
 | Counter | `/counter` | ✅ Works — [docs](ckb-lab/docs/counter-features.md) |
 | Tokens (xUDT) | `/tokens` | Planned — [M1 · Bootcamp demo](https://github.com/tiennt0212/CKBuilder/milestone/14) · [#47](https://github.com/tiennt0212/CKBuilder/issues/47) |
