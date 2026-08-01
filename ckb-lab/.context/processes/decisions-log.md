@@ -166,6 +166,38 @@ opens; a README only inside `ckb-lab/` would be invisible there. The root file c
 document, `ckb-lab/README.md` carries only the commands and links back.
 (source: issue #51)
 
+[2026-08-01] **`/tokens` lists every xUDT the wallet holds, not only the one it issued** — the
+balance list groups by `type.args` across all matching cells. Reason: the indexer prefix-matches
+`filter.script`, so one query with empty args covers every token at a cost of a few lines, and it
+is the only version where the transfer form means anything — a recipient who cannot see a token
+they were sent has no reason to be on the page. `buildTransferUdtTx` takes `udtArgs` as a
+parameter either way, so the narrow choice would never have reached the builder layer.
+(source: issue #47)
+
+[2026-08-01] **Token amounts are raw `u128` integers with no decimal scaling** — the UI shows and
+accepts `50000` as `50000`, labelled "raw units". Reason: xUDT carries no decimals field on chain.
+Displaying 8 decimals like CKB would be a convention invented by this app with nothing backing it,
+and teaching a wrong mental model is the specific failure `docs/` exists to prevent. Consequence:
+the amount input must run in Antd's `stringMode`, since a u128 past 2^53 does not survive a JS
+`number`.
+(source: issue #47)
+
+[2026-08-01] **`/tokens` takes the Claude Design artboard's content but keeps the repo's column
+convention** — the artboard merges the form, the capacity note, the summary rows and the
+Summary/Raw tabs into a single right-hand card beside the holdings list. The page instead puts
+holdings + form left and the preview right. Reason: four shipped pages (`/transfer`, `/deploy`,
+`/invoke`, `/counter`) already separate input from preview, and the merged card leaves the raw
+transaction JSON nowhere to go. The artboard's copy, the `≈ N CKB locked` sub-line, the capacity
+note and the `⚡ Issue` affordance are all kept. The artboard was not re-synced — a `lab-spike`
+skips Claude Design, so `/tokens` is knowingly left drifted.
+(source: issue #47)
+
+[2026-08-01] **`docs/tokens-features.md` was written even though `lab-spike` skips `docs/`** —
+Reason: epic #47's own Definition of Done names the file, and sub-issue #55 carries the
+`documentation` label rather than `lab-spike`. The more specific instruction wins over the tier
+default. This is a documented exception, not a precedent for writing `docs/` on other spikes.
+(source: issues #47, #55)
+
 ## Verified constraints
 
 These are not choices — they are limitations found while investigating, recorded so a later

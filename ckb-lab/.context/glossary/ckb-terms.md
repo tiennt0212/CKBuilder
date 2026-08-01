@@ -87,12 +87,55 @@ outputs reads `outputType`. Writing raw bytes into `witnesses[0]` instead gets t
 by signing.
 
 **`completeInputsByCapacity()`** — CCC helper: sources enough of the signer's cells to cover the
-outputs' occupied capacity, and sets that capacity on outputs left at `0`.
+outputs' capacity. It only ever collects cells with **no type script and no data** (its default
+filter is `{ scriptLenRange: [0,1], outputDataLenRange: [0,1] }`), so it can never spend a cell
+that is carrying state or tokens. It does **not** compute occupied size — `addOutput` does, at the
+moment the output is added. See `../processes/gotchas.md`.
 
 **`completeFeeBy()`** — CCC helper: tops up for the fee. Must run **after** everything that can
-grow the transaction's occupied size, or the tx is left underfunded.
+grow the transaction's occupied size, or the tx is left underfunded. Uses the same type-less,
+data-less input filter.
+
+**`completeInputsByUdt()`** — CCC helper: collects the signer's cells of one exact type script
+until they cover the UDT amount already on the output side. It adds **no change output** — the
+caller must compute the remainder and add it. Must therefore run *before* the change output
+exists, or its target would include the change and it would over-collect.
 
 **Fee rate** — shannons per KB of serialized transaction. CCC computes the actual fee.
+
+## User-defined tokens
+
+**xUDT** — the "extensible User-Defined Token" standard. A **type** script, not a lock: a holding
+is an ordinary cell with the holder's own lock, the xUDT type script, and the amount in `data`.
+There is no token contract and no balance table.
+
+**sUDT** — xUDT's predecessor. Same data layout; xUDT accepts a bare 32-byte args as an
+sUDT-compatible mode. This repo issues the 36-byte xUDT form.
+
+**UDT cell** — a cell whose `data` **begins with** a 16-byte little-endian `u128` amount. Begins
+with, not equals: xUDT may carry extension data after the amount, so a length check here is
+`>= 16`, unlike the counter cell's exact `== 8`. `/cell-explorer` classifies a 16-byte-data typed
+cell as `UdtCell`, which is a heuristic, not proof.
+
+**Token identity / `type.args`** — the issuer's lock script hash (32 bytes) plus 4 flag bytes.
+Since a script's identity is `blake2b(code_hash ‖ hash_type ‖ args)`, two issuers can never mint
+the same token and an issued token's issuer can never change. Lose the issuing key and the supply
+is frozen permanently.
+
+**Owner mode** — the xUDT script reads `args[0..32)` as an owner lock hash. When **any input cell**
+in the transaction carries a lock hashing to that value, the script skips its
+`sum(inputs) >= sum(outputs)` check entirely. That is the whole minting mechanism: there is no
+mint opcode and no witness. It also means an issuer's own "transfer" is validated under different
+rules than a holder's, despite identical-looking raw JSON.
+
+**Balance** — a **sum over live cells**, never a stored number. Nothing on chain records
+"address X holds N tokens"; the wallet's balance is whatever its matching cells add up to right
+now. This is the single idea `/tokens` exists to teach.
+
+**Occupied capacity of a token cell** — ~146 CKB for a secp256k1 holder
+(8 + 53 lock + 69 type + 16 data). Derived, not fixed: a longer lock args raises it, so read it
+back off the built transaction rather than hardcoding. The CKB is a deposit returned when the
+cell is spent, not a fee.
 
 ## Networks
 

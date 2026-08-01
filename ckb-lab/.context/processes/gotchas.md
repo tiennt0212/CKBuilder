@@ -13,9 +13,37 @@ confirm the trap still holds, delete the entry if the code moved on.
 
 - **Setting output capacity by hand looks safe and is wrong** — the formula
   `(lock_script_bytes + 8 + data_bytes) × 10^8` is only correct for a secp256k1 lock, whose
-  args happen to be 20 bytes. Leave `capacity` at `0` and let
-  `completeInputsByCapacity()` compute the real occupied size from the actual lock + type +
-  data. (source: `app/lib/ckb/deploy.ts:68`, `app/lib/ckb/invoke.ts:55`)
+  args happen to be 20 bytes. Leave `capacity` at `0` and let CCC compute the real occupied
+  size from the actual lock + type + data. (source: `app/lib/ckb/deploy.ts:68`,
+  `app/lib/ckb/invoke.ts:55`)
+
+- **It is `addOutput` that computes occupied capacity, not `completeInputsByCapacity` — and only
+  if you pass the data argument** — `CellOutput.from` fills capacity as
+  `occupiedSize + outputData.length` when capacity is `0`/absent **and** `outputData` was
+  supplied. `completeInputsByCapacity()` merely *reads* `getOutputsCapacity()` afterwards. So
+  `tx.addOutput({ lock, type })` with the data argument omitted leaves the output at 0 capacity
+  and the whole transaction silently underfunds. Always pass it, even when it is `"0x"`. (This
+  file previously credited `completeInputsByCapacity()`; corrected while building `/tokens`.
+  source: `node_modules/@ckb-ccc/core/dist.commonjs/ckb/transaction.js` `CellOutput.from`)
+
+- **Fee and capacity collection can never eat a token or state cell** — both
+  `completeInputsByCapacity()` and `completeFeeBy()` default their cell filter to
+  `{ scriptLenRange: [0,1], outputDataLenRange: [0,1] }`, i.e. cells with no type script and no
+  data. This is *why* it is safe to run them after `completeInputsByUdt()`. Worth knowing before
+  writing defensive code to protect balances — it would be dead code.
+
+- **`completeInputsByUdt()` adds no change output, and reads the output side as its target** —
+  it collects until inputs cover `getOutputsUdtBalance(type)`, so the UDT change output must be
+  added *after* it (otherwise the target includes the change and it over-collects, silently)
+  and *before* `completeInputsByCapacity()` (the change cell adds its own ~146 CKB of occupied
+  capacity). It also deliberately pulls a **second** input when one already covers the amount
+  with surplus — the surplus implies a change cell, and the second input funds that cell's
+  capacity. (source: `app/lib/ckb/udt.ts`)
+
+- **`ccc.udtBalanceFrom()` has no length check** — it does `bytesFrom(data).slice(0, 16)`, so
+  8-byte data reads back as a valid small amount rather than an error. Use it only where CCC's
+  own accounting is in play; decode with a guarded helper for anything a user reads.
+  (source: `app/lib/ckb/udt.ts` `decodeUdtAmount`)
 
 - **The three completion calls have a mandatory order, and the wrong order produces an
   underfunded tx rather than an error** — `completeInputsByCapacity()` first (Type ID needs

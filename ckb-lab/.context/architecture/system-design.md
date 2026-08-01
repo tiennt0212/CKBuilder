@@ -76,6 +76,7 @@ in `features/`, which calls one of these.
 | `deploy.ts` | Build a script-deployment tx; optional Type ID; returns `dataHash` + `typeIdCodeHash` |
 | `invoke.ts` | Build a tx that attaches a deployed script to `outputs[0].type` so the node runs it |
 | `counter.ts` | Build create / increment / destroy txs for the lesson-10 counter type script |
+| `udt.ts` | Build xUDT issue / transfer txs; u128 LE codec; per-token balance reader over live cells |
 | `counter-cells.ts` | `localStorage` layer for tracked counter cells (`CounterCell` shape, network-scoped ids) |
 | `deployed-scripts.ts` | `localStorage` layer for the deployed-script registry (`DeployedScript`) |
 | `script-actions.ts` | Shared helpers for acting on a registry entry |
@@ -203,8 +204,8 @@ Listing only what exists reads as an invitation to add more. These are absences 
   gate is `pnpm build` + `pnpm lint`; do not add a JS test runner without asking.
 - **No `tailwind.config.ts`.** Tailwind v4 tokens live in `app/globals.css` `@theme inline` only.
 - **No state library beyond Zustand**, and no Context beyond theme.
-- **Not every route is implemented.** `dao/`, `time-lock/`, `multisig/`, `history/`, `tokens/`
+- **Not every route is implemented.** `dao/`, `time-lock/`, `multisig/` and `history/`
   are `PageShell` placeholders awaiting their course lesson. A placeholder page is not a bug —
   and it says so on the page: each passes a `planned` prop naming its milestone and tracking
-  issue, so the screen reads as unbuilt rather than broken. `PageShell` is used by these five
+  issue, so the screen reads as unbuilt rather than broken. `PageShell` is used by these four
   routes and nothing else; an implemented page renders its own `<Name>Form` directly.
