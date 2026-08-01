@@ -5,7 +5,7 @@ import { FormItem } from "@/components/ui/FormItem";
 import { TokenListItem } from "@/components/ui/TokenListItem";
 import { TOKEN_ACTION_META, TokenAction } from "@/features/tokens/token-action";
 import type { UdtBalance } from "@/features/tokens/useUdtBalances";
-import { formatCapacity, truncateAddress, type Network } from "@/lib";
+import { formatCapacity, shannonToCKB, truncateAddress, type Network } from "@/lib";
 import { ArrowRightOutlined, CopyOutlined, ThunderboltOutlined } from "@ant-design/icons";
 import { Button, Card, Empty, Form, Input, InputNumber, Segmented, Skeleton } from "antd";
 import type { FormInstance } from "antd/es/form";
@@ -35,6 +35,12 @@ interface TokensInputCardProps {
   onSelectToken: (args: string) => void;
   addressPlaceholder: string;
   network: Network;
+  /**
+   * Occupied capacity of the token cell the last preview built, or null before the first build.
+   * Never assume a constant: it is derived from the recipient's lock, so an OmniLock wallet
+   * (22-byte args) costs 148 CKB where a secp256k1 one (20-byte args) costs 146.
+   */
+  udtCellCapacity: bigint | null;
   isInProgress: boolean;
   onValuesChange: (changedValues: unknown, allValues: Record<string, unknown>) => void;
   onFinish: (values: Record<string, unknown>) => void;
@@ -50,6 +56,7 @@ export function TokensInputCard({
   onSelectToken,
   addressPlaceholder,
   network,
+  udtCellCapacity,
   isInProgress,
   onValuesChange,
   onFinish,
@@ -229,8 +236,19 @@ export function TokensInputCard({
 
         <div className="mb-4">
           <NoteBox>
-            An xUDT cell needs <strong>≈146 CKB</strong> of capacity. It is taken from your CKB
-            balance and returned when the cell is later spent — a deposit, not a fee.
+            {udtCellCapacity != null ? (
+              <>
+                This token cell locks up <strong>{shannonToCKB(udtCellCapacity)} CKB</strong> of
+                capacity.
+              </>
+            ) : (
+              <>
+                A token cell locks up <strong>~142–150 CKB</strong> of capacity — the exact figure
+                depends on your wallet&apos;s lock and is shown in the preview.
+              </>
+            )}{" "}
+            It is taken from your CKB balance and returned when the cell is later spent — a deposit,
+            not a fee.
           </NoteBox>
         </div>
 

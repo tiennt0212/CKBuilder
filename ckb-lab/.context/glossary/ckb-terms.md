@@ -132,10 +132,15 @@ rules than a holder's, despite identical-looking raw JSON.
 "address X holds N tokens"; the wallet's balance is whatever its matching cells add up to right
 now. This is the single idea `/tokens` exists to teach.
 
-**Occupied capacity of a token cell** — ~146 CKB for a secp256k1 holder
-(8 + 53 lock + 69 type + 16 data). Derived, not fixed: a longer lock args raises it, so read it
-back off the built transaction rather than hardcoding. The CKB is a deposit returned when the
-cell is spent, not a fee.
+**Occupied capacity of a token cell** — `8 + lock + 69 type + 16 data` bytes. **146 CKB** with a
+secp256k1_blake160 lock (53 bytes), **148 CKB** with OmniLock (55 bytes — 22-byte args), which is
+what offckb's devnet wallet uses. Derived, not fixed: read it back off the built transaction
+rather than hardcoding a figure. The CKB is a deposit returned when the cell is spent, not a fee.
+
+**How much *new* CKB a UDT transfer needs** — usually far less than the output capacities suggest,
+because the token cells being spent carry their own capacity forward. Only the shortfall comes
+from plain CKB: one token cell in and two out needs one cell's worth; two in and two out needs
+nothing. `completeInputsByUdt` pulls that second input on purpose (see `gotchas.md`).
 
 ## Networks
 

@@ -163,7 +163,7 @@ export async function buildIssueUdtTx({
 }: BuildIssueUdtTxParams): Promise<IssueUdtTxResult> {
   if (amount <= 0n) {
     throw new Error(
-      "Issue amount must be greater than zero — a zero-amount cell would still occupy ~146 CKB and carry nothing"
+      "Issue amount must be greater than zero — a zero-amount cell would still occupy ~146-148 CKB and carry nothing"
     );
   }
 
@@ -237,7 +237,7 @@ export interface TransferUdtTxResult {
  *      target would include the change, and it would collect roughly double — silently
  *      over-collecting rather than erroring.
  *   3. the change output BEFORE completeInputsByCapacity, because the change cell adds its own
- *      ~146 CKB of occupied capacity. Adding it afterwards leaves the tx short by exactly one
+ *      ~146-148 CKB of occupied capacity. Adding it afterwards leaves the tx short by exactly one
  *      cell minimum — the same bug class as hashTypeId() after completeFeeBy().
  *   4. completeInputsByCapacity and completeFeeBy last, and they cannot touch the tokens: both
  *      default their cell filter to { scriptLenRange: [0,1], outputDataLenRange: [0,1] }, i.e.
@@ -265,7 +265,7 @@ export async function buildTransferUdtTx({
   // Collects the sender's cells for this exact type script until they cover the outputs. It stops
   // on an exact match OR on an overshoot with at least two inputs — so when one cell already
   // covers the amount with surplus it deliberately pulls a second. That is not waste: a surplus
-  // means a change cell is coming, and the second input contributes the ~146 CKB that change cell
+  // means a change cell is coming, and the second input contributes the ~146-148 CKB that change cell
   // will occupy. Two inputs fund two outputs exactly.
   //
   // Throws ErrorTransactionInsufficientCoin when the wallet is short of THIS TOKEN (not of CKB).

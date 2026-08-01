@@ -32,12 +32,19 @@ One cell. That is the entire operation:
 | `type` | The network's xUDT script, with your token's `args` | Fixed — resolved from the known-script map |
 | `type.args` | Your lock script hash (32 bytes) + `00000000` | Derived from your wallet; not editable |
 | `data` | The amount, 16-byte little-endian `u128` | You, via **Amount** |
-| `capacity` | ≈146 CKB | Computed from the three fields above |
+| `capacity` | ~146–148 CKB | Computed from the three fields above |
 
-The 146 CKB is `8 (capacity) + 53 (secp256k1 lock) + 69 (xUDT type) + 16 (data)` bytes, at
-1 CKB per byte. It is **derived, not fixed** — a recipient whose wallet uses a lock with longer
-args costs more, so the page reads the real figure back off the built transaction rather than
-assuming. The preview's **New cell capacity** row is always the true number.
+The capacity is `8 (capacity field) + lock + 69 (xUDT type) + 16 (data)` bytes, at 1 CKB per byte.
+It is **derived, not fixed**, and the lock term is the part that moves:
+
+| Wallet lock | Lock size | Cell capacity |
+|---|---|---|
+| secp256k1_blake160 (20-byte args) | 53 bytes | **146 CKB** |
+| OmniLock (22-byte args) | 55 bytes | **148 CKB** |
+
+So the number you see depends on the wallet, and a *recipient* on a different wallet type changes
+it again. The page never assumes: it reads the real figure back off the built transaction, and the
+preview's **New cell capacity** row is always the true number.
 
 That CKB is a **deposit, not a fee**. It stays locked inside the cell for as long as the cell
 exists and returns in full to whoever spends it. The network fee is the separate, much smaller
@@ -146,10 +153,19 @@ balance on a transfer.
 ## Edge Cases
 
 - **No wallet** — build throws "Wallet not connected"; surfaces as a build error in the preview.
-- **Not enough CKB, on a transfer of very few tokens** — the amount of *token* is irrelevant to
-  the CKB cost. The recipient needs a whole new cell (~146 CKB) and, unless your inputs match the
-  amount exactly, so does your change. A transfer of 1 unit can therefore need ~292 CKB of
-  capacity available. It comes back when those cells are spent.
+- **How much *new* CKB a transfer needs** — less than the output capacities suggest, because the
+  token cells you spend carry their own capacity forward. Only the shortfall comes from your
+  plain CKB:
+
+  | You hold | Inputs collected | Token outputs | New CKB needed |
+  |---|---|---|---|
+  | 1 token cell, sending part of it | 1 (~148) | recipient + change (~296) | **~148** |
+  | 1 token cell, sending all of it | 1 (~148) | recipient only (~148) | **0** |
+  | 2+ token cells, sending part | 2 (~296) | recipient + change (~296) | **0** |
+
+  The third row is the common one and it surprises people: the transaction builder deliberately
+  pulls a *second* token cell when the first already covers the amount, precisely so that cell's
+  capacity funds the change cell. The amount of *token* being sent never affects the CKB cost.
 - **Not enough CKB specifically for the change cell** — reported separately, because "you have
   enough for the transfer but not enough to receive your own remainder" is otherwise a baffling
   message.
@@ -159,7 +175,8 @@ balance on a transfer.
   would accept an over-transfer as a disguised mint. The page refuses it anyway; use **Issue**
   with a **Mint To** address if minting to someone else is what you meant.
 - **The recipient's wallet is not secp256k1** — their lock args are a different length, so their
-  cell's minimum capacity is not 146 CKB. The preview always shows the real figure.
+  cell's minimum capacity differs again — an OmniLock recipient costs 148 CKB where a
+  secp256k1 one costs 146. The preview always shows the real figure.
 - **Two input cells when one would have covered it** — deliberate, not a bug. A surplus means a
   change cell is coming, and the second input contributes the capacity that change cell will
   occupy.

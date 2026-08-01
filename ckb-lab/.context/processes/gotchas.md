@@ -35,7 +35,7 @@ confirm the trap still holds, delete the entry if the code moved on.
 - **`completeInputsByUdt()` adds no change output, and reads the output side as its target** —
   it collects until inputs cover `getOutputsUdtBalance(type)`, so the UDT change output must be
   added *after* it (otherwise the target includes the change and it over-collects, silently)
-  and *before* `completeInputsByCapacity()` (the change cell adds its own ~146 CKB of occupied
+  and *before* `completeInputsByCapacity()` (the change cell adds its own ~146-148 CKB of occupied
   capacity). It also deliberately pulls a **second** input when one already covers the amount
   with surplus — the surplus implies a change cell, and the second input funds that cell's
   capacity. (source: `app/lib/ckb/udt.ts`)
