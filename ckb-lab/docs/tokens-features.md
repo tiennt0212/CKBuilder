@@ -77,19 +77,34 @@ of thin air. This page refuses to do that — it will not let you send more than
 though the chain would accept it. Minting to someone else is the **Issue** action with a **Mint
 To** address, which says what it actually does.
 
-## Raw amounts, no decimals
+## Raw amounts, no decimals — and where a name would live
 
-xUDT stores no decimals field. An amount of `50000` means fifty thousand units, and this page
-shows and accepts exactly that.
+An xUDT **cell** stores only an amount. No name, no symbol, no decimals. An amount of `50000`
+means fifty thousand units, and this page shows and accepts exactly that.
 
 Displaying it as `0.0005` with eight decimals — the way CKB itself is shown — would be a
-convention invented by this app with nothing on chain behind it. Two tokens could reasonably
-disagree, and a reader would have no way to tell. So the page labels the field **raw units** and
-leaves the number alone.
+convention invented by this app with nothing behind it *in that cell*. So the page labels the
+field **raw units** and leaves the number alone.
 
-Practical consequence: amounts can legitimately be enormous (a `u128` goes past 10³⁸). The input
-handles them as text rather than as JavaScript numbers, so a 30-digit amount reaches the chain
-intact.
+That does not mean CKB has no answer for token metadata. It has one, and it is a separate cell:
+the **token info cell**, carrying the `UniqueType` script, whose data is
+
+```
+decimals (1 byte) | name length (1 byte) | name | symbol length (1 byte) | symbol
+```
+
+Real testnet examples decode as `decimals=8 name="XUDT Test Token" symbol="XTT"`. It is linked to
+a token by being created in the same transaction, not by any pointer inside the xUDT cell.
+
+**This page does not read or write it.** That is a deliberate scope line, not an oversight: it is
+a second indexer query and a second cell to create on issue. The consequence is visible in the UI
+— the holdings list labels rows `Your token` / `xUDT token` with the first bytes of the issuer's
+lock hash instead of a ticker, and every amount is raw. A token issued here is a valid xUDT that
+other tools will show without a name until an info cell is added.
+
+Practical consequence of raw amounts: they can legitimately be enormous (a `u128` goes past
+10³⁸). The input handles them as text rather than as JavaScript numbers, so a 30-digit amount
+reaches the chain intact.
 
 ## User Flow
 

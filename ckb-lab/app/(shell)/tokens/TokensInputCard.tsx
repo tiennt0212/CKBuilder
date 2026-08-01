@@ -106,9 +106,11 @@ export function TokensInputCard({
           balances.map((b) => (
             <TokenListItem
               key={b.args}
-              // xUDT carries no symbol on chain — a token's only identity is its type args, so
-              // the tile shows the leading bytes of the issuer's lock hash rather than inventing
-              // a ticker. A real symbol would need a metadata registry, which is its own feature.
+              // An xUDT cell itself carries no name, symbol or decimals — those live in a
+              // SEPARATE cell under the UniqueType script (verified on testnet: data is
+              // `decimals u8 | name_len u8 | name | symbol_len u8 | symbol`). Reading it is a
+              // second indexer query and is not part of this spike, so the tile falls back to the
+              // leading bytes of the issuer's lock hash rather than inventing a ticker.
               symbol={b.ownerLockHash.slice(2, 5)}
               name={b.isIssuer ? "Your token" : "xUDT token"}
               type={`xUDT · ${truncateAddress(b.args, 6)}`}
