@@ -92,6 +92,17 @@ confirm the trap still holds, delete the entry if the code moved on.
   both OmniLock and PWLock) throws uncaught mid-connection. Update the 5 devnet overrides when
   redeploying devnet. (source: `app/lib/ccc-client.ts:16`)
 
+- **The devnet script map's testnet fallback is a safety net for *locks* and a trap for
+  everything else** — `DEVNET_SCRIPTS` spreads `TESTNET_SCRIPTS` and overrides only the 5 scripts
+  offckb's genesis deploys. That stops `getKnownScript()` throwing mid-connection while a wallet
+  probes lock types, which is what it is for. But for any *unoverridden* script it silently
+  returns the **testnet** code hash and the **testnet** cell-dep outpoint. Verified on a running
+  devnet: `getKnownScript(UniqueType)` returns testnet's `0x8e341bcf…` and a cell dep outpoint
+  that does not exist on that chain — so a transaction using it builds cleanly, passes every
+  local check, and dies at broadcast on cell-dep resolution. Before using a known script on
+  devnet, confirm it is one of the 5 overridden, or that the returned outpoint resolves.
+  (source: `app/lib/ccc-client.ts` `DEVNET_SCRIPTS`)
+
 - **`useCcc().client` is briefly a client this app never built** — before `CccProvider`'s own
   `defaultClient` effect commits, it is a bare library-constructed `ClientPublicTestnet`.
   Identity lookup against `CLIENT_BY_NETWORK` falls through to testnet for that window, which

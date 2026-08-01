@@ -132,8 +132,9 @@ rules than a holder's, despite identical-looking raw JSON.
 separate cell carrying the `UniqueType` script, data laid out as
 `decimals u8 | name_len u8 | name | symbol_len u8 | symbol` (verified against testnet cells). It
 is tied to a token by being created in the same transaction, not by a pointer in the xUDT cell.
-CCC resolves `KnownScript.UniqueType` on testnet and mainnet but **this repo has no devnet
-override for it**, so it would throw on devnet. `/tokens` neither reads nor writes it.
+CCC resolves `KnownScript.UniqueType` on testnet and mainnet; this repo has **no devnet override**
+for it, and the fallback is worse than an error — see `../processes/gotchas.md`. `/tokens`
+neither reads nor writes it.
 
 **Balance** — a **sum over live cells**, never a stored number. Nothing on chain records
 "address X holds N tokens"; the wallet's balance is whatever its matching cells add up to right
