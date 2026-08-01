@@ -99,8 +99,11 @@ confirm the trap still holds, delete the entry if the code moved on.
   returns the **testnet** code hash and the **testnet** cell-dep outpoint. Verified on a running
   devnet: `getKnownScript(UniqueType)` returns testnet's `0x8e341bcf…` and a cell dep outpoint
   that does not exist on that chain — so a transaction using it builds cleanly, passes every
-  local check, and dies at broadcast on cell-dep resolution. Before using a known script on
-  devnet, confirm it is one of the 5 overridden, or that the returned outpoint resolves.
+  local check, and dies at broadcast on cell-dep resolution. The right test is not "is it one of
+  the 5 overridden" but **"does the resolved cell dep exist on this chain"** — `TypeId` is
+  unoverridden yet harmless, because it is implemented in consensus and resolves with *zero* cell
+  deps on every network. A script with no cell dep cannot fail this way; `NervosDao` and
+  `UniqueType` have deps and are unoverridden, so they can.
   (source: `app/lib/ccc-client.ts` `DEVNET_SCRIPTS`)
 
 - **`useCcc().client` is briefly a client this app never built** — before `CccProvider`'s own
