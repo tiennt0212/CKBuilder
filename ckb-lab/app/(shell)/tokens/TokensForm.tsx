@@ -42,7 +42,9 @@ export function TokensForm() {
   const { balances, loading: balancesLoading, refresh } = useUdtBalances();
   const { network, lockLabelMap } = useNetworkStore();
   const { client: cccClient } = useCcc();
-  const addressPlaceholder = network === Network.Testnet ? "ckt…" : "ckb…";
+  // Only mainnet uses the `ckb` prefix. Devnet is a test chain and shares testnet's `ckt`, so
+  // testing against Testnet alone shows devnet users the wrong prefix.
+  const addressPlaceholder = network === Network.Mainnet ? "ckb…" : "ckt…";
   const { address, balance } = useWalletStore();
   const [form] = useForm();
   const amount = Form.useWatch("amount", form);
@@ -164,6 +166,7 @@ export function TokensForm() {
           onSelectToken={handleSelectToken}
           addressPlaceholder={addressPlaceholder}
           network={network}
+          udtCellCapacity={recipientCellCapacity}
           isInProgress={isInProgress}
           onValuesChange={handleValuesChange}
           onFinish={handleFinish}
