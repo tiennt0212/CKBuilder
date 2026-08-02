@@ -57,6 +57,7 @@ ckb-lab/                         # single pnpm package at root — no workspace 
 │
 ├── contracts/                   # standalone Cargo workspace — pnpm does NOT touch this
 ├── stories/                     # Storybook: chrome/, components/, foundations/
+├── tests/                       # Vitest — mirrors app/lib/ paths; pure layer only
 ├── docs/                        # end-user feature docs, one per polished route
 ├── DESIGN.md                    # full design-token reference (prose)
 └── .storybook/                  # Vite + React builder, resolves @/ → app/
