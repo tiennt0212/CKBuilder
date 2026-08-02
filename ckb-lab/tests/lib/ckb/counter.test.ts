@@ -37,10 +37,11 @@ describe("counter data codec", () => {
 });
 
 describe("COUNTER_EXIT_CODES", () => {
-  it("covers exactly the codes the contract defines", () => {
-    // Mirrors ERROR_INVALID_DATA_LENGTH (5) through ERROR_COUNTER_NOT_INCREMENTED (8) in
-    // contracts/lesson-10-counter/src/main.rs. If the contract gains a code and this map does
-    // not, /counter silently falls back to showing a bare number.
+  it("pins the codes so removing one is a deliberate act", () => {
+    // Honest about what this can and cannot do: it compares the map to a copy of itself, so it
+    // catches a code being DROPPED here but is blind to the contract gaining a code in
+    // contracts/lesson-10-counter/src/main.rs — nothing in this suite can read that file. Keeping
+    // the two in step is a human step, called out in COUNTER_EXIT_CODES' own comment.
     expect(Object.keys(COUNTER_EXIT_CODES).map(Number).sort()).toEqual([5, 6, 7, 8]);
   });
 

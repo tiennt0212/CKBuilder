@@ -13,7 +13,6 @@ export function useTransfer() {
   const signer = useSigner();
   const [status, setStatus] = useState<TxStatus>(TxStatus.Idle);
   const [error, setError] = useState<string | null>(null);
-  // The structured form of `error`, feeding TxStatusBanner's decoded copy.
   const [decoded, setDecoded] = useState<DecodedTxError | null>(null);
   const [fee, setFee] = useState<bigint | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -147,8 +146,8 @@ export function useTransfer() {
       console.error("Transfer error:", err);
       setStatus(TxStatus.Error);
       setError(err.message || "Unknown error");
-      // Decode the thrown value, not `err.message` — CCC's typed client errors carry structured
-      // fields that are lost the moment it is stringified.
+      // Decode the thrown value, not `message` — CCC's typed client errors carry the script
+      // source, index and code hash as fields, and those are lost the moment it is stringified.
       setDecoded(decodeTxError(err));
       throw err;
     }
