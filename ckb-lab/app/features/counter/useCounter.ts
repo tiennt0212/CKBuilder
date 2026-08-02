@@ -2,8 +2,10 @@ import {
   buildCounterCreateTx,
   buildCounterDestroyTx,
   buildCounterIncrementTx,
+  COUNTER_EXIT_CODES,
 } from "@/lib/ckb/counter";
 import { counterCellId, type CounterCell, type CounterScriptRef } from "@/lib/ckb/counter-cells";
+import { decodeTxError, type DecodedTxError, type DecodeOptions } from "@/lib/ckb/tx-error";
 import { TxStatus } from "@/lib/ckb/tx-status";
 import { useCounterCellsStore } from "@/stores/counter-cells";
 import { useNetworkStore } from "@/stores/network";
@@ -15,6 +17,12 @@ import { useRef, useState } from "react";
 export type { TxStatus } from "@/lib/ckb/tx-status";
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/**
+ * Unlike /invoke, this page knows exactly which script is running, so it can name what an exit
+ * code meant instead of printing a bare number. See COUNTER_EXIT_CODES in lib/ckb/counter.ts.
+ */
+const DECODE_OPTS: DecodeOptions = { exitCodes: COUNTER_EXIT_CODES, scriptLabel: "counter" };
 
 export type CounterRunParams =
   | { kind: "create"; script: CounterScriptRef; label?: string; feeRate?: number }
@@ -33,6 +41,9 @@ export function useCounter() {
   const network = useNetworkStore((s) => s.network);
   const [status, setStatus] = useState<TxStatus>(TxStatus.Idle);
   const [error, setError] = useState<string | null>(null);
+  // The structured form of `error`. Kept alongside rather than replacing it: useCounterActionModal
+  // still compares `error` against the raw spent-cell message.
+  const [decoded, setDecoded] = useState<DecodedTxError | null>(null);
   const [fee, setFee] = useState<bigint | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [blockNumber, setBlockNumber] = useState<bigint | null>(null);
@@ -124,6 +135,7 @@ export function useCounter() {
     pollSignal.current = null;
     setStatus(TxStatus.Idle);
     setError(null);
+    setDecoded(null);
     setFee(null);
     setTxHash(null);
     setBlockNumber(null);
@@ -139,6 +151,7 @@ export function useCounter() {
     if (pollSignal.current) pollSignal.current.cancelled = true;
     pollSignal.current = null;
     setError(null);
+    setDecoded(null);
     setTxHash(null);
     setBlockNumber(null);
 
@@ -216,13 +229,17 @@ export function useCounter() {
                 }
                 return;
               }
-              case TxStatus.Rejected:
+              case TxStatus.Rejected: {
                 if (signal.cancelled) return;
                 setStatus(TxStatus.Rejected);
                 // A rejection here usually means the type script itself returned non-zero
-                // (e.g. ERROR_COUNTER_NOT_INCREMENTED). Keep the node's reason verbatim.
-                setError(res.reason ?? "Rejected by node");
+                // (e.g. ERROR_COUNTER_NOT_INCREMENTED). Keep the node's reason verbatim and
+                // decode it against the counter's own exit codes.
+                const reason = res.reason ?? "Rejected by node";
+                setError(reason);
+                setDecoded(decodeTxError(reason, DECODE_OPTS));
                 return;
+              }
             }
           } catch (err: unknown) {
             rpcErrors++;
@@ -243,6 +260,9 @@ export function useCounter() {
       const message = err instanceof Error ? err.message : "Unknown error";
       setStatus(TxStatus.Error);
       setError(message);
+      // Decode the thrown value, not `message` — CCC's typed client errors carry the script
+      // source, index and code hash as fields, and those are lost the moment it is stringified.
+      setDecoded(decodeTxError(err, DECODE_OPTS));
       throw err;
     }
   };
@@ -267,6 +287,7 @@ export function useCounter() {
     status,
     isInProgress,
     error,
+    decoded,
     txHash,
     blockNumber,
     reset,

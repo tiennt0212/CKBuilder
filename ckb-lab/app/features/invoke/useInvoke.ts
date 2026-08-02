@@ -1,4 +1,5 @@
 import { buildTypeInvokeTx } from "@/lib/ckb/invoke";
+import { decodeTxError, type DecodedTxError } from "@/lib/ckb/tx-error";
 import { TxStatus } from "@/lib/ckb/tx-status";
 import { ccc } from "@ckb-ccc/core";
 import { useSigner } from "@ckb-ccc/connector-react";
@@ -23,6 +24,9 @@ export function useInvoke() {
   const signer = useSigner();
   const [status, setStatus] = useState<TxStatus>(TxStatus.Idle);
   const [error, setError] = useState<string | null>(null);
+  // The structured form of `error`. Kept alongside rather than replacing it: `error` is still the
+  // raw string every preview card and the spent-cell check compare against.
+  const [decoded, setDecoded] = useState<DecodedTxError | null>(null);
   const [fee, setFee] = useState<bigint | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [blockNumber, setBlockNumber] = useState<bigint | null>(null);
@@ -47,6 +51,7 @@ export function useInvoke() {
     pollSignal.current = null;
     setStatus(TxStatus.Idle);
     setError(null);
+    setDecoded(null);
     setFee(null);
     setTxHash(null);
     setBlockNumber(null);
@@ -60,6 +65,7 @@ export function useInvoke() {
     if (pollSignal.current) pollSignal.current.cancelled = true;
     pollSignal.current = null;
     setError(null);
+    setDecoded(null);
     setTxHash(null);
     setBlockNumber(null);
 
@@ -107,13 +113,19 @@ export function useInvoke() {
                 setStatus(TxStatus.Committed);
                 setBlockNumber(res.blockNumber ?? null);
                 return;
-              case TxStatus.Rejected:
+              case TxStatus.Rejected: {
                 if (signal.cancelled) return;
                 setStatus(TxStatus.Rejected);
                 // A rejection here usually means the script itself returned non-zero.
-                // Keep the node's reason verbatim — it is the whole point of the page.
-                setError(res.reason ?? "Rejected by node");
+                // Keep the node's reason verbatim — it is the whole point of the page — and
+                // decode it alongside. No exitCodes map: /invoke runs an arbitrary script, so
+                // the exit code is shown as a bare number rather than read through some other
+                // contract's table.
+                const reason = res.reason ?? "Rejected by node";
+                setError(reason);
+                setDecoded(decodeTxError(reason));
                 return;
+              }
             }
           } catch (err: unknown) {
             rpcErrors++;
@@ -134,6 +146,9 @@ export function useInvoke() {
       const message = err instanceof Error ? err.message : "Unknown error";
       setStatus(TxStatus.Error);
       setError(message);
+      // Decode the thrown value, not `message` — CCC's typed client errors carry the script
+      // source, index and code hash as fields, and those are lost the moment it is stringified.
+      setDecoded(decodeTxError(err));
       throw err;
     }
   };
@@ -156,6 +171,7 @@ export function useInvoke() {
     status,
     isInProgress,
     error,
+    decoded,
     txHash,
     blockNumber,
     reset,

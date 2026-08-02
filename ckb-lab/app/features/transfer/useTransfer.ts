@@ -1,5 +1,6 @@
 import { ckbToShannons } from "@/lib";
 import { buildTransferTx } from "@/lib/ckb/transfer";
+import { decodeTxError, type DecodedTxError } from "@/lib/ckb/tx-error";
 import { TxStatus } from "@/lib/ckb/tx-status";
 import { useSigner } from "@ckb-ccc/connector-react";
 import { useRef, useState } from "react";
@@ -12,6 +13,8 @@ export function useTransfer() {
   const signer = useSigner();
   const [status, setStatus] = useState<TxStatus>(TxStatus.Idle);
   const [error, setError] = useState<string | null>(null);
+  // The structured form of `error`, feeding TxStatusBanner's decoded copy.
+  const [decoded, setDecoded] = useState<DecodedTxError | null>(null);
   const [fee, setFee] = useState<bigint | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [blockNumber, setBlockNumber] = useState<bigint | null>(null);
@@ -40,6 +43,7 @@ export function useTransfer() {
     pollSignal.current = null;
     setStatus(TxStatus.Idle);
     setError(null);
+    setDecoded(null);
     setFee(null);
     setTxHash(null);
     setBlockNumber(null);
@@ -62,6 +66,7 @@ export function useTransfer() {
     if (pollSignal.current) pollSignal.current.cancelled = true;
     pollSignal.current = null;
     setError(null);
+    setDecoded(null);
     setTxHash(null);
     setBlockNumber(null);
 
@@ -114,11 +119,15 @@ export function useTransfer() {
                 setStatus(TxStatus.Committed);
                 setBlockNumber(res.blockNumber ?? null);
                 return;
-              case TxStatus.Rejected:
+              case TxStatus.Rejected: {
                 if (signal.cancelled) return;
                 setStatus(TxStatus.Rejected);
-                setError(res.reason ?? "Rejected by node");
+                // Keep the node's reason verbatim and decode it alongside.
+                const reason = res.reason ?? "Rejected by node";
+                setError(reason);
+                setDecoded(decodeTxError(reason));
                 return;
+              }
             }
           } catch (err: any) {
             rpcErrors++;
@@ -138,6 +147,9 @@ export function useTransfer() {
       console.error("Transfer error:", err);
       setStatus(TxStatus.Error);
       setError(err.message || "Unknown error");
+      // Decode the thrown value, not `err.message` — CCC's typed client errors carry structured
+      // fields that are lost the moment it is stringified.
+      setDecoded(decodeTxError(err));
       throw err;
     }
   };
@@ -152,5 +164,16 @@ export function useTransfer() {
     TxStatus.Committed,
   ].some((s) => s === status);
 
-  return { transfer, buildTx, fee, status, isInProgress, error, txHash, blockNumber, reset };
+  return {
+    transfer,
+    buildTx,
+    fee,
+    status,
+    isInProgress,
+    error,
+    decoded,
+    txHash,
+    blockNumber,
+    reset,
+  };
 }

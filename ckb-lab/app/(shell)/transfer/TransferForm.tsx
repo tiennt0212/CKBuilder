@@ -20,8 +20,18 @@ export function TransferForm() {
   const [activeTab, setActiveTab] = useState("summary");
   const [buildError, setBuildError] = useState<string | null>(null);
 
-  const { buildTx, fee, transfer, status, isInProgress, error, txHash, blockNumber, reset } =
-    useTransfer();
+  const {
+    buildTx,
+    fee,
+    transfer,
+    status,
+    isInProgress,
+    error,
+    decoded,
+    txHash,
+    blockNumber,
+    reset,
+  } = useTransfer();
   const { network, lockLabelMap } = useNetworkStore();
   const { client: cccClient } = useCcc();
   // Only mainnet uses the `ckb` prefix. Devnet is a test chain and shares testnet's `ckt`, so
@@ -90,6 +100,7 @@ export function TransferForm() {
         txHash={txHash}
         blockNumber={blockNumber}
         error={error}
+        decoded={decoded}
         onRetry={handleReset}
         retryLabel="New Transfer"
       />

@@ -1,4 +1,4 @@
-import { decodeTxError } from "@/lib/ckb/tx-error";
+import { decodeTxError, type DecodedTxError } from "@/lib/ckb/tx-error";
 import { TxStatus } from "@/lib/ckb/tx-status";
 import { buildIssueUdtTx, buildTransferUdtTx } from "@/lib/ckb/udt";
 import { ccc } from "@ckb-ccc/core";
@@ -43,6 +43,8 @@ export function useTokens() {
   const signer = useSigner();
   const [status, setStatus] = useState<TxStatus>(TxStatus.Idle);
   const [error, setError] = useState<string | null>(null);
+  // The structured form of `error`, feeding TxStatusBanner's decoded copy.
+  const [decoded, setDecoded] = useState<DecodedTxError | null>(null);
   const [fee, setFee] = useState<bigint | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [blockNumber, setBlockNumber] = useState<bigint | null>(null);
@@ -98,6 +100,7 @@ export function useTokens() {
     pollSignal.current = null;
     setStatus(TxStatus.Idle);
     setError(null);
+    setDecoded(null);
     setFee(null);
     setTxHash(null);
     setBlockNumber(null);
@@ -113,6 +116,7 @@ export function useTokens() {
     if (pollSignal.current) pollSignal.current.cancelled = true;
     pollSignal.current = null;
     setError(null);
+    setDecoded(null);
     setTxHash(null);
     setBlockNumber(null);
 
@@ -160,14 +164,17 @@ export function useTokens() {
                 setStatus(TxStatus.Committed);
                 setBlockNumber(res.blockNumber ?? null);
                 return;
-              case TxStatus.Rejected:
+              case TxStatus.Rejected: {
                 if (signal.cancelled) return;
                 setStatus(TxStatus.Rejected);
                 // A rejection here usually means the xUDT script itself returned non-zero — most
                 // often owner mode not engaging, or inputs and outputs not balancing. Keep the
-                // node's reason verbatim.
-                setError(res.reason ?? "Rejected by node");
+                // node's reason verbatim and decode it alongside.
+                const reason = res.reason ?? "Rejected by node";
+                setError(reason);
+                setDecoded(decodeTxError(reason));
                 return;
+              }
             }
           } catch (err: unknown) {
             rpcErrors++;
@@ -186,7 +193,11 @@ export function useTokens() {
     } catch (err: unknown) {
       console.error("Token tx error:", err);
       setStatus(TxStatus.Error);
-      setError(describeError(err));
+      // Decode once and use both halves — `describeError` is the same call, and going through
+      // the object rather than a string keeps CCC's structured error fields.
+      const decodedErr = decodeTxError(err);
+      setError(decodedErr.cause);
+      setDecoded(decodedErr);
       throw err;
     }
   };
@@ -211,6 +222,7 @@ export function useTokens() {
     status,
     isInProgress,
     error,
+    decoded,
     txHash,
     blockNumber,
     reset,
