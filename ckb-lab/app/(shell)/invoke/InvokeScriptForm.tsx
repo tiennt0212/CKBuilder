@@ -89,6 +89,7 @@ export function InvokeScriptForm() {
     status,
     isInProgress,
     error,
+    decoded,
     txHash,
     blockNumber,
     reset,
@@ -181,6 +182,7 @@ export function InvokeScriptForm() {
         txHash={txHash}
         blockNumber={blockNumber}
         error={error}
+        decoded={decoded}
         onRetry={handleReset}
         retryLabel="New Invoke"
       />

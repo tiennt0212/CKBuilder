@@ -113,6 +113,17 @@ confirm the trap still holds, delete the entry if the code moved on.
   client instead of reacting to it. (source: `app/lib/ccc-client.ts:159`,
   `app/stores/network.ts:32`)
 
+- **`ErrorClientVerification.errorCode` from CCC is wrong for any code that is not a single
+  non-negative digit** — CCC parses the node's rejection with
+  `see error code (-?[0-9])* on page`, which repeats a *single-character* group rather than
+  matching a multi-character number, so JavaScript keeps only the last repetition. `-31` arrives
+  as `1`, `12` as `2`; `8` happens to be right. Verified against @ckb-ccc/core 1.12.5
+  `client/jsonRpc/client.js` `ERROR_PARSERS`. Everything else the class carries (`source`,
+  `sourceIndex`, `scriptHashType`, `scriptCodeHash`) is captured correctly. `decodeTxError`
+  therefore re-reads the exit code from the raw string with `(-?\d+)` and uses CCC only for the
+  rest. Our own counter's codes are 5–8, so this hides in local testing and only shows up
+  against secp256k1's negative codes. (source: `app/lib/ckb/tx-error.ts` `EXIT_CODE_RES`)
+
 - **Indexer range filters are half-open `[min, max)`** — an inclusive upper bound needs
   `+ 1` (one shannon for capacity, one byte for data length). (source:
   `app/features/wallet/useCellExplorer.ts:272`)

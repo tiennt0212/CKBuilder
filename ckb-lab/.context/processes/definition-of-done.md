@@ -22,7 +22,7 @@ cost is the user's decision, not yours to assume.
 | New `ui/` component | optional — inline JSX in the page is fine | extract reusable pieces into `ui/` |
 | Design tokens, no hardcoded values | required | required |
 
-## Gates 1–7 — every task, both tiers
+## Gates 1–8 — every task, both tiers
 
 1. `pnpm build` passes with 0 errors (this also runs the TypeScript check)
 2. `pnpm lint` passes
@@ -42,19 +42,26 @@ cost is the user's decision, not yours to assume.
    transition, or behaviour that would surprise a future reader carries an inline comment
    explaining WHY, not what. Code that reads straightforwardly from its identifiers needs none
 
+8. **A new or changed pure module under `app/lib/` has a Vitest test** — `pnpm test` passes.
+   Scoped deliberately to the pure layer: those functions take plain values and return plain
+   values, so a test costs minutes and needs no mocking. This gate does **not** extend to pages,
+   hooks, `app/components/`, or the tx builders — see `vitest.config.ts` for why the builders are
+   excluded. A `lab-spike` is still a spike; this adds one file next to the module you already
+   wrote, not a testing programme
+
 **A `lab-spike` is done here — stop.** Do not open Claude Design, do not write a story, do not
 create a `docs/` file. Skipping those is the entire point of the tier, not a corner cut; a spike
 that quietly grows the polished artifacts has spent the budget the tier exists to protect. If
 the work genuinely warrants them, say so and let the user promote the issue rather than deciding
 unilaterally.
 
-## Gates 8–10 — `polished` only
+## Gates 9–11 — `polished` only
 
-8. Added a `ui/` component → its story exists in `stories/components/` **and** a `<Spec>` entry
+9. Added a `ui/` component → its story exists in `stories/components/` **and** a `<Spec>` entry
    exists in `ds-components.jsx`
-9. Added a screen state or component variant → the Claude Design artboard is updated
+10. Added a screen state or component variant → the Claude Design artboard is updated
    (`ckb-screens.jsx` / `ckb-screens-2.jsx` and/or `ds-components.jsx`)
-10. Changed user-visible behaviour → the relevant `docs/` file is updated (see the table below)
+11. Changed user-visible behaviour → the relevant `docs/` file is updated (see the table below)
 
 ### `docs/` map
 
@@ -123,6 +130,6 @@ reviewing it alongside behaviour changes hides both.
 4. Add the screen and its states to `ckb-screens-2.jsx`, and register it in the gallery array in
    `CKBuilder.html`
 5. Write `docs/<route>-features.md` covering every UI state and user flow
-6. Re-run gates 1–10
+6. Re-run gates 1–11
 
 The reverse never happens: a `polished` page does not get demoted to shed its artifacts.

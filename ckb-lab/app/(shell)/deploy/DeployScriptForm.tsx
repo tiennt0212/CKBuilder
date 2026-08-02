@@ -39,6 +39,7 @@ export function DeployScriptForm() {
     status,
     isInProgress,
     error,
+    decoded,
     txHash,
     blockNumber,
     reset,
@@ -133,6 +134,7 @@ export function DeployScriptForm() {
         txHash={txHash}
         blockNumber={blockNumber}
         error={error}
+        decoded={decoded}
         onRetry={handleReset}
         retryLabel="New Deploy"
       />

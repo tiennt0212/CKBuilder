@@ -1,4 +1,5 @@
 import { buildDeployTx } from "@/lib/ckb/deploy";
+import { decodeTxError, type DecodedTxError } from "@/lib/ckb/tx-error";
 import { deployedScriptId } from "@/lib/ckb/deployed-scripts";
 import { HashType } from "@/lib/ckb/hash-type";
 import { useDeployedScriptsStore } from "@/stores/deployed-scripts";
@@ -25,6 +26,7 @@ export function useDeploy() {
   const signer = useSigner();
   const [status, setStatus] = useState<TxStatus>(TxStatus.Idle);
   const [error, setError] = useState<string | null>(null);
+  const [decoded, setDecoded] = useState<DecodedTxError | null>(null);
   const [fee, setFee] = useState<bigint | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [blockNumber, setBlockNumber] = useState<bigint | null>(null);
@@ -98,6 +100,7 @@ export function useDeploy() {
     pollSignal.current = null;
     setStatus(TxStatus.Idle);
     setError(null);
+    setDecoded(null);
     setFee(null);
     setTxHash(null);
     setBlockNumber(null);
@@ -114,6 +117,7 @@ export function useDeploy() {
     if (pollSignal.current) pollSignal.current.cancelled = true;
     pollSignal.current = null;
     setError(null);
+    setDecoded(null);
     setTxHash(null);
     setBlockNumber(null);
 
@@ -178,11 +182,15 @@ export function useDeploy() {
                   });
                 }
                 return;
-              case TxStatus.Rejected:
+              case TxStatus.Rejected: {
                 if (signal.cancelled) return;
                 setStatus(TxStatus.Rejected);
-                setError(res.reason ?? "Rejected by node");
+                // Keep the node's reason verbatim and decode it alongside.
+                const reason = res.reason ?? "Rejected by node";
+                setError(reason);
+                setDecoded(decodeTxError(reason));
                 return;
+              }
             }
           } catch (err: unknown) {
             rpcErrors++;
@@ -203,6 +211,9 @@ export function useDeploy() {
       const message = err instanceof Error ? err.message : "Unknown error";
       setStatus(TxStatus.Error);
       setError(message);
+      // Decode the thrown value, not `message` — CCC's typed client errors carry the script
+      // source, index and code hash as fields, and those are lost the moment it is stringified.
+      setDecoded(decodeTxError(err));
       throw err;
     }
   };
@@ -225,6 +236,7 @@ export function useDeploy() {
     status,
     isInProgress,
     error,
+    decoded,
     txHash,
     blockNumber,
     reset,

@@ -23,6 +23,24 @@ export function decodeCounterData(data: ccc.HexLike): bigint {
   return ccc.numFromBytes(bytes);
 }
 
+/**
+ * The counter contract's own exit codes, mirroring the constants in
+ * contracts/lesson-10-counter/src/main.rs (ERROR_INVALID_DATA_LENGTH and below). Passed to
+ * `decodeTxError` so /counter can name what a rejection meant.
+ *
+ * This map only applies to THIS contract. Exit codes are contract-defined — CKB assigns no
+ * meaning to any non-zero value beyond "rejected" — which is why the decoder takes the map from
+ * the caller instead of holding a global table. /invoke deliberately passes nothing: it runs
+ * arbitrary scripts, and a number from one contract read through another's table would be a
+ * confident lie. Update this alongside main.rs or the two drift silently.
+ */
+export const COUNTER_EXIT_CODES: Record<number, string> = {
+  5: "the cell data is not exactly 8 bytes — the counter is stored as a u64",
+  6: "a newly created counter must start at 0",
+  7: "an update needs exactly one input and one output in the script group",
+  8: "the output counter must be exactly the input counter plus 1",
+};
+
 export interface BuildCounterCreateTxParams {
   signer: ccc.Signer;
   /** The deployed counter script's identity (code_hash/hash_type), from the deployed-scripts registry. */

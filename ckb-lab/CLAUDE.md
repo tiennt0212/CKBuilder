@@ -56,6 +56,7 @@ other projects there.
 | Package manager | pnpm — single package at root, no workspace packages |
 | Smart contracts | Rust + `ckb-std`, target `riscv64imac-unknown-none-elf` |
 | Contract testing | `ckb-testtool` (native host) |
+| TypeScript testing | Vitest — `tests/`, covering `app/lib/` only |
 | Component dev | Storybook 8 (Vite builder) |
 
 ## Commands
@@ -65,6 +66,8 @@ pnpm dev                  # dev server
 pnpm build                # production build — also runs the TypeScript check
 pnpm lint                 # lint
 pnpm format               # prettier --write .
+pnpm test                 # Vitest, once — covers app/lib/ only
+pnpm test:watch           # Vitest, watch mode
 pnpm storybook            # Storybook on :6006
 
 rustup target add riscv64imac-unknown-none-elf   # one-time
@@ -151,8 +154,9 @@ Every task is `lab-spike` or `polished`, set by the GitHub issue label. **No lab
 `lab-spike` and say so.** Never silently apply the polished gates; they roughly double a page's
 file count and that cost is the user's call.
 
-Both tiers: `pnpm build` and `pnpm lint` pass, routes registered, contracts build, new tokens
-synced to both files, `*-exp` skills consulted, non-obvious logic commented with WHY.
+Both tiers: `pnpm build`, `pnpm lint` and `pnpm test` pass, routes registered, contracts build,
+new tokens synced to both files, `*-exp` skills consulted, non-obvious logic commented with WHY,
+and a new or changed pure module under `app/lib/` carries a Vitest test.
 
 Full gate list, the polished-only gates, the promotion path, and the table of which context file
 each kind of change invalidates: **`.context/processes/definition-of-done.md`**. Read it before

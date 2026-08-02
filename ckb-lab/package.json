@@ -10,7 +10,10 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:types": "tsc -p tsconfig.test.json"
   },
   "dependencies": {
     "@ant-design/icons": "^5.6.1",
@@ -53,6 +56,7 @@
     "tailwindcss": "^4.1.0",
     "typescript": "^5.8.3",
     "vite": "^6.0.0",
-    "vite-tsconfig-paths": "^5.0.0"
+    "vite-tsconfig-paths": "^5.0.0",
+    "vitest": "^4.1.10"
   }
 }

@@ -1,6 +1,6 @@
+import { decodeTxError, type DecodedTxError } from "@/lib/ckb/tx-error";
 import { TxStatus } from "@/lib/ckb/tx-status";
 import { buildIssueUdtTx, buildTransferUdtTx } from "@/lib/ckb/udt";
-import { shannonToCKB } from "@/lib/format";
 import { ccc } from "@ckb-ccc/core";
 import { useSigner } from "@ckb-ccc/connector-react";
 import { useRef, useState } from "react";
@@ -14,21 +14,9 @@ export type TokenRunParams =
   | { kind: "issue"; amount: bigint; to?: string; feeRate?: number }
   | { kind: "transfer"; udtArgs: ccc.Hex; to: string; amount: bigint; feeRate?: number };
 
-/**
- * CCC signals "you don't have enough" with two different errors that mean very different things to
- * a user standing on this page — one is short of CKB, the other short of the token — and both
- * carry only a raw shannon/unit count in their message. Translate at the boundary so the page
- * never has to know which is which.
- */
+/** String-only adapter for the build-error path, which has no TxStatusBanner to hand `decoded` to. */
 export function describeError(err: unknown): string {
-  if (err instanceof ccc.ErrorTransactionInsufficientCoin) {
-    return `Not enough of this token — short by ${err.amount} units`;
-  }
-  if (err instanceof ccc.ErrorTransactionInsufficientCapacity) {
-    const forChange = err.isForChange ? " to create the change cell" : "";
-    return `Not enough CKB — short by ${shannonToCKB(err.amount)} CKB${forChange}`;
-  }
-  return err instanceof Error ? err.message : "Unknown error";
+  return decodeTxError(err).cause;
 }
 
 /**
@@ -47,6 +35,7 @@ export function useTokens() {
   const signer = useSigner();
   const [status, setStatus] = useState<TxStatus>(TxStatus.Idle);
   const [error, setError] = useState<string | null>(null);
+  const [decoded, setDecoded] = useState<DecodedTxError | null>(null);
   const [fee, setFee] = useState<bigint | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [blockNumber, setBlockNumber] = useState<bigint | null>(null);
@@ -102,6 +91,7 @@ export function useTokens() {
     pollSignal.current = null;
     setStatus(TxStatus.Idle);
     setError(null);
+    setDecoded(null);
     setFee(null);
     setTxHash(null);
     setBlockNumber(null);
@@ -117,6 +107,7 @@ export function useTokens() {
     if (pollSignal.current) pollSignal.current.cancelled = true;
     pollSignal.current = null;
     setError(null);
+    setDecoded(null);
     setTxHash(null);
     setBlockNumber(null);
 
@@ -164,14 +155,17 @@ export function useTokens() {
                 setStatus(TxStatus.Committed);
                 setBlockNumber(res.blockNumber ?? null);
                 return;
-              case TxStatus.Rejected:
+              case TxStatus.Rejected: {
                 if (signal.cancelled) return;
                 setStatus(TxStatus.Rejected);
                 // A rejection here usually means the xUDT script itself returned non-zero — most
                 // often owner mode not engaging, or inputs and outputs not balancing. Keep the
-                // node's reason verbatim.
-                setError(res.reason ?? "Rejected by node");
+                // node's reason verbatim and decode it alongside.
+                const reason = res.reason ?? "Rejected by node";
+                setError(reason);
+                setDecoded(decodeTxError(reason));
                 return;
+              }
             }
           } catch (err: unknown) {
             rpcErrors++;
@@ -190,7 +184,12 @@ export function useTokens() {
     } catch (err: unknown) {
       console.error("Token tx error:", err);
       setStatus(TxStatus.Error);
-      setError(describeError(err));
+      // Decode the thrown value, not `err.message` — CCC's typed client errors carry structured
+      // fields that are lost the moment it is stringified. `error` gets `raw` rather than `cause`
+      // so it stays the raw-message channel it is in the other four hooks.
+      const decodedErr = decodeTxError(err);
+      setError(decodedErr.raw);
+      setDecoded(decodedErr);
       throw err;
     }
   };
@@ -215,6 +214,7 @@ export function useTokens() {
     status,
     isInProgress,
     error,
+    decoded,
     txHash,
     blockNumber,
     reset,

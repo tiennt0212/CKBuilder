@@ -42,6 +42,7 @@ export function CounterActionModal({ mode, entry, onClose }: CounterActionModalP
     status,
     isInProgress,
     error,
+    decoded,
     txHash,
     blockNumber,
     isSpentError,
@@ -70,6 +71,7 @@ export function CounterActionModal({ mode, entry, onClose }: CounterActionModalP
         txHash={txHash}
         blockNumber={blockNumber}
         error={error}
+        decoded={decoded}
         onRetry={handleReset}
         retryLabel="Done"
       />

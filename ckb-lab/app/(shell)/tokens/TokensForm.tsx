@@ -35,6 +35,7 @@ export function TokensForm() {
     status,
     isInProgress,
     error,
+    decoded,
     txHash,
     blockNumber,
     reset,
@@ -152,6 +153,7 @@ export function TokensForm() {
         txHash={txHash}
         blockNumber={blockNumber}
         error={error}
+        decoded={decoded}
         onRetry={handleReset}
         retryLabel="New Token Transaction"
       />
