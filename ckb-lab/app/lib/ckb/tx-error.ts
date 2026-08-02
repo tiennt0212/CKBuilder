@@ -113,6 +113,16 @@ const EXIT_CODE_RES = [/see error code (-?\d+) on page/, /ValidationFailure[:(]\
 const REFERENCE_URL_RE =
   /(https:\/\/nervosnetwork\.github\.io\/ckb-script-error-codes\/\S+?\.html)/;
 
+/** The node names the unresolvable script in newer CKB builds: `ScriptNotFound: code_hash: …`. */
+const NOT_FOUND_CODE_HASH_RE = /ScriptNotFound:\s*code_hash:\s*Byte32\((0x[0-9a-fA-F]+)\)/;
+
+/** EIP-1193's "user rejected request". Standard across browser wallets; the wording is not. */
+const EIP1193_USER_REJECTED = 4001;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 /** Pulls the most informative string available off whatever was thrown. */
 function rawOf(err: unknown): string {
   // ErrorClientBase and its subclasses carry the node's untouched string in `data`, while
@@ -120,6 +130,10 @@ function rawOf(err: unknown): string {
   if (err instanceof ccc.ErrorClientBase && err.data) return err.data;
   if (err instanceof Error) return err.message;
   if (typeof err === "string") return err;
+  // Wallet extensions throw plain objects rather than Errors — MetaMask's rejection is
+  // `{ code: 4001, message: "User rejected the request.", data: {…} }`. Without this branch
+  // String() yields "[object Object]" and the entire message is lost.
+  if (isRecord(err) && typeof err.message === "string") return err.message;
   return String(err);
 }
 
@@ -267,7 +281,16 @@ const RAW_MATCHERS: { test: RegExp; explain: Matcher }[] = [
   // problem, and matching it first is what stops it being reported as one.
   { test: /InvalidInstruction|VM Internal Error/i, explain: fixed(INVALID_INSTRUCTION) },
   { test: /ValidationFailure/i, explain: scriptRejected },
-  { test: /ScriptNotFound|script not found/i, explain: fixed(SCRIPT_NOT_FOUND) },
+  {
+    test: /ScriptNotFound|script not found/i,
+    // Newer nodes name the code_hash they could not resolve. Surfacing it turns "something did
+    // not resolve" into a value the reader can compare against their registry entry.
+    explain: (raw) => ({
+      ...SCRIPT_NOT_FOUND,
+      raw,
+      scriptCodeHash: raw.match(NOT_FOUND_CODE_HASH_RE)?.[1],
+    }),
+  },
   { test: /Dead\(OutPoint/i, explain: fixed(INPUT_SPENT) },
   { test: /Unknown\(OutPoint|Resolve\(Unknown/i, explain: fixed(CELL_DEP_MISSING) },
   { test: /Immature|InvalidSince/i, explain: fixed(IMMATURE) },
@@ -365,6 +388,14 @@ export function decodeTxError(err: unknown, opts?: DecodeOptions): DecodedTxErro
         ? "A change cell needs its own occupied capacity. Send a round number, or fund the wallet."
         : INSUFFICIENT_CAPACITY.nextStep,
     };
+  }
+
+  // Wallet rejection, checked structurally. The EIP-1193 code is standardised across wallets
+  // while the message text is not — it varies per wallet and can be localised, so matching the
+  // code is the only reliable test. Placed after the CCC branches so a node error can never be
+  // mistaken for one on a numeric collision.
+  if (isRecord(err) && err.code === EIP1193_USER_REJECTED) {
+    return { ...WALLET_REJECTED, raw };
   }
 
   // --- Fallback path: regex over the raw string.

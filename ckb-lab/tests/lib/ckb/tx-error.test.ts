@@ -220,3 +220,65 @@ describe("decodeTxError — invariants", () => {
     expect(decodeTxError({ nope: true }).kind).toBe(TxErrorKind.Unknown);
   });
 });
+
+describe("decodeTxError — wallet extensions throw plain objects, not Errors", () => {
+  /** Captured verbatim from MetaMask on testnet, trimmed of its (very long) stack. */
+  const metaMaskRejection = {
+    code: 4001,
+    message: "User rejected the request.",
+    data: { location: "confirmation", cause: null },
+    stack: "Error: User rejected the request.\n    at new i (chrome-extension://…)",
+  };
+
+  it("does not render a thrown object as [object Object]", () => {
+    // Regression: `rawOf` fell through to String(err) for anything that was not an Error, a
+    // string, or a CCC error — and every browser wallet throws a plain object. The banner showed
+    // "[object Object]" as the whole explanation.
+    const d = decodeTxError(metaMaskRejection);
+    expect(d.raw).toBe("User rejected the request.");
+    expect(d.raw).not.toContain("[object Object]");
+    expect(d.cause).not.toContain("[object Object]");
+  });
+
+  it("classifies it from the EIP-1193 code, not the wording", () => {
+    expect(decodeTxError(metaMaskRejection).kind).toBe(TxErrorKind.WalletRejected);
+  });
+
+  it("still classifies a 4001 whose message is localised or absent", () => {
+    // The code is standardised; the text is not. A Vietnamese or Korean wallet build must not
+    // fall through to Unknown just because the English phrase is missing.
+    expect(decodeTxError({ code: 4001, message: "Người dùng đã từ chối yêu cầu." }).kind).toBe(
+      TxErrorKind.WalletRejected
+    );
+    expect(decodeTxError({ code: 4001 }).kind).toBe(TxErrorKind.WalletRejected);
+  });
+
+  it("does not treat a non-4001 wallet error as a rejection", () => {
+    // 4100 is "unauthorized", 4900 "disconnected" — different problems with different fixes.
+    expect(
+      decodeTxError({ code: 4100, message: "The requested account is not authorized." }).kind
+    ).toBe(TxErrorKind.Unknown);
+  });
+});
+
+describe("decodeTxError — ScriptNotFound names the script", () => {
+  /** Captured verbatim from a CKB devnet node. */
+  const raw =
+    "Verification(Error { kind: Script, inner: TransactionScriptError { source: Outputs[0].Type, " +
+    "cause: ScriptNotFound: code_hash: " +
+    "Byte32(0xd1f0085e267991055fb3e16ff95d74df429aa3124e6f5439995b496a3b8edcdd) } })";
+
+  it("extracts the code_hash the node could not resolve", () => {
+    const d = decodeTxError(raw);
+    expect(d.kind).toBe(TxErrorKind.ScriptNotFound);
+    expect(d.scriptCodeHash).toBe(
+      "0xd1f0085e267991055fb3e16ff95d74df429aa3124e6f5439995b496a3b8edcdd"
+    );
+  });
+
+  it("still decodes when the node gives no code_hash", () => {
+    const d = decodeTxError(RAW.scriptNotFound);
+    expect(d.kind).toBe(TxErrorKind.ScriptNotFound);
+    expect(d.scriptCodeHash).toBeUndefined();
+  });
+});
