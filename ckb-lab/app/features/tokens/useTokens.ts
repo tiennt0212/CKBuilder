@@ -1,6 +1,6 @@
+import { decodeTxError } from "@/lib/ckb/tx-error";
 import { TxStatus } from "@/lib/ckb/tx-status";
 import { buildIssueUdtTx, buildTransferUdtTx } from "@/lib/ckb/udt";
-import { shannonToCKB } from "@/lib/format";
 import { ccc } from "@ckb-ccc/core";
 import { useSigner } from "@ckb-ccc/connector-react";
 import { useRef, useState } from "react";
@@ -19,16 +19,12 @@ export type TokenRunParams =
  * a user standing on this page — one is short of CKB, the other short of the token — and both
  * carry only a raw shannon/unit count in their message. Translate at the boundary so the page
  * never has to know which is which.
+ *
+ * Both cases now live in `decodeTxError` alongside every other rejection, so this is a thin
+ * adapter for the callers that only want a string. The wording is unchanged.
  */
 export function describeError(err: unknown): string {
-  if (err instanceof ccc.ErrorTransactionInsufficientCoin) {
-    return `Not enough of this token — short by ${err.amount} units`;
-  }
-  if (err instanceof ccc.ErrorTransactionInsufficientCapacity) {
-    const forChange = err.isForChange ? " to create the change cell" : "";
-    return `Not enough CKB — short by ${shannonToCKB(err.amount)} CKB${forChange}`;
-  }
-  return err instanceof Error ? err.message : "Unknown error";
+  return decodeTxError(err).cause;
 }
 
 /**
