@@ -90,11 +90,16 @@ export interface DecodeOptions {
 /** A decoded error before the raw string is attached — the shape the static cases are written in. */
 type Explanation = Omit<DecodedTxError, "raw">;
 
-const SCRIPT_SOURCE_LABEL: Record<ScriptSource, string> = {
-  lock: "lock script",
-  inputType: "type script (on an input)",
-  outputType: "type script (on an output)",
-};
+/** `source: Inputs[0].Lock` / `source: Outputs[0].Type` — which script group the node was running. */
+const SCRIPT_SOURCE_RE = /source:\s*(Inputs|Outputs)\[(\d+)\]\.(Lock|Type)/;
+
+function scriptSourceFrom(raw: string): { source: ScriptSource; index: number } | undefined {
+  const m = raw.match(SCRIPT_SOURCE_RE);
+  if (!m) return undefined;
+  const source: ScriptSource =
+    m[3] === "Lock" ? "lock" : m[1] === "Inputs" ? "inputType" : "outputType";
+  return { source, index: Number(m[2]) };
+}
 
 /**
  * CCC's own parser reports `errorCode` from the regex `(-?[0-9])*`, which repeats a
@@ -125,7 +130,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /** Pulls the most informative string available off whatever was thrown. */
 function rawOf(err: unknown): string {
-  // ErrorClientBase and its subclasses carry the node's untouched string in `data`, while
+  // Two ErrorClientBase subclasses are built by CCC locally rather than from a node reply, and
+  // put a JSON payload in `data` (`{"limit":"…","actual":"…"}`). Preferring `data` for those
+  // would replace a readable sentence with a blob — worse than showing nothing.
+  if (
+    err instanceof ccc.ErrorClientMaxFeeRateExceeded ||
+    err instanceof ccc.ErrorClientWaitTransactionTimeout
+  ) {
+    return err.message;
+  }
+  // Everything else from the JSON-RPC layer carries the node's untouched string in `data`, while
   // `message` is wrapped in "Client request error …". Prefer `data`.
   if (err instanceof ccc.ErrorClientBase && err.data) return err.data;
   if (err instanceof Error) return err.message;
@@ -148,16 +162,38 @@ function exitCodeFrom(raw: string): number | undefined {
 /** Describes an exit code without pretending to know what it means. */
 function scriptRejected(raw: string, opts?: DecodeOptions): DecodedTxError {
   const exitCode = exitCodeFrom(raw);
-  const label = opts?.scriptLabel ? `The ${opts.scriptLabel} script` : "The script";
-  const meaning = exitCode === undefined ? undefined : opts?.exitCodes?.[exitCode];
+  const from = scriptSourceFrom(raw);
+
+  // The caller's map describes the contract IT attached, which is always a type script — the lock
+  // belongs to the wallet and the page knows nothing about it. Applying the map to a lock failure
+  // would be exactly the confident lie this module exists to avoid, and it is not hypothetical:
+  // lesson-08-hash-lock and lesson-10-counter both define exit codes 5-8 with entirely different
+  // meanings, and both can run in the same transaction. When the node does not say which script
+  // failed, withhold the map rather than guess.
+  const isCallersScript = from !== undefined && from.source !== "lock";
+  const meaning =
+    isCallersScript && exitCode !== undefined ? opts?.exitCodes?.[exitCode] : undefined;
+
+  const label = !isCallersScript
+    ? from?.source === "lock"
+      ? "The lock script"
+      : "The script"
+    : opts?.scriptLabel
+      ? `The ${opts.scriptLabel} script`
+      : "The script";
+
+  const where = from
+    ? ` It ran as the ${from.source === "lock" ? "lock" : "type"} script of ` +
+      `${from.source === "outputType" ? "output" : "input"} ${from.index}.`
+    : "";
 
   const cause =
     exitCode === undefined
-      ? `${label} returned non-zero, but the node did not report which exit code.`
+      ? `${label} returned non-zero, but the node did not report which exit code.${where}`
       : meaning
-        ? `${label} returned exit code ${exitCode}: ${meaning}`
+        ? `${label} returned exit code ${exitCode}: ${meaning}.${where}`
         : `${label} returned exit code ${exitCode}. Exit codes are defined by the contract, ` +
-          `not by CKB, so this number only has meaning against that script's own source.`;
+          `not by CKB, so this number only has meaning against that script's own source.${where}`;
 
   return {
     kind: TxErrorKind.ScriptRejected,
@@ -166,6 +202,8 @@ function scriptRejected(raw: string, opts?: DecodeOptions): DecodedTxError {
     cause,
     exitCode,
     exitCodeMeaning: meaning,
+    scriptSource: from?.source,
+    scriptIndex: from?.index,
     referenceUrl: raw.match(REFERENCE_URL_RE)?.[1],
   };
 }
@@ -194,6 +232,24 @@ const INVALID_INSTRUCTION: Explanation = {
     "Rebuild the contract with -C target-feature=-a and deploy it again. Tracked as issue #34.",
 };
 
+/**
+ * `VM Internal Error: {0:?}` is ckb-script's shared prefix for the WHOLE `ckb_vm::Error` enum —
+ * MemOutOfBound, MaxCycleExceeded, InvalidPermission and more. Only the InvalidInstruction
+ * variant is the atomics story above, so everything else gets this deliberately vaguer entry.
+ * Naming a specific fix here would send someone to rebuild for a target feature they never used.
+ */
+const VM_INTERNAL_ERROR: Explanation = {
+  kind: TxErrorKind.InvalidInstruction,
+  title: "CKB-VM stopped executing the script",
+  cause:
+    "The VM aborted before the script could return a value, so there is no exit code — this is " +
+    "the VM refusing to run the binary, not the contract rejecting the transaction. The variant " +
+    "named in the node message says which limit or rule was broken.",
+  nextStep:
+    "Read the variant in the node message below: it distinguishes a memory fault from a cycle " +
+    "limit from a bad instruction, and each has a different fix.",
+};
+
 const CELL_DEP_MISSING: Explanation = {
   kind: TxErrorKind.CellDepMissing,
   title: "A referenced cell does not exist on this chain",
@@ -209,12 +265,26 @@ const CELL_DEP_MISSING: Explanation = {
 
 const INPUT_SPENT: Explanation = {
   kind: TxErrorKind.InputSpent,
-  title: "An input is already spent",
+  title: "A cell this transaction references is already spent",
+  // Deliberately covers both an input and a cell dep: CKB reports a consumed script cell with the
+  // same Resolve(Dead(OutPoint(…))) as a consumed input, and the two need different fixes. Naming
+  // only the input case would send someone to rebuild a transaction whose script cell is gone.
   cause:
-    "One of the cells this transaction consumes no longer exists on chain — something else " +
+    "One of the cells this transaction points at no longer exists on chain — something else " +
     "spent it first. Cells are consumed whole, so a stale local copy of one is enough to cause " +
-    "this.",
-  nextStep: "Re-read the cell from chain and rebuild the transaction.",
+    "this. It may be an input, or the cell dep holding a deployed script.",
+  nextStep:
+    "If it is an input, re-read the cell from chain and rebuild. If the outpoint is a deployed " +
+    "script's cell dep, that script was destroyed and must be deployed again.",
+};
+
+const MAX_FEE_RATE: Explanation = {
+  kind: TxErrorKind.FeeTooLow,
+  title: "Fee rate above the safety limit",
+  cause:
+    "CCC refused to broadcast because the computed fee exceeds its maximum fee rate. This is a " +
+    "client-side guard against overpaying, not a node rejection — nothing was sent.",
+  nextStep: "Lower the fee rate on the form.",
 };
 
 const IMMATURE: Explanation = {
@@ -278,22 +348,32 @@ const fixed =
 
 const RAW_MATCHERS: { test: RegExp; explain: Matcher }[] = [
   // Ordered before ScriptNotFound: an InvalidInstruction failure reads like a resolution
-  // problem, and matching it first is what stops it being reported as one.
-  { test: /InvalidInstruction|VM Internal Error/i, explain: fixed(INVALID_INSTRUCTION) },
+  // problem, and matching it first is what stops it being reported as one. The specific variant
+  // must also be tested before the generic "VM Internal Error" prefix below it.
+  { test: /InvalidInstruction/i, explain: fixed(INVALID_INSTRUCTION) },
+  { test: /VM Internal Error/i, explain: fixed(VM_INTERNAL_ERROR) },
   { test: /ValidationFailure/i, explain: scriptRejected },
   {
     test: /ScriptNotFound|script not found/i,
-    // Newer nodes name the code_hash they could not resolve. Surfacing it turns "something did
-    // not resolve" into a value the reader can compare against their registry entry.
-    explain: (raw) => ({
-      ...SCRIPT_NOT_FOUND,
-      raw,
-      scriptCodeHash: raw.match(NOT_FOUND_CODE_HASH_RE)?.[1],
-    }),
+    // Newer nodes name the code_hash they could not resolve, which is the value the reader
+    // compares against their registry entry — so put it in the sentence, not just the object.
+    explain: (raw) => {
+      const codeHash = raw.match(NOT_FOUND_CODE_HASH_RE)?.[1];
+      return {
+        ...SCRIPT_NOT_FOUND,
+        raw,
+        scriptCodeHash: codeHash,
+        cause: codeHash
+          ? `${SCRIPT_NOT_FOUND.cause} Unresolved code_hash: ${codeHash}.`
+          : SCRIPT_NOT_FOUND.cause,
+      };
+    },
   },
   { test: /Dead\(OutPoint/i, explain: fixed(INPUT_SPENT) },
   { test: /Unknown\(OutPoint|Resolve\(Unknown/i, explain: fixed(CELL_DEP_MISSING) },
-  { test: /Immature|InvalidSince/i, explain: fixed(IMMATURE) },
+  // `InvalidSince` deliberately excluded: it means the `since` VALUE is malformed, which waiting
+  // can never fix, and IMMATURE's next step is "wait". No builder here sets `since` yet.
+  { test: /Immature/i, explain: fixed(IMMATURE) },
   {
     test: /InsufficientCellCapacity|CapacityNotEnough|OutputsSumOverflow/i,
     explain: fixed(INSUFFICIENT_CAPACITY),
@@ -302,10 +382,14 @@ const RAW_MATCHERS: { test: RegExp; explain: Matcher }[] = [
     test: /Duplicated\(Byte32|PoolRejectedDuplicatedTransaction/i,
     explain: fixed(DUPLICATED_TRANSACTION),
   },
+  { test: /Max fee rate exceeded/i, explain: fixed(MAX_FEE_RATE) },
   { test: /RBFRejected|MinFeeRate|PoolIsFull/i, explain: fixed(FEE_TOO_LOW) },
-  // Wallet extensions share no error type; matching their wording is the only option.
+  // Last resort for wallets that throw an Error instead of an EIP-1193 object, so the structured
+  // `code === 4001` check in decodeTxError could not fire. Kept tight on purpose: this entry
+  // asserts "nothing reached the node", and a bare /declined/ would let a node-side message claim
+  // that. A false Unknown is recoverable; a false statement about chain state is not.
   {
-    test: /user (rejected|denied|cancell?ed)|rejected the request|declined/i,
+    test: /\buser (rejected|denied|cancell?ed)\b|\brejected the request\b/i,
     explain: fixed(WALLET_REJECTED),
   },
 ];
@@ -324,16 +408,12 @@ export function decodeTxError(err: unknown, opts?: DecodeOptions): DecodedTxErro
   // prefer those fields over re-deriving them from the string. See @ckb-ccc/core
   // client/jsonRpc/client.js ERROR_PARSERS.
   if (err instanceof ccc.ErrorClientVerification) {
-    const decoded = scriptRejected(raw, opts);
-    const cell = err.source === "outputType" ? "output" : "input";
     return {
-      ...decoded,
-      // exitCode stays the value re-parsed from `raw` — err.errorCode is unreliable, see
-      // EXIT_CODE_RES above.
-      scriptSource: err.source,
-      scriptIndex: Number(err.sourceIndex),
+      // `scriptRejected` already derives source, index and the sentence from `raw`, and gates the
+      // caller's exit-code map on them. Only `scriptCodeHash` is worth taking from the class:
+      // exitCode is re-parsed (err.errorCode is unreliable, see EXIT_CODE_RES) and the rest agrees.
+      ...scriptRejected(raw, opts),
       scriptCodeHash: err.scriptCodeHash,
-      cause: `${decoded.cause} It ran as the ${SCRIPT_SOURCE_LABEL[err.source]} of ${cell} ${err.sourceIndex}.`,
     };
   }
 

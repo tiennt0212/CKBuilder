@@ -14,15 +14,7 @@ export type TokenRunParams =
   | { kind: "issue"; amount: bigint; to?: string; feeRate?: number }
   | { kind: "transfer"; udtArgs: ccc.Hex; to: string; amount: bigint; feeRate?: number };
 
-/**
- * CCC signals "you don't have enough" with two different errors that mean very different things to
- * a user standing on this page — one is short of CKB, the other short of the token — and both
- * carry only a raw shannon/unit count in their message. Translate at the boundary so the page
- * never has to know which is which.
- *
- * Both cases now live in `decodeTxError` alongside every other rejection, so this is a thin
- * adapter for the callers that only want a string. The wording is unchanged.
- */
+/** String-only adapter for the build-error path, which has no TxStatusBanner to hand `decoded` to. */
 export function describeError(err: unknown): string {
   return decodeTxError(err).cause;
 }
@@ -43,7 +35,6 @@ export function useTokens() {
   const signer = useSigner();
   const [status, setStatus] = useState<TxStatus>(TxStatus.Idle);
   const [error, setError] = useState<string | null>(null);
-  // The structured form of `error`, feeding TxStatusBanner's decoded copy.
   const [decoded, setDecoded] = useState<DecodedTxError | null>(null);
   const [fee, setFee] = useState<bigint | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -193,10 +184,11 @@ export function useTokens() {
     } catch (err: unknown) {
       console.error("Token tx error:", err);
       setStatus(TxStatus.Error);
-      // Decode once and use both halves — `describeError` is the same call, and going through
-      // the object rather than a string keeps CCC's structured error fields.
+      // Decode the thrown value, not `err.message` — CCC's typed client errors carry structured
+      // fields that are lost the moment it is stringified. `error` gets `raw` rather than `cause`
+      // so it stays the raw-message channel it is in the other four hooks.
       const decodedErr = decodeTxError(err);
-      setError(decodedErr.cause);
+      setError(decodedErr.raw);
       setDecoded(decodedErr);
       throw err;
     }

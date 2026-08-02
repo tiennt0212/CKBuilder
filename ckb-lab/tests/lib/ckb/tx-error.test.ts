@@ -88,6 +88,76 @@ describe("decodeTxError — script rejections", () => {
   });
 });
 
+describe("decodeTxError — the exit-code map only describes the caller's own script", () => {
+  const COUNTER_OPTS = { exitCodes: COUNTER_EXIT_CODES, scriptLabel: "counter" };
+
+  /** Same exit code 5, but the LOCK returned it — the wallet's script, not the caller's. */
+  const lockFailedWithCode5 =
+    "Verification(Error { kind: Script, inner: TransactionScriptError { source: Inputs[0].Lock, " +
+    "cause: ValidationFailure: see error code 5 on page " +
+    "https://nervosnetwork.github.io/ckb-script-error-codes/by-data-hash/0xab.html })";
+
+  it("withholds the map when the failing script is the lock", () => {
+    // The collision is real in this very repo: lesson-08-hash-lock defines 5 as
+    // ERROR_INVALID_ARGS_LENGTH while lesson-10-counter defines 5 as "data is not 8 bytes", and
+    // both can run in one transaction. Attributing a lock's 5 to the counter is the confident lie
+    // this module exists to avoid.
+    const d = decodeTxError(lockFailedWithCode5, COUNTER_OPTS);
+    expect(d.exitCode).toBe(5);
+    expect(d.exitCodeMeaning).toBeUndefined();
+    expect(d.cause).not.toContain(COUNTER_EXIT_CODES[5]);
+    expect(d.cause).not.toContain("counter");
+    expect(d.cause).toContain("lock script");
+  });
+
+  it("applies the map when the failing script is a type script", () => {
+    const d = decodeTxError(RAW.verificationCounter, COUNTER_OPTS);
+    expect(d.exitCodeMeaning).toBe(COUNTER_EXIT_CODES[8]);
+    expect(d.cause).toContain("counter");
+  });
+
+  it("withholds the map when the node does not say which script failed", () => {
+    // Withholding beats guessing: the legacy spelling carries no `source:` field.
+    const d = decodeTxError("ValidationFailure(8)", COUNTER_OPTS);
+    expect(d.exitCode).toBe(8);
+    expect(d.exitCodeMeaning).toBeUndefined();
+  });
+
+  it("reports the failing script's source and index from the raw string alone", () => {
+    // Previously only the CCC-typed path knew this; now the plain-string path does too, which is
+    // what the polling loop's tx_status.reason goes through.
+    const d = decodeTxError(lockFailedWithCode5);
+    expect(d.scriptSource).toBe("lock");
+    expect(d.scriptIndex).toBe(0);
+  });
+
+  it("does not run the exit code and the location together into one sentence", () => {
+    const d = decodeTxError(RAW.verificationCounter, COUNTER_OPTS);
+    expect(d.cause).not.toMatch(/plus 1 It ran/);
+    expect(d.cause).toContain("plus 1. It ran");
+  });
+});
+
+describe("decodeTxError — VM aborts are not all the atomics bug", () => {
+  it.each(["MemOutOfBound", "MaxCycleExceeded", "InvalidPermission", "OutOfBound"])(
+    "does not prescribe -C target-feature=-a for %s",
+    (variant) => {
+      // `VM Internal Error: {0:?}` is ckb-script's prefix for the whole ckb_vm::Error enum. Only
+      // the InvalidInstruction variant is the riscv64imac atomics story; telling someone with an
+      // out-of-bounds read to rebuild for a target feature they never used is a confident wrong fix.
+      const d = decodeTxError(`VM Internal Error: ${variant}`);
+      expect(d.nextStep).not.toContain("target-feature");
+      expect(d.cause).not.toContain("atomics");
+    }
+  );
+
+  it("still gives the atomics explanation for InvalidInstruction itself", () => {
+    const d = decodeTxError(RAW.invalidInstruction);
+    expect(d.nextStep).toContain("target-feature=-a");
+    expect(d.cause).toContain("atomics");
+  });
+});
+
 describe("decodeTxError — CCC typed errors", () => {
   it("takes source, index and code hash off ErrorClientVerification", () => {
     const err = new ccc.ErrorClientVerification(
@@ -112,6 +182,24 @@ describe("decodeTxError — CCC typed errors", () => {
     // `message` is prefixed with "Client request error", which is CCC's wording, not the node's.
     const err = new ccc.ErrorClientBase({ message: "wrapped", data: RAW.dead });
     expect(decodeTxError(err).raw).toBe(RAW.dead);
+  });
+
+  it("does NOT prefer .data on the two CCC builds locally, where it is a JSON blob", () => {
+    // ErrorClientMaxFeeRateExceeded is reachable from the fee-rate input on /deploy, /tokens and
+    // /counter. Its `data` is `{"limit":"…","actual":"…"}`, so preferring it replaced a readable
+    // sentence with a blob — strictly worse than what the app showed before the decoder existed.
+    const err = new ccc.ErrorClientMaxFeeRateExceeded(10_000_000n, 20_000_000n);
+    const d = decodeTxError(err);
+    expect(d.raw).not.toMatch(/^\{/);
+    expect(d.raw).toContain("Max fee rate exceeded");
+    expect(d.kind).toBe(TxErrorKind.FeeTooLow);
+    expect(d.nextStep).toContain("Lower the fee rate");
+  });
+
+  it("keeps the timeout message readable too", () => {
+    const d = decodeTxError(new ccc.ErrorClientWaitTransactionTimeout(5000));
+    expect(d.raw).not.toMatch(/^\{/);
+    expect(d.raw).toContain("timeout");
   });
 
   it("reports the unresolved outpoint from ErrorClientResolveUnknown", () => {
@@ -179,6 +267,41 @@ describe("decodeTxError — raw string matchers", () => {
     expect(d.nextStep).toContain("target-feature=-a");
   });
 
+  it("does not claim 'nothing reached the node' from a bare 'declined'", () => {
+    // The wallet entry asserts no CKB moved. A node-side message containing "declined" must not
+    // be able to make that claim — a false Unknown is recoverable, a false statement about chain
+    // state is not.
+    const d = decodeTxError("The transaction was declined by the pool");
+    expect(d.kind).not.toBe(TxErrorKind.WalletRejected);
+  });
+
+  it("does not send someone to wait out a malformed `since`", () => {
+    // InvalidSince means the since VALUE is wrong, which waiting can never fix — but IMMATURE's
+    // next step is "wait for the maturity window".
+    const d = decodeTxError("Verification(Error { kind: Transaction, inner: InvalidSince })");
+    expect(d.kind).not.toBe(TxErrorKind.Immature);
+  });
+
+  it("covers a dead cell dep, not only a dead input", () => {
+    // CKB reports a consumed script cell with the same Resolve(Dead(OutPoint(…))) as a consumed
+    // input, and the two need different fixes.
+    const d = decodeTxError(RAW.dead);
+    expect(d.kind).toBe(TxErrorKind.InputSpent);
+    expect(d.cause).toContain("cell dep");
+    expect(d.nextStep).toContain("deployed again");
+  });
+
+  it("puts the unresolved code_hash in the sentence, not just the object", () => {
+    const raw =
+      "TransactionScriptError { source: Outputs[0].Type, cause: ScriptNotFound: code_hash: " +
+      "Byte32(0xd1f0085e267991055fb3e16ff95d74df429aa3124e6f5439995b496a3b8edcdd) }";
+    const d = decodeTxError(raw);
+    expect(d.scriptCodeHash).toBe(
+      "0xd1f0085e267991055fb3e16ff95d74df429aa3124e6f5439995b496a3b8edcdd"
+    );
+    expect(d.cause).toContain("0xd1f0085e267991055fb3e16ff95d74df429aa3124e6f5439995b496a3b8edcdd");
+  });
+
   it("falls back to the raw string rather than guessing", () => {
     const d = decodeTxError(RAW.unrecognised);
     expect(d.kind).toBe(TxErrorKind.Unknown);
@@ -198,18 +321,13 @@ describe("decodeTxError — invariants", () => {
   ];
 
   it.each(everyInput.map((e, i) => [i, e]))(
-    "keeps the node's verbatim message on input %i",
+    "always decodes to something usable: input %i",
     (_i, err) => {
       // The decoder augments the node's message and never replaces it. Every other guarantee in
-      // this file is about added meaning; this one is about not losing the source of truth.
-      expect(decodeTxError(err).raw).not.toBe("");
-    }
-  );
-
-  it.each(everyInput.map((e, i) => [i, e]))(
-    "always yields a title and a cause on input %i",
-    (_i, err) => {
+      // this file is about added meaning; this one is about not losing the source of truth, and
+      // about never handing the UI an empty headline to render.
       const d = decodeTxError(err);
+      expect(d.raw).not.toBe("");
       expect(d.title.length).toBeGreaterThan(0);
       expect(d.cause.length).toBeGreaterThan(0);
     }
@@ -271,13 +389,6 @@ describe("decodeTxError — formats captured from a real node", () => {
       "Verification(Error { kind: Script, inner: TransactionScriptError { source: Outputs[0].Type, " +
         "cause: VM Internal Error: InvalidInstruction { pc: 85546, instruction: 336213423 } } })",
       TxErrorKind.InvalidInstruction,
-    ],
-    [
-      "ScriptNotFound names the code_hash",
-      "Verification(Error { kind: Script, inner: TransactionScriptError { source: Outputs[0].Type, " +
-        "cause: ScriptNotFound: code_hash: " +
-        "Byte32(0xd1f0085e267991055fb3e16ff95d74df429aa3124e6f5439995b496a3b8edcdd) } })",
-      TxErrorKind.ScriptNotFound,
     ],
   ])("%s", (_name, raw, kind) => {
     expect(decodeTxError(raw).kind).toBe(kind);

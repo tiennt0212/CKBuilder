@@ -108,7 +108,7 @@ export const RejectedScriptExitCode: Story = {
       title: "Script rejected the transaction",
       cause:
         "The counter script returned exit code 8: the output counter must be exactly the input " +
-        "counter plus 1 It ran as the type script (on an output) of output 0.",
+        "counter plus 1. It ran as the type script of output 0.",
       exitCode: 8,
       exitCodeMeaning: "the output counter must be exactly the input counter plus 1",
       scriptSource: "outputType",
