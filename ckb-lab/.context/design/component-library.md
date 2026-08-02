@@ -28,7 +28,7 @@ new.
 | `SummaryPanel` | Transaction summary row list |
 | `SwitchRow` | Labelled toggle row |
 | `TokenListItem` | Token balance list item |
-| `TxStatusBanner` | Tx lifecycle banner: sending → sent → pending → proposed → committed / rejected |
+| `TxStatusBanner` | Tx lifecycle banner: sending → sent → pending → proposed → committed / rejected. On a failure, pass `decoded` (from `decodeTxError`) to get the plain-language cause, exit code and next step, with the node's raw message kept in a collapsed panel |
 | `UploadZone` | File drag-and-drop upload area. Sets `beforeUpload={() => false}` internally, so the file never leaves the browser |
 
 ## Chrome (`app/components/`, not `ui/`)

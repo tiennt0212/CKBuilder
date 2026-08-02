@@ -81,6 +81,14 @@ return value. A script is a RISC-V binary handed the whole transaction, returnin
 To exercise one you construct a transaction that gives it a reason to run, then read the node's
 verdict. A rejection is a normal outcome, not an error state.
 
+**Script exit code / `ValidationFailure`** — the non-zero value a rejecting script returns. CKB
+assigns it no meaning beyond "rejected": the numbers are defined by the contract, so the same
+code means different things in different scripts and is worthless without that script's source.
+The node reports it as `ValidationFailure: see error code N on page …`. This is why
+`decodeTxError` takes an exit-code map from its caller instead of holding a global table —
+`/counter` supplies `COUNTER_EXIT_CODES` because it knows which contract ran, `/invoke` supplies
+nothing because it does not.
+
 **Witness / `WitnessArgs`** — per-input auxiliary data. `WitnessArgs` has three fields: `lock`
 (the signature — owned by the signer), `inputType`, and `outputType`. A type script validating
 outputs reads `outputType`. Writing raw bytes into `witnesses[0]` instead gets them overwritten
