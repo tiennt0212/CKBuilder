@@ -261,6 +261,29 @@ describe("decodeTxError — wallet extensions throw plain objects, not Errors", 
   });
 });
 
+describe("decodeTxError — formats captured from a real node", () => {
+  // These differ from the constructed fixtures above in ways that would have broken a stricter
+  // matcher. Kept verbatim so a future tightening of the regexes has to stay compatible with
+  // what CKB actually emits, not with what I assumed it emits.
+  it.each([
+    [
+      "InvalidInstruction carries a struct, not a hex argument",
+      "Verification(Error { kind: Script, inner: TransactionScriptError { source: Outputs[0].Type, " +
+        "cause: VM Internal Error: InvalidInstruction { pc: 85546, instruction: 336213423 } } })",
+      TxErrorKind.InvalidInstruction,
+    ],
+    [
+      "ScriptNotFound names the code_hash",
+      "Verification(Error { kind: Script, inner: TransactionScriptError { source: Outputs[0].Type, " +
+        "cause: ScriptNotFound: code_hash: " +
+        "Byte32(0xd1f0085e267991055fb3e16ff95d74df429aa3124e6f5439995b496a3b8edcdd) } })",
+      TxErrorKind.ScriptNotFound,
+    ],
+  ])("%s", (_name, raw, kind) => {
+    expect(decodeTxError(raw).kind).toBe(kind);
+  });
+});
+
 describe("decodeTxError — ScriptNotFound names the script", () => {
   /** Captured verbatim from a CKB devnet node. */
   const raw =
