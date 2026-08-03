@@ -13,6 +13,8 @@ pnpm install
 pnpm dev                  # dev server on :3000
 pnpm build                # production build — also runs the TypeScript check
 pnpm lint
+pnpm test                 # Vitest, once — covers the pure app/lib/ layer only
+pnpm test:watch           # Vitest, watch mode
 pnpm format               # prettier --write .
 pnpm storybook            # component workshop on :6006
 
