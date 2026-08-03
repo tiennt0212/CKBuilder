@@ -113,6 +113,23 @@ confirm the trap still holds, delete the entry if the code moved on.
   client instead of reacting to it. (source: `app/lib/ccc-client.ts:159`,
   `app/stores/network.ts:32`)
 
+- **`CccProvider`'s `defaultClient` effect has `[setClient]` deps, not `[defaultClient]`** — two
+  consequences that are easy to get wrong in opposite directions. Changing the `defaultClient`
+  prop after mount does *nothing*, so it cannot carry a restored network. And that effect belongs
+  to the **parent** of anything mounted inside `CccProvider`, so it runs *after* every child
+  effect in the same commit and will overwrite an eager `setClient` from one of them. The way out
+  is not to time it: `useCcc().client` can only become one of the three `CLIENT_BY_NETWORK`
+  instances *via that effect* (or a user click, impossible before mount), so seeing a canonical
+  client is itself proof the effect has already committed. Wait for that, not for a tick. Verified
+  against @ckb-ccc/connector-react `dist/hooks/useCcc.js:34`. (source: issue #86,
+  `app/stores/network.ts` `NetworkRestore`)
+
+- **Restoring a network is not the same code path as choosing one, except that it must be** — a
+  restore that sets `useNetworkStore` directly renders correctly and routes every RPC to the old
+  client, and nothing goes wrong visibly until a transaction fails. Always go through
+  `setClient(CLIENT_BY_NETWORK[n])` and let `NetworkSync` mirror the result.
+  (source: `app/stores/network.ts`)
+
 - **`ErrorClientVerification.errorCode` from CCC is wrong for any code that is not a single
   non-negative digit** — CCC parses the node's rejection with
   `see error code (-?[0-9])* on page`, which repeats a *single-character* group rather than
@@ -204,6 +221,25 @@ confirm the trap still holds, delete the entry if the code moved on.
   entirely when the registry entry is edited, hidden, or deleted. (source:
   `app/lib/ckb/counter-cells.ts:31`)
 
+- **The network preference lives under two keys, and which one is written depends on the tab** —
+  `ckbuilder:network` in localStorage is the shared choice every unpinned tab mirrors;
+  `ckbuilder:networkPin` in sessionStorage belongs to one tab and makes it stop following (and
+  stop writing) the shared one. Writing the shared key from a pinned tab would silently drag every
+  other tab along. Both hold the bare network name, not JSON — unlike the three registry keys.
+  (source: `app/lib/network-preference.ts`)
+
+- **`localStorage.setItem` with an unchanged value still fires a `storage` event in other tabs** —
+  so any write that other tabs listen to needs a read-compare-skip, or a no-op write wakes every
+  tab to re-derive state it already has. (source: `app/lib/network-preference.ts`
+  `writeSharedNetwork`)
+
+- **A `useRef` "run once" guard survives React StrictMode's remount, so cancelling on cleanup can
+  cancel the only attempt** — StrictMode tears an effect down and re-runs it on mount while
+  preserving refs. An effect that sets `ref.current = true` and aborts its async work in the
+  cleanup therefore does the work zero times in dev and once in prod. `NetworkRestore` deliberately
+  has no cleanup for this reason; both things its async work touches outlive the component.
+  (source: `app/stores/network.ts` `NetworkRestore`)
+
 ## UI
 
 - **Tailwind v4's important modifier is a suffix** — `px-2!`, not `!px-2`. The v3 prefix form
@@ -211,6 +247,11 @@ confirm the trap still holds, delete the entry if the code moved on.
 
 - **Antd v5 deprecated `bodyStyle` / `headStyle`** — use `styles={{ body: … }}`. The old prop
   is accepted and ignored.
+
+- **Antd v5's static `message.*` / `notification.*` do not read `ConfigProvider` context** — they
+  render with default theme tokens and warn in the console. Wrap the tree in `<App>` and take the
+  instance from `App.useApp()` instead. `component={false}` stops `<App>` adding a wrapper div.
+  (source: `app/providers.tsx`)
 
 - **Antd's `UploadFile` is not a `File`** — it wraps the native file in `.originFileObj`.
   Call `.arrayBuffer()` on `.originFileObj`, not on the `UploadFile` itself, which does not

@@ -66,6 +66,27 @@ resolver "1". This workspace mixes `no_std` riscv64imac contract crates with a `
 native-host test crate, which needs correct per-target feature unification.
 (source: `contracts/Cargo.toml:2`)
 
+[2026-08-03] **The network choice is persisted, and `NEXT_PUBLIC_NETWORK` now means "the default
+for a first visit"** — amends the two `bootstrap` entries above without reversing them. The store
+is still a derived cache and still never a source of truth: `NetworkRestore` restores by calling
+`setClient(CLIENT_BY_NETWORK[n])` and waits for `NetworkSync` to mirror the result. Reason: the
+selection survived nothing, and because every registry is network-scoped, a reload emptied
+`/registry` and `/counter` and read as data loss rather than as a network change. Seeding
+`useNetworkStore` directly was rejected as strictly worse than the bug — the pill would say devnet
+while every RPC still went to testnet, with no visible symptom until a transaction failed. The
+restore waits for a *canonical* client rather than for a moment in time, because CccProvider's
+`defaultClient` effect has `[setClient]` deps and belongs to the parent component; see
+`processes/gotchas.md` → "CKB client and network state" for why that is race-free.
+(source: issue #86, `app/stores/network.ts`, `app/lib/network-preference.ts`)
+
+[2026-08-03] **`NetworkSync` is the single place the network is written, not `NetworkPill`** —
+Reason: `providers.tsx` passes `clientOptions`, so CCC's own connected-wallet modal has a network
+picker too; writing at the click site would cover one surface and silently miss the other. The
+first canonical client of a page's life is skipped, because it is always `defaultClient` rather
+than a user choice — persisting it would freeze `NEXT_PUBLIC_NETWORK` at whatever it was on a
+browser's first visit and make every later change to that env var inert.
+(source: issue #86, `app/stores/network.ts`)
+
 ## Product / UX
 
 [2026-07-14 → 07-19] **Two-tier Definition of Done: `lab-spike` vs `polished`** (bootstrap,
@@ -197,6 +218,28 @@ Reason: epic #47's own Definition of Done names the file, and sub-issue #55 carr
 `documentation` label rather than `lab-spike`. The more specific instruction wins over the tier
 default. This is a documented exception, not a precedent for writing `docs/` on other spikes.
 (source: issues #47, #55)
+
+[2026-08-03] **Cross-tab: mirror by default, but a tab can pin itself with `?network=`** — an
+unpinned tab follows the shared `ckbuilder:network` key live via a `storage` listener; a tab
+opened at `?network=devnet` copies that into its own `sessionStorage` key and then neither
+follows nor writes the shared value. Reason the human gave: running devnet in one tab and testnet
+in another *to compare them* is a real workflow for a developer lab, so hard-mirroring would have
+removed a capability. Persist-only was rejected because already-open tabs would only diverge
+further, and an action taken in a stale tab hits the wrong chain. The mirror path deliberately
+does **not** re-probe devnet — the tab that switched already did, and probing in every background
+tab would raise Chrome 142+'s Local Network Access prompt with no user gesture behind any of them,
+which is exactly what the 2026-07-31 "probe on click, not on load" decision exists to avoid.
+(source: issue #86, `app/stores/network.ts` `NetworkRestore`)
+
+[2026-08-03] **The pill shows a settling state only while a restore is actually pending, and a
+failed devnet restore is reported with an Antd toast** — Reason: `localStorage` cannot be read
+during render, so the restore always lands a commit late and the pill would otherwise show, and
+accept clicks against, a network the app is about to leave; on the devnet path that window is as
+long as the reachability probe. Gating it on a pending restore keeps an ordinary load flicker-free.
+The toast was chosen over an inline dropdown message because the fallback happens at load, before
+the user has any reason to open the dropdown — it required introducing `<App>` in `providers.tsx`,
+since Antd v5's static `message.*` does not read `ConfigProvider` context.
+(source: issue #86, `app/components/NetworkPill.tsx`, `app/providers.tsx`)
 
 ## Verified constraints
 
