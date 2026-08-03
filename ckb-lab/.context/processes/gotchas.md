@@ -174,6 +174,17 @@ confirm the trap still holds, delete the entry if the code moved on.
   for this repo: never gate devnet on `location.protocol`; probe the node and report what
   actually happened. (source: `app/lib/ccc-client.ts` `isDevnetReachable`)
 
+- **Local Network Access never applies during local development, and is one prompt when it does** —
+  the spec exempts a loopback *origin* outright: *"Requests originating from the loopback address
+  should not be considered local network requests… since any software running on the user's device
+  is already in the most privileged vantage point"*. So `localhost:3000` → `localhost:28114` is
+  never gated; only the deployed origin (public → loopback) is. And it is an ordinary persisted
+  per-origin permission — the spec allows a UA to *"persist this decision to reduce permission
+  fatigue"*, which Chrome does — not a per-request or per-tab prompt. Do not treat "it would prompt"
+  as a reason to avoid probing; budget the probe's ~2s latency instead. Unverified: how Chrome
+  handles a request raised from a background tab. (source: WICG Local Network Access spec, HTML
+  Standard)
+
 ## Rust contracts
 
 - **A `riscv64imac` build can emit atomics that CKB-VM will never execute** — LR/SC/AMO

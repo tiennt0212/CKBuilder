@@ -229,9 +229,26 @@ in another *to compare them* is a real workflow for a developer lab, so hard-mir
 removed a capability. Persist-only was rejected because already-open tabs would only diverge
 further, and an action taken in a stale tab hits the wrong chain. The mirror path deliberately
 does **not** re-probe devnet — the tab that switched already did, and probing in every background
-tab would raise Chrome 142+'s Local Network Access prompt with no user gesture behind any of them,
-which is exactly what the 2026-07-31 "probe on click, not on load" decision exists to avoid.
+tab would make every tab pay a 2s probe for a switch one of them already vetted.
 (source: issue #86, `app/stores/network.ts` `NetworkRestore`)
+
+[2026-08-03] **The devnet probe rule: the tab that *triggers* a switch probes; tabs that follow do
+not; and a newly opened tab re-probes even when it is already on devnet** — Reason the human gave:
+liveness of a local node is a fact about *now*, so a tab starting up has to establish it rather
+than trust a choice made earlier; but making every mirroring tab re-establish it is redundant work
+for a switch another tab already vetted. Consequences: `NetworkRestore` probes on startup even when
+no switch is needed (previously it returned early and never checked), and since a tab already on
+devnet has nowhere better to fall back to, an unreachable node there produces an explanation rather
+than a move to a network the operator did not configure.
+
+CCC's picker inside the connected-wallet modal is the one trigger that cannot probe first — it
+dispatches straight into `setClient` with no hook — so `VetDevnetSwitch` probes it after the fact
+and undoes it. Every other caller claims its switch with `markDevnetProbed()`; the contract is
+"claim your switch, or it gets vetted for you". Accepted cost: an unclaimed modal switch is briefly
+persisted and mirrored before the revert lands, so other tabs may follow it and come back. Removing
+devnet from `clientOptions` was the considered alternative and was rejected — it would have taken a
+working capability away rather than fixing it.
+(source: issue #86, `app/stores/network.ts` `VetDevnetSwitch`)
 
 [2026-08-03] **The pill shows a settling state only while a restore is actually pending, and a
 failed devnet restore is reported with an Antd toast** — Reason: `localStorage` cannot be read

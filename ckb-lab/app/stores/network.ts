@@ -59,6 +59,31 @@ export const useNetworkStore = create<NetworkState>(() => ({
   restoreSettled: false,
 }));
 
+/**
+ * Devnet is the one network that can simply be absent, so the rule is: **the tab that triggers a
+ * switch probes; tabs that merely follow do not.** Three paths satisfy it by themselves — the
+ * pill probes before switching, the startup restore probes, and the cross-tab mirror deliberately
+ * skips (the tab that acted already paid for it). Each of those calls `markDevnetProbed()`.
+ *
+ * A fourth path cannot: CCC's own picker inside the connected-wallet modal, which `clientOptions`
+ * in providers.tsx populates, dispatches straight into `setClient` with no hook for us. It is the
+ * one trigger that arrives unclaimed, and `VetDevnetSwitch` below probes it after the fact.
+ *
+ * So the contract is: claim your switch, or it gets vetted for you. A future `setClient` caller
+ * that already knows the node is alive should call this; one that does not should stay silent.
+ */
+let devnetProbeClaimed = false;
+
+export function markDevnetProbed(): void {
+  devnetProbeClaimed = true;
+}
+
+function takeDevnetProbeClaim(): boolean {
+  const claimed = devnetProbeClaimed;
+  devnetProbeClaimed = false;
+  return claimed;
+}
+
 /** Mounted once in providers.tsx. Reacts to CCC's own client changing — never pushes into it. */
 export function NetworkSync() {
   const client = useCcc().client;
@@ -155,22 +180,29 @@ export function NetworkRestore() {
     // authoritative — not the restore being finished.
     useNetworkStore.setState({ pinned: target.pinned, restoreSettled: true });
 
-    if (client === CLIENT_BY_NETWORK[target.network]) return;
+    const alreadyThere = client === CLIENT_BY_NETWORK[target.network];
+
+    // A tab that is already on the target still probes when that target is devnet — a new tab has
+    // to establish that the node is alive *now*, not that it was alive when the choice was made.
+    // Without this, opening a tab with NEXT_PUBLIC_NETWORK=devnet and a stored devnet choice would
+    // return here and never check, which is the silent dead page all of this exists to prevent.
+    if (alreadyThere && target.network !== Network.Devnet) return;
 
     const startedFrom = networkOfClient(client);
-    useNetworkStore.setState({ restorePending: true });
+    // Nothing is moving in the already-there case, so there is no label to hold back.
+    if (!alreadyThere) useNetworkStore.setState({ restorePending: true });
 
     // Deliberately not cancelled on cleanup. Under React StrictMode this effect is torn down and
     // re-run on mount, and `restored` survives that — so a cancel-on-cleanup would abort the only
     // restore attempt the app ever makes and leave dev builds silently on the env default. There
     // is nothing to leak: both calls below target module-level state that outlives this component.
     void (async () => {
-      // Devnet is the one network that can simply be absent — it is a node the user runs. Restoring
-      // to a node that is not there makes every page fail its queries with no explanation, which is
-      // exactly what isDevnetReachable() was added to prevent on the click path. Probing on load
-      // does raise Chrome 142+'s Local Network Access prompt from a deployed https origin, which
-      // the click-time-only rule normally avoids — accepted here because it only ever happens to a
-      // browser that already chose devnet deliberately, and the alternative is a dead page.
+      // Devnet is the one network that can simply be absent — it is a node the user runs. Starting
+      // up on a node that is not there makes every page fail its queries with no explanation, which
+      // is exactly what isDevnetReachable() was added to prevent on the click path. Probing on load
+      // costs ~2s and, on the deployed origin only, can raise Chrome's Local Network Access prompt
+      // once; local development is exempt from that entirely, since a loopback origin is never
+      // subject to the check. Worth it either way — the alternative is a silently dead page.
       const unreachable = target.network === Network.Devnet && !(await isDevnetReachable());
 
       // The probe can take 2s, and this tab is not frozen for it: the user may switch in the
@@ -187,13 +219,20 @@ export function NetworkRestore() {
       if (unreachable) {
         useNetworkStore.setState({ restorePending: false });
         message.warning({
-          content: `Local devnet did not answer, so this tab stayed on ${NETWORK_LABELS[now]}. Start one with \`offckb node\`, then switch again.`,
+          // When the tab is already on devnet there is nowhere better to fall back to — the
+          // operator configured it. Say why the page is empty instead of moving them somewhere
+          // they did not ask for; the explanation is the whole value here, not the fallback.
+          content: alreadyThere
+            ? "Local devnet did not answer — queries on this page will come back empty. Start a node with `offckb node`."
+            : `Local devnet did not answer, so this tab stayed on ${NETWORK_LABELS[now]}. Start one with \`offckb node\`, then switch again.`,
           duration: 8,
         });
         // The stored choice is left alone on purpose: the node may well be running next time, and
         // clearing it would quietly demote a deliberate choice into a one-off.
         return;
       }
+      if (alreadyThere) return; // probed only to confirm the node is alive; nothing to switch to
+      markDevnetProbed();
       setClient(CLIENT_BY_NETWORK[target.network]);
     })();
   }, [client, setClient, message]);
@@ -219,16 +258,66 @@ export function NetworkRestore() {
       // later — so a guard would drop a legitimate mirror that arrives inside that gap. Passing
       // the same instance twice is free: Lit's default hasChanged is `!==`, so it is a no-op.
       //
-      // No devnet probe either. The tab that switched already ran one, and from a deployed https
-      // origin a loopback request raises Chrome 142+'s Local Network Access prompt — firing that
-      // in every background tab, with no user gesture behind any of them, is precisely what the
-      // "probe on click, not on load" decision exists to avoid.
+      // No devnet probe either: the tab that triggered the switch already vetted the node, and
+      // re-establishing that in every following tab costs each of them ~2s to learn what one of
+      // them already knows. Startup is the case that does re-probe, because liveness is a fact
+      // about now rather than about when the choice was made.
+      markDevnetProbed();
       setClient(CLIENT_BY_NETWORK[next]);
     };
 
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, [restoreSettled, pinned, setClient]);
+
+  return null;
+}
+
+/**
+ * Mounted once in providers.tsx. Catches a switch to devnet that no one claimed a probe for.
+ *
+ * Today that means exactly one thing: CCC's own network picker inside the connected-wallet modal.
+ * `clientOptions` in providers.tsx feeds it all three networks, and `ccc-connected-scene`
+ * dispatches `SelectClientEvent` straight into the connector's `setClient` — there is no hook to
+ * probe before the switch, so this probes after and undoes it. That is a visible two-step, which
+ * is why the pill still probes up front: this is the fallback for the path we do not own, not the
+ * general mechanism.
+ *
+ * Without it, persisting the network makes that unprobed choice worse than it used to be — it is
+ * now written to the shared key and mirrored, so one modal click on a dead node takes every
+ * unpinned tab down with it and greets the user there again on the next load.
+ */
+export function VetDevnetSwitch() {
+  const { client, setClient } = useCcc();
+  const { message } = App.useApp();
+  const previous = useRef(client);
+
+  useEffect(() => {
+    const from = previous.current;
+    // Consume a claim only on a real transition. This effect can re-run for an unrelated dep, and
+    // eating the claim then would leave the switch it belonged to looking unclaimed.
+    if (client === from) return;
+    previous.current = client;
+
+    if (takeDevnetProbeClaim()) return;
+    // `from` is the transient client only on the very first commit, which is defaultClient
+    // arriving — not a switch, and nothing to revert to.
+    if (!isCanonicalClient(client) || !isCanonicalClient(from)) return;
+    if (networkOfClient(client) !== Network.Devnet) return;
+
+    void (async () => {
+      if (await isDevnetReachable()) return;
+      // Only undo if nothing has moved on since — the user may well have switched again during
+      // the 2s probe, and reverting to `from` then would be a jump they never asked for.
+      if (useNetworkStore.getState().network !== Network.Devnet) return;
+      markDevnetProbed(); // the revert is ours; it must not re-enter this check
+      setClient(from);
+      message.warning({
+        content: `Local devnet did not answer, so ${NETWORK_LABELS[networkOfClient(from)]} is still active. Start a node with \`offckb node\`.`,
+        duration: 8,
+      });
+    })();
+  }, [client, setClient, message]);
 
   return null;
 }

@@ -4,7 +4,7 @@ import { App, ConfigProvider } from "antd";
 import { Provider as CccProvider } from "@ckb-ccc/connector-react";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 import { CLIENT_BY_NETWORK, NETWORK_LABELS, NETWORKS, readEnvNetwork } from "./lib/ccc-client";
-import { NetworkRestore, NetworkSync } from "./stores/network";
+import { NetworkRestore, NetworkSync, VetDevnetSwitch } from "./stores/network";
 import { WalletAccountSync } from "./stores/wallet";
 import { ckbTheme } from "./theme";
 import type { ReactNode } from "react";
@@ -41,6 +41,7 @@ export function Providers({ children }: { children: ReactNode }) {
         >
           <NetworkSync />
           <NetworkRestore />
+          <VetDevnetSwitch />
           <WalletAccountSync />
           {children}
         </CccProvider>

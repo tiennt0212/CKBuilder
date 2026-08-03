@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button, Dropdown, Skeleton, Tooltip } from "antd";
 import { CheckOutlined, DownOutlined, LoadingOutlined, PushpinFilled } from "@ant-design/icons";
 import { useCcc } from "@ckb-ccc/connector-react";
-import { useNetworkStore } from "@/stores/network";
+import { markDevnetProbed, useNetworkStore } from "@/stores/network";
 import {
   CLIENT_BY_NETWORK,
   isDevnetReachable,
@@ -47,6 +47,7 @@ export function NetworkPill() {
       }
     }
     setDevnetProbe("idle");
+    markDevnetProbed(); // claimed: VetDevnetSwitch must not probe this one a second time
     setClient(CLIENT_BY_NETWORK[n]);
     setOpen(false);
   }

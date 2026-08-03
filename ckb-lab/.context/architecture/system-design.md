@@ -133,13 +133,18 @@ Provider chain (`app/providers.tsx`):
 ThemeProvider > AntdThemeProvider (ConfigProvider + ckbTheme > App) > CccProvider
   ├── NetworkSync
   ├── NetworkRestore
+  ├── VetDevnetSwitch
   ├── WalletAccountSync
   └── children
 ```
 
 Antd's `<App component={false}>` sits inside `ConfigProvider` so `App.useApp()` hands out a
-theme-aware `message` — the static one ignores `ConfigProvider`. `NetworkRestore` uses it to
-explain a devnet restore that found no node.
+theme-aware `message` — the static one ignores `ConfigProvider`. `NetworkRestore` and
+`VetDevnetSwitch` use it to explain a devnet node that did not answer.
+
+Devnet probe rule: **whoever triggers a switch probes; followers do not; startup always does.**
+Callers claim a vetted switch with `markDevnetProbed()`; `VetDevnetSwitch` probes and reverts
+anything unclaimed, which today is only CCC's picker in the connected-wallet modal.
 
 ## Data flow — building and sending a transaction
 
