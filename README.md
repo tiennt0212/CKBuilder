@@ -15,26 +15,35 @@ transfer. Nothing to install.
 
 ## Screenshots
 
-Testnet, wallet connected. Every number in these is real chain data.
+Wallet connected, every number real chain data — testnet where the header reads Testnet, a local
+devnet where it reads Local Devnet.
 
 ![Transfer CKB](ckb-lab/docs/screenshots/transfer.png)
 
 *`/transfer` — the form on the left, the cell-model preview on the right. CKB is UTXO-style, so
-a transfer is not a balance update: one input cell of 56,385.99 CKB is consumed and two output
-cells are created, the 100 CKB going out and the change coming back.*
+a transfer is not a balance update: one input cell of 6,696.99 CKB is consumed and two output
+cells are created — the 1,000 CKB going out, and the change coming back.*
 
 <details>
-<summary><b>Four more — Cell Explorer, Deploy, Registry, Counter</b></summary>
+<summary><b>Five more — Cell Explorer, Tokens, Deploy, Registry, Counter</b></summary>
 
 ![Cell Explorer](ckb-lab/docs/screenshots/cell-explorer.png)
 
-*`/cell-explorer` — the live cells behind that balance, queried straight from the CKB indexer
-and filterable by lock, type, capacity range, data length and data prefix.*
+*`/cell-explorer` — live cells straight from the CKB indexer, filterable by lock, type, capacity
+range, data length and data prefix, with quick filters for plain CKB, data, UDT and script cells.*
+
+![Tokens](ckb-lab/docs/screenshots/tokens.png)
+
+*`/tokens` — transferring 3,000 units of an xUDT. Two input cells become three outputs: the
+recipient's token cell, a token change cell, and the CKB change. Each token cell locks 148 CKB of
+capacity — a deposit returned when the cell is spent, not a fee — which is why a plain CKB cell is
+pulled in to fund the extra one.*
 
 ![Deploy Script](ckb-lab/docs/screenshots/deploy.png)
 
-*`/deploy` — a compiled RISC-V binary uploaded from the browser, with its `data_hash`, the
-capacity the cell will occupy, and the `hash_type` it will be referenced by.*
+*`/deploy` — a compiled RISC-V binary uploaded from the browser. The Raw tab shows the output cell
+the deployment will create, carrying the binary as its data; Type ID and `hash_type` are chosen
+above, and the capacity the cell will occupy is checked against the wallet before signing.*
 
 ![Script Registry](ckb-lab/docs/screenshots/registry.png)
 
@@ -43,8 +52,9 @@ capacity the cell will occupy, and the `hash_type` it will be referenced by.*
 
 ![Counter](ckb-lab/docs/screenshots/counter.png)
 
-*`/counter` — creating a cell governed by the `counter` Rust type script, previewing the state
-transition before signing.*
+*`/counter` — counters this browser tracks, listed in a table; a row action opens the modal shown
+here. The state transition is previewed before signing — `count = 0` in, `count = 1` out, the
+cell's 104 CKB carried forward — which is exactly what the type script checks.*
 
 </details>
 
