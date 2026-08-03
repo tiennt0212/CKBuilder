@@ -169,7 +169,6 @@ export function NetworkPill() {
     <Dropdown
       open={open && !restorePending}
       onOpenChange={(next) => {
-        if (restorePending) return;
         setOpen(next);
         if (next) setDevnetProbe("idle"); // a stale "unreachable" must not outlive the dropdown
       }}

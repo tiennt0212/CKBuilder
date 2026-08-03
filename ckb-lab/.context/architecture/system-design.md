@@ -123,7 +123,9 @@ Four Zustand singletons in `app/stores/`. React Context is used for the theme an
 The `*Sync` components and `NetworkRestore` mount once each in `providers.tsx`. The two persisted
 stores fill **after mount** (localStorage does not exist during SSR) and re-read on network change,
 because every entry is network-scoped. The network choice fills after mount for the same reason —
-which is why the pill has a settling state rather than a correct label on the first paint.
+which is why the pill has a settling state at all. It only shows it when the restore actually has
+somewhere to go; when the stored choice already matches `defaultClient` the label is correct on
+the first paint.
 
 Provider chain (`app/providers.tsx`):
 

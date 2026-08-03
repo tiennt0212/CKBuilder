@@ -118,11 +118,25 @@ confirm the trap still holds, delete the entry if the code moved on.
   prop after mount does *nothing*, so it cannot carry a restored network. And that effect belongs
   to the **parent** of anything mounted inside `CccProvider`, so it runs *after* every child
   effect in the same commit and will overwrite an eager `setClient` from one of them. The way out
-  is not to time it: `useCcc().client` can only become one of the three `CLIENT_BY_NETWORK`
-  instances *via that effect* (or a user click, impossible before mount), so seeing a canonical
-  client is itself proof the effect has already committed. Wait for that, not for a tick. Verified
-  against @ckb-ccc/connector-react `dist/hooks/useCcc.js:34`. (source: issue #86,
-  `app/stores/network.ts` `NetworkRestore`)
+  is not to time it: seeing a canonical client is itself proof the effect has already committed,
+  so wait for that rather than for a tick. Verified against @ckb-ccc/connector-react
+  `dist/hooks/useCcc.js:34`.
+
+  That inference is only sound while `setClient` has exactly three callers, and **enumerate them
+  before adding a fourth**: CCC's own `defaultClient` effect, a user click in `NetworkPill`
+  (impossible before mount), and the cross-tab `storage` listener. The listener genuinely could
+  make a client canonical without CCC's effect having run, so it stays disarmed until
+  `restoreSettled`. Anything new that calls `setClient` during mount breaks this. (source: issue
+  #86, `app/stores/network.ts` `NetworkRestore`)
+
+- **`useCcc().client` lags the connector's real client by a microtask and a render** — `setClient`
+  sets a Lit `@state` synchronously, but React only sees it after Lit's update dispatches
+  `willUpdate` → `setFlag` → re-render. So an "are we already on this client?" guard inside an
+  event handler can compare against a client that is already one switch out of date and drop a
+  legitimate change. Passing the same instance to `setClient` twice is free (Lit's default
+  `hasChanged` is `!==`), so prefer no guard over a stale one. `useNetworkStore.getState().network`
+  is *not* a fix — it trails `useCcc().client`, so it lags at least as much. (source:
+  `@ckb-ccc/connector/dist/connector/index.js`, `app/stores/network.ts`)
 
 - **Restoring a network is not the same code path as choosing one, except that it must be** — a
   restore that sets `useNetworkStore` directly renders correctly and routes every RPC to the old
@@ -228,10 +242,11 @@ confirm the trap still holds, delete the entry if the code moved on.
   other tab along. Both hold the bare network name, not JSON — unlike the three registry keys.
   (source: `app/lib/network-preference.ts`)
 
-- **`localStorage.setItem` with an unchanged value still fires a `storage` event in other tabs** —
-  so any write that other tabs listen to needs a read-compare-skip, or a no-op write wakes every
-  tab to re-derive state it already has. (source: `app/lib/network-preference.ts`
-  `writeSharedNetwork`)
+- **`localStorage.setItem` with an unchanged value fires *no* `storage` event** — the HTML
+  Standard's `setItem` steps return at 3.2 (*"If oldValue is value, then return"*), before the
+  broadcast step. So a write that merely echoes what is already stored costs nothing and needs no
+  read-compare guard; do not add one "to be safe". (An earlier revision of this file claimed the
+  opposite and was wrong.) (source: HTML Standard § Storage, `app/lib/network-preference.ts`)
 
 - **A `useRef` "run once" guard survives React StrictMode's remount, so cancelling on cleanup can
   cancel the only attempt** — StrictMode tears an effect down and re-runs it on mount while

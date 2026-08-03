@@ -79,9 +79,11 @@ restore waits for a *canonical* client rather than for a moment in time, because
 `processes/gotchas.md` → "CKB client and network state" for why that is race-free.
 (source: issue #86, `app/stores/network.ts`, `app/lib/network-preference.ts`)
 
-[2026-08-03] **`NetworkSync` is the single place the network is written, not `NetworkPill`** —
-Reason: `providers.tsx` passes `clientOptions`, so CCC's own connected-wallet modal has a network
-picker too; writing at the click site would cover one surface and silently miss the other. The
+[2026-08-03] **`NetworkSync` is the only place a network *change* is written, not `NetworkPill`** —
+`NetworkRestore` writes once more, when it adopts a `?network=` into the tab's own pin key, but no
+click path ever writes. Reason: `providers.tsx` passes `clientOptions`, so CCC's own
+connected-wallet modal has a network picker too; writing at the click site would cover one surface
+and silently miss the other. The
 first canonical client of a page's life is skipped, because it is always `defaultClient` rather
 than a user choice — persisting it would freeze `NEXT_PUBLIC_NETWORK` at whatever it was on a
 browser's first visit and make every later change to that env var inert.

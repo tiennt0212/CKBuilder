@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { Network } from "@/lib/ccc-client";
+import { Network, parseNetwork } from "@/lib/ccc-client";
 import {
-  parseNetwork,
+  nextNetworkHref,
   readNetworkQueryParam,
   resolveStartupNetwork,
 } from "@/lib/network-preference";
@@ -16,7 +16,7 @@ describe("parseNetwork", () => {
     ["wrong casing", "Testnet"],
     ["a name with whitespace", " testnet"],
     ["empty string", ""],
-    ["JSON from an older build", '"testnet"'],
+    ["a JSON-quoted value", '"testnet"'],
     ["a JSON array", '["testnet"]'],
   ])("rejects %s", (_label, raw) => {
     expect(parseNetwork(raw)).toBeNull();
@@ -127,17 +127,45 @@ describe("resolveStartupNetwork", () => {
 });
 
 describe("readNetworkQueryParam", () => {
-  it.each([
-    ["?network=devnet", "devnet"],
-    ["network=devnet", "devnet"], // URLSearchParams tolerates the missing leading "?"
-    ["?foo=1&network=mainnet&bar=2", "mainnet"],
-    ["?network=staging", "staging"], // validation is parseNetwork's job, not this one's
-    ["?network=", ""],
-  ])("reads %s as %s", (search, expected) => {
-    expect(readNetworkQueryParam(search)).toBe(expected);
+  // Validation is parseNetwork's job, not this one's — it hands back whatever is there.
+  it("reads the param when present", () => {
+    expect(readNetworkQueryParam("?foo=1&network=staging&bar=2")).toBe("staging");
   });
 
-  it.each([[""], ["?"], ["?other=1"]])("returns null for %s", (search) => {
-    expect(readNetworkQueryParam(search)).toBeNull();
+  it("returns null when absent", () => {
+    expect(readNetworkQueryParam("?other=1")).toBeNull();
+  });
+});
+
+describe("nextNetworkHref", () => {
+  const base = "https://ckb.example/registry";
+
+  it("rewrites a pin the tab has switched away from", () => {
+    expect(nextNetworkHref(`${base}?network=devnet`, Network.Mainnet)).toBe(
+      `${base}?network=mainnet`
+    );
+  });
+
+  it("never adds the param to a URL that does not carry one", () => {
+    expect(nextNetworkHref(base, Network.Mainnet)).toBeNull();
+    expect(nextNetworkHref(`${base}?foo=1`, Network.Mainnet)).toBeNull();
+  });
+
+  it("does nothing when the param is already correct", () => {
+    expect(nextNetworkHref(`${base}?network=mainnet`, Network.Mainnet)).toBeNull();
+  });
+
+  // Repairing an unrecognised value would silently promote an unpinned tab to pinned: the tab
+  // loaded unpinned because resolveStartupNetwork ignored `staging`, but a rewritten
+  // `?network=mainnet` would take precedence over everything on the next reload.
+  it("leaves an unrecognised value alone rather than repairing it", () => {
+    expect(nextNetworkHref(`${base}?network=staging`, Network.Mainnet)).toBeNull();
+    expect(nextNetworkHref(`${base}?network=`, Network.Mainnet)).toBeNull();
+  });
+
+  it("preserves the path and every other param", () => {
+    expect(nextNetworkHref(`${base}?foo=1&network=devnet&bar=2#frag`, Network.Testnet)).toBe(
+      `${base}?foo=1&network=testnet&bar=2#frag`
+    );
   });
 });

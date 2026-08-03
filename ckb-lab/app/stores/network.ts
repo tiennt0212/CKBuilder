@@ -7,15 +7,16 @@ import { useCcc } from "@ckb-ccc/connector-react";
 import {
   buildLockLabelMap,
   CLIENT_BY_NETWORK,
+  isCanonicalClient,
   isDevnetReachable,
   Network,
   NETWORK_LABELS,
   networkOfClient,
+  parseNetwork,
   readEnvNetwork,
 } from "@/lib/ccc-client";
 import {
   LS_NETWORK_KEY,
-  parseNetwork,
   readNetworkQueryParam,
   readPinnedNetwork,
   readSharedNetwork,
@@ -36,6 +37,11 @@ interface NetworkState {
   restorePending: boolean;
   /** True when this tab answers to itself: it neither follows nor writes the shared choice. */
   pinned: boolean;
+  /**
+   * True once NetworkRestore has decided what this tab should be on — in particular once `pinned`
+   * is authoritative. The cross-tab listener stays off until then; see NetworkRestore.
+   */
+  restoreSettled: boolean;
 }
 
 // Purely a derived cache — CccProvider (via defaultClient/clientOptions in providers.tsx) is the
@@ -50,12 +56,8 @@ export const useNetworkStore = create<NetworkState>(() => ({
   lockLabelMap: {},
   restorePending: false,
   pinned: false,
+  restoreSettled: false,
 }));
-
-/** A canonical client is one of our 3 instances — never the transient one CCC builds itself. */
-function isCanonicalClient(client: unknown): boolean {
-  return Object.values(CLIENT_BY_NETWORK).includes(client as never);
-}
 
 /** Mounted once in providers.tsx. Reacts to CCC's own client changing — never pushes into it. */
 export function NetworkSync() {
@@ -131,6 +133,7 @@ export function NetworkRestore() {
   const { client, setClient } = useCcc();
   const { message } = App.useApp();
   const pinned = useNetworkStore((s) => s.pinned);
+  const restoreSettled = useNetworkStore((s) => s.restoreSettled);
   const restored = useRef(false);
 
   useEffect(() => {
@@ -147,10 +150,14 @@ export function NetworkRestore() {
     // Adopt a `?network=` into the tab's own key so the pin survives a reload, and so NetworkSync
     // writes this tab's key from now on instead of the one every other tab is following.
     if (target.pinned) writePinnedNetwork(target.network);
-    useNetworkStore.setState({ pinned: target.pinned });
+    // `restoreSettled` is what arms the cross-tab listener below. It is set here, before the async
+    // probe rather than after it, because what the listener is waiting on is `pinned` being
+    // authoritative — not the restore being finished.
+    useNetworkStore.setState({ pinned: target.pinned, restoreSettled: true });
 
     if (client === CLIENT_BY_NETWORK[target.network]) return;
 
+    const startedFrom = networkOfClient(client);
     useNetworkStore.setState({ restorePending: true });
 
     // Deliberately not cancelled on cleanup. Under React StrictMode this effect is torn down and
@@ -164,10 +171,23 @@ export function NetworkRestore() {
       // does raise Chrome 142+'s Local Network Access prompt from a deployed https origin, which
       // the click-time-only rule normally avoids — accepted here because it only ever happens to a
       // browser that already chose devnet deliberately, and the alternative is a dead page.
-      if (target.network === Network.Devnet && !(await isDevnetReachable())) {
+      const unreachable = target.network === Network.Devnet && !(await isDevnetReachable());
+
+      // The probe can take 2s, and this tab is not frozen for it: the user may switch in the
+      // wallet modal, or another tab may switch and this one may mirror it. Either is a live,
+      // deliberate choice and it outranks a restore decided before it happened — without this
+      // check, a background tab finishing its probe would yank both tabs onto the stored network
+      // and then broadcast that, silently undoing what the user just did.
+      const now = useNetworkStore.getState().network;
+      if (now !== startedFrom) {
+        useNetworkStore.setState({ restorePending: false });
+        return;
+      }
+
+      if (unreachable) {
         useNetworkStore.setState({ restorePending: false });
         message.warning({
-          content: `Local devnet did not answer, so this tab stayed on ${NETWORK_LABELS[networkOfClient(client)]}. Start one with \`offckb node\`, then switch again.`,
+          content: `Local devnet did not answer, so this tab stayed on ${NETWORK_LABELS[now]}. Start one with \`offckb node\`, then switch again.`,
           duration: 8,
         });
         // The stored choice is left alone on purpose: the node may well be running next time, and
@@ -179,6 +199,12 @@ export function NetworkRestore() {
   }, [client, setClient, message]);
 
   useEffect(() => {
+    // Stay off until the restore has decided, for two reasons. `pinned` is still at its initial
+    // `false` before then, so a tab about to pin itself would follow other tabs for those few ms.
+    // And a mirror in that window would push a canonical client into CCC *without* its
+    // `defaultClient` effect having run — which is exactly the signal the restore above reads as
+    // proof that it did, so an early mirror would make that inference wrong.
+    if (!restoreSettled) return;
     // A pinned tab answers to itself — that is the whole point of pinning, and it is what keeps
     // "run devnet and testnet side by side to compare them" possible.
     if (pinned) return;
@@ -186,17 +212,23 @@ export function NetworkRestore() {
     const onStorage = (event: StorageEvent) => {
       if (event.key !== LS_NETWORK_KEY) return;
       const next = parseNetwork(event.newValue);
-      if (!next || client === CLIENT_BY_NETWORK[next]) return;
-      // No devnet probe on this path. The tab that switched already ran one, and from a deployed
-      // https origin a loopback request raises Chrome 142+'s Local Network Access prompt — firing
-      // that in every background tab, with no user gesture behind any of them, is precisely what
-      // the "probe on click, not on load" decision exists to avoid.
+      if (!next) return;
+      // No "are we already on it" guard here on purpose. Any client this closure could compare
+      // against lags the connector's real one: setClient sets a Lit @state synchronously, but
+      // useCcc().client (and the store, which trails it) only catches up a microtask and a render
+      // later — so a guard would drop a legitimate mirror that arrives inside that gap. Passing
+      // the same instance twice is free: Lit's default hasChanged is `!==`, so it is a no-op.
+      //
+      // No devnet probe either. The tab that switched already ran one, and from a deployed https
+      // origin a loopback request raises Chrome 142+'s Local Network Access prompt — firing that
+      // in every background tab, with no user gesture behind any of them, is precisely what the
+      // "probe on click, not on load" decision exists to avoid.
       setClient(CLIENT_BY_NETWORK[next]);
     };
 
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, [pinned, client, setClient]);
+  }, [restoreSettled, pinned, setClient]);
 
   return null;
 }

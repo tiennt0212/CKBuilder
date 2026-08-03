@@ -1,4 +1,4 @@
-import { NETWORKS, type Network } from "./ccc-client";
+import { parseNetwork, type Network } from "./ccc-client";
 
 /**
  * Where the user's chosen network is remembered.
@@ -24,12 +24,6 @@ import { NETWORKS, type Network } from "./ccc-client";
 export const LS_NETWORK_KEY = "ckbuilder:network";
 export const SS_NETWORK_PIN_KEY = "ckbuilder:networkPin";
 export const NETWORK_QUERY_PARAM = "network";
-
-/** `null` for anything that is not one of the three names in `NETWORKS`. */
-export function parseNetwork(raw: string | null | undefined): Network | null {
-  if (!raw) return null;
-  return NETWORKS.includes(raw as Network) ? (raw as Network) : null;
-}
 
 export interface StartupSources {
   /** `?network=` from the URL, already extracted. `null` when absent. */
@@ -82,12 +76,27 @@ export function readNetworkQueryParam(search: string): string | null {
 }
 
 /**
- * Keep an existing `?network=` in step with the network this tab is actually on.
+ * The href with `?network=` brought in step with the network this tab is on, or `null` when
+ * there is nothing to rewrite.
  *
- * Only rewrites a param that is already in the URL — it never adds one. Without this, a tab
- * opened at `?network=devnet` that later switches to mainnet would revert to devnet on the next
- * reload, which is the very bug this whole layer exists to fix.
+ * Only rewrites a param that is already there **and already names a real network** — never adds
+ * one, never repairs a bad one. Both halves matter:
  *
+ * - Without the rewrite, a tab opened at `?network=devnet` that later switches to mainnet would
+ *   revert to devnet on the next reload, which is the very bug this layer exists to fix.
+ * - Without the validity check, `?network=staging` — which `resolveStartupNetwork` correctly
+ *   ignores, leaving the tab unpinned — would be *repaired* into `?network=mainnet` by the tab's
+ *   first switch, silently promoting an unpinned tab to pinned on the reload after that.
+ */
+export function nextNetworkHref(href: string, network: Network): string | null {
+  const url = new URL(href);
+  const current = url.searchParams.get(NETWORK_QUERY_PARAM);
+  if (parseNetwork(current) === null || current === network) return null;
+  url.searchParams.set(NETWORK_QUERY_PARAM, network);
+  return url.toString();
+}
+
+/**
  * Uses `history.replaceState` rather than the Next router: the caller lives in `providers.tsx`,
  * which wraps every route, and `useSearchParams()` there would push the entire tree into
  * client-side rendering and demand a Suspense boundary — for a URL touch-up that needs no
@@ -95,21 +104,29 @@ export function readNetworkQueryParam(search: string): string | null {
  */
 export function syncNetworkQueryParam(network: Network): void {
   if (typeof window === "undefined") return;
-  const url = new URL(window.location.href);
-  if (!url.searchParams.has(NETWORK_QUERY_PARAM)) return;
-  if (url.searchParams.get(NETWORK_QUERY_PARAM) === network) return;
-  url.searchParams.set(NETWORK_QUERY_PARAM, network);
-  window.history.replaceState(window.history.state, "", url);
+  const href = nextNetworkHref(window.location.href, network);
+  if (!href) return;
+  try {
+    window.history.replaceState(window.history.state, "", href);
+  } catch {
+    // Safari throws SecurityError past ~100 replaceState calls in 30s. The URL is cosmetic here;
+    // the pin itself is already in sessionStorage. Throwing would abort the caller's effect
+    // mid-way and strand `restorePending` at true, disabling the network pill for good.
+  }
 }
 
-// The wrappers below follow the same shape as lib/ckb/deployed-scripts.ts: guard on `window` so
-// they are inert during SSR, and swallow storage errors (Safari private mode, a disabled-storage
-// profile) rather than taking a page down over a preference.
+// The wrappers below guard on `window` so they are inert during SSR, like the read path in
+// lib/ckb/deployed-scripts.ts. They additionally try/catch their *writes*, which that file does
+// not — a disabled-storage profile or Safari private mode should cost a preference, not a page.
+//
+// The readers hand back the raw string rather than a validated Network: `resolveStartupNetwork`
+// is the single place the precedence *and* the validation live, so a corrupt value falls through
+// to the next source there instead of being quietly turned into `null` by two different layers.
 
-export function readSharedNetwork(): Network | null {
+export function readSharedNetwork(): string | null {
   if (typeof window === "undefined") return null;
   try {
-    return parseNetwork(localStorage.getItem(LS_NETWORK_KEY));
+    return localStorage.getItem(LS_NETWORK_KEY);
   } catch {
     return null;
   }
@@ -118,19 +135,16 @@ export function readSharedNetwork(): Network | null {
 export function writeSharedNetwork(network: Network): void {
   if (typeof window === "undefined") return;
   try {
-    // Skip a no-op write: `setItem` with an unchanged value still fires a `storage` event in
-    // other tabs, and every one of them would wake up to re-derive the network it already has.
-    if (localStorage.getItem(LS_NETWORK_KEY) === network) return;
     localStorage.setItem(LS_NETWORK_KEY, network);
   } catch {
     // ignore
   }
 }
 
-export function readPinnedNetwork(): Network | null {
+export function readPinnedNetwork(): string | null {
   if (typeof window === "undefined") return null;
   try {
-    return parseNetwork(sessionStorage.getItem(SS_NETWORK_PIN_KEY));
+    return sessionStorage.getItem(SS_NETWORK_PIN_KEY);
   } catch {
     return null;
   }
