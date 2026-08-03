@@ -3,38 +3,47 @@
 A Nervos CKB developer lab. Each page takes one CKB concept and makes it concrete by building a
 real transaction against a real chain — you fill in a form, watch the cell inputs and outputs and
 the fee resolve in a live preview, sign with your wallet, and follow the transaction from
-broadcast to committed. It is built lesson-by-lesson against a 24-part CKB course, so the pages
-accumulate roughly one per lesson, and a page exists only once its concept has been worked
-through.
+broadcast to committed. It grew out of working through a 24-part CKB course, and is now built
+against [product milestones](https://github.com/tiennt0212/CKBuilder/milestones) rather than
+lesson by lesson — a page exists only once its concept has been worked through.
 
 It is a learning instrument, not a product. The point is that nothing is mocked: the preview you
 see is the transaction that gets signed.
 
-**▶ Live on testnet: https://ck-builder-s1eo.vercel.app** — connect a wallet and build a
+**▶ Live on testnet: https://ck-builder-bay.vercel.app** — connect a wallet and build a
 transfer. Nothing to install.
 
 ## Screenshots
 
-Testnet, wallet connected. Every number in these is real chain data.
+Wallet connected, every number real chain data — testnet where the header reads Testnet, a local
+devnet where it reads Local Devnet.
 
 ![Transfer CKB](ckb-lab/docs/screenshots/transfer.png)
 
 *`/transfer` — the form on the left, the cell-model preview on the right. CKB is UTXO-style, so
-a transfer is not a balance update: one input cell of 56,385.99 CKB is consumed and two output
-cells are created, the 100 CKB going out and the change coming back.*
+a transfer is not a balance update: one input cell of 6,696.99 CKB is consumed and two output
+cells are created — the 1,000 CKB going out, and the change coming back.*
 
 <details>
-<summary><b>Four more — Cell Explorer, Deploy, Registry, Counter</b></summary>
+<summary><b>Five more — Cell Explorer, Tokens, Deploy, Registry, Counter</b></summary>
 
 ![Cell Explorer](ckb-lab/docs/screenshots/cell-explorer.png)
 
-*`/cell-explorer` — the live cells behind that balance, queried straight from the CKB indexer
-and filterable by lock, type, capacity range, data length and data prefix.*
+*`/cell-explorer` — live cells straight from the CKB indexer, filterable by lock, type, capacity
+range, data length and data prefix, with quick filters for plain CKB, data, UDT and script cells.*
+
+![Tokens](ckb-lab/docs/screenshots/tokens.png)
+
+*`/tokens` — transferring 3,000 units of an xUDT. Two input cells become three outputs: the
+recipient's token cell, a token change cell, and the CKB change. Each token cell locks 148 CKB of
+capacity — a deposit returned when the cell is spent, not a fee — which is why a plain CKB cell is
+pulled in to fund the extra one.*
 
 ![Deploy Script](ckb-lab/docs/screenshots/deploy.png)
 
-*`/deploy` — a compiled RISC-V binary uploaded from the browser, with its `data_hash`, the
-capacity the cell will occupy, and the `hash_type` it will be referenced by.*
+*`/deploy` — a compiled RISC-V binary uploaded from the browser. The Raw tab shows the output cell
+the deployment will create, carrying the binary as its data; Type ID and `hash_type` are chosen
+above, and the capacity the cell will occupy is checked against the wallet before signing.*
 
 ![Script Registry](ckb-lab/docs/screenshots/registry.png)
 
@@ -43,14 +52,15 @@ capacity the cell will occupy, and the `hash_type` it will be referenced by.*
 
 ![Counter](ckb-lab/docs/screenshots/counter.png)
 
-*`/counter` — creating a cell governed by the `counter` Rust type script, previewing the state
-transition before signing.*
+*`/counter` — counters this browser tracks, listed in a table; a row action opens the modal shown
+here. The state transition is previewed before signing — `count = 0` in, `count = 1` out, the
+cell's 104 CKB carried forward — which is exactly what the type script checks.*
 
 </details>
 
 ## What works today
 
-Five pages build and broadcast real transactions and a sixth is unverified. Five more are routed
+Six pages build and broadcast real transactions and a seventh is unverified. Four more are routed
 and navigable but not yet implemented — they say so on the page, and they name the issue tracking
 them.
 
@@ -59,10 +69,10 @@ them.
 | Transfer CKB | `/transfer` | ✅ Works — [docs](ckb-lab/docs/transfer-features.md) |
 | Cell Explorer | `/cell-explorer` | ✅ Works — [docs](ckb-lab/docs/cell-explorer-features.md) |
 | Deploy Script | `/deploy` | ✅ Works — [docs](ckb-lab/docs/deploy-features.md) |
-| Invoke Script | `/invoke` | ⚠️ Unverified — it builds and broadcasts, but no successful end-to-end run is confirmed. The only script driven through it so far (`hash-lock`) was rejected by CKB-VM for the ISA reason below, so the page's own correctness is still untested — [docs](ckb-lab/docs/invoke-features.md) |
+| Invoke Script | `/invoke` | ⚠️ Unverified — it builds, broadcasts, and does get a script as far as CKB-VM: the `counter` script was driven from here against a devnet while verifying the error decoder, and the node returned real exit codes. What has never been confirmed is a run the node *accepts*, so the page's own correctness is still untested — [docs](ckb-lab/docs/invoke-features.md) · [#87](https://github.com/tiennt0212/CKBuilder/issues/87) |
 | Script Registry | `/registry` | ✅ Works — [docs](ckb-lab/docs/registry-features.md) |
 | Counter | `/counter` | ✅ Works — [docs](ckb-lab/docs/counter-features.md) |
-| Tokens (xUDT) | `/tokens` | Planned — [M1 · Bootcamp demo](https://github.com/tiennt0212/CKBuilder/milestone/14) · [#47](https://github.com/tiennt0212/CKBuilder/issues/47) |
+| Tokens (xUDT) | `/tokens` | ✅ Works — issue and transfer an xUDT; token name/symbol not read yet ([#79](https://github.com/tiennt0212/CKBuilder/issues/79)) — [docs](ckb-lab/docs/tokens-features.md) |
 | Transaction History | `/history` | Planned — [M1 · Bootcamp demo](https://github.com/tiennt0212/CKBuilder/milestone/14) · [#49](https://github.com/tiennt0212/CKBuilder/issues/49) |
 | Nervos DAO | `/dao` | Planned — [Advanced](https://github.com/tiennt0212/CKBuilder/milestone/10) · [#67](https://github.com/tiennt0212/CKBuilder/issues/67) |
 | Multisig | `/multisig` | Planned — [Custom locks](https://github.com/tiennt0212/CKBuilder/milestone/9) · [#64](https://github.com/tiennt0212/CKBuilder/issues/64) |
@@ -125,7 +135,8 @@ offckb node                                     # serves JSON-RPC on http://loca
 ```
 
 Other commands: `pnpm build` (production build, also runs the TypeScript check), `pnpm lint`,
-`pnpm format`, `pnpm storybook` (component workshop on `:6006`).
+`pnpm test` (Vitest, covering the pure `app/lib/` layer), `pnpm format`, `pnpm storybook`
+(component workshop on `:6006`).
 
 ### The contracts
 

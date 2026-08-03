@@ -10,7 +10,7 @@ together. Each real project resolves its own tooling and its own context.
 | `ckb-rust-example/` | Small owned Rust spike driving `ckb-sdk` (capacity transfer, cell queries) | yes — see `ckb-rust-example/CLAUDE.md` |
 | `ckb-rust-example/ckb-cli/` | Clone of `nervosnetwork/ckb-cli` (MIT, its own `.git`) | NO — reference only, don't edit as ours |
 | `learning-ckb-fundamentals/` | Clone of `RaheemJnr/learning-ckb-fundamentals` (24-lesson course site, its own `.git`) | NO — reference only, don't edit as ours |
-| `weekly-report/` | Prose progress reports (`w1.md`…`w11.md`) | n/a — no code, no context layer |
+| `weekly-report/` | Prose progress reports (`w1.md`…`w12.md`) | n/a — no code, no context layer |
 
 Shared Claude Code tooling lives in `.claude/skills/` (the `*-exp` skills such as
 `ckbuilder-exp`, `frontend-exp`, `antd-exp`, `tailwind-v4-exp`, `storybook-exp`,

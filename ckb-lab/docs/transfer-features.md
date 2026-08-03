@@ -50,8 +50,8 @@ idle → building → signing → sending → sent → pending → proposed → 
 | `pending` | amber | "Pending" | In mempool, awaiting block inclusion |
 | `proposed` | primary (green) | "Proposed" | In block proposal, confirming in ~2 blocks |
 | `committed` | green | "Transaction confirmed ✓" | On-chain; block number shown |
-| `rejected` | rust (orange) | "Transaction failed" | Rejected by node; error code shown |
-| `error` | rust (orange) | "Error" | Unexpected error during send/poll |
+| `rejected` | rust (orange) | "Transaction failed" | Rejected by node; a decoded cause is shown, with the node's raw wording collapsed beneath it |
+| `error` | rust (orange) | "Error" | Unexpected error during send/poll — also routed through the decoder, so a wallet rejection reads as such |
 
 ## Actions per state
 

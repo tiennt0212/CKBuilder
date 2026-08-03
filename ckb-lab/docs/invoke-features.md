@@ -8,7 +8,7 @@ You do not call a CKB script. There is no entry point, no function selector, no 
 
 So "invoking" a script means: build a transaction that gives the script a reason to run, and see whether the node accepts it. Concretely, this page attaches the script to an output cell as its **type script**, and includes the deployed cell in `cell_deps` so the node can find the binary.
 
-A rejected transaction is therefore a first-class outcome, not a bug. When the script returns non-zero the banner shows `rejected` with the node's own reason.
+A rejected transaction is therefore a first-class outcome, not a bug. When the script returns non-zero the banner shows `rejected` with a decoded explanation — what failed, why, and where there is one, a next step — keeping the node's own wording underneath, collapsed. `/invoke` runs arbitrary scripts, so it deliberately passes no exit-code table: the number is shown bare, labelled as contract-defined, because reading one contract's code through another's table would be a confident lie.
 
 ## Lock vs Type
 
@@ -21,7 +21,7 @@ A rejected transaction is therefore a first-class outcome, not a bug. When the s
 
 This page implements the **Type** path only. Attaching a type script to an output is a single transaction and needs nothing to exist beforehand, which makes it the smallest complete demonstration.
 
-The **Lock** path needs two transactions — one to create a cell locked by the script, another to spend it supplying a witness — and is deferred to issue #6 (Course 08), where the hash lock gives a witness something real to prove.
+The **Lock** path needs two transactions — one to create a cell locked by the script, another to spend it supplying a witness — and is deferred to issues #62 (the lock path itself) and #63 (hash-lock end-to-end), where the hash lock gives a witness something real to prove.
 
 ## Script source: Deployed vs Manual
 
@@ -94,9 +94,11 @@ Note this is the opposite of the Lock path: there the custom-locked cell *is* in
 
 The artboard shows an **Action** dropdown, but CKB has no ABI — there is no on-chain metadata describing what a script accepts, so an action list can never be derived from a `code_hash` alone.
 
-`lib/ckb/script-actions.ts` is therefore a client-side map keyed by `code_hash`. It is **empty** in Course 07: no script with a known action set exists yet, and inventing entries for scripts that do not exist would be fiction. Every script currently falls back to the raw witness hex field, which is the only input that works for an arbitrary script.
+`lib/ckb/script-actions.ts` is therefore a client-side map keyed by `code_hash`. It is still **empty**: no script with a known action set has been registered, and inventing entries for scripts that do not exist would be fiction. Every script currently falls back to the raw witness hex field, which is the only input that works for an arbitrary script.
 
-Course 10 (issue #8) ships as its own self-contained [Counter](./counter-features.md) page instead of registering here: `/invoke` can express the counter's *creation* step but has no path to express *increment* (it always sources inputs from the wallet's own plain cells, never a specific existing outpoint), so a "create" entry here would only duplicate Counter's own button.
+The counter ships as its own self-contained [Counter](./counter-features.md) page instead of registering here: `/invoke` can express the counter's *creation* step but has no path to express *increment* (it always sources inputs from the wallet's own plain cells, never a specific existing outpoint), so a "create" entry here would only duplicate Counter's own button.
+
+Epic #88 reframes this whole model: the current `ScriptAction.encode()` shape assumes an action is a different witness payload — Ethereum's calldata picture — whereas on CKB an action lives in the *shape* of the transaction. Both `counter.ts` and `udt.ts` already had to hand-write builders because they could not be expressed through this page's single template. Read #88 before filling this map in.
 
 ## Cell Deps
 
