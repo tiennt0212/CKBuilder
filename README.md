@@ -10,7 +10,7 @@ through.
 It is a learning instrument, not a product. The point is that nothing is mocked: the preview you
 see is the transaction that gets signed.
 
-**▶ Live on testnet: https://ck-builder-s1eo.vercel.app** — connect a wallet and build a
+**▶ Live on testnet: https://ck-builder-bay.vercel.app** — connect a wallet and build a
 transfer. Nothing to install.
 
 ## Screenshots

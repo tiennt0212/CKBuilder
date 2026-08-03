@@ -1,7 +1,7 @@
 # ckb-lab
 
 The CKBuilder app: a Next.js 15 frontend plus the Rust CKB contracts it deploys.
-Live on testnet at https://ck-builder-s1eo.vercel.app.
+Live on testnet at https://ck-builder-bay.vercel.app.
 
 **Start with the [repository README](../README.md)** — what CKBuilder is, what works today, and
 the architecture. This file is the short version for someone already in this directory.

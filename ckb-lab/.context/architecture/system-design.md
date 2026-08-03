@@ -169,7 +169,7 @@ at runtime through `CccProvider`'s `clientOptions`. Code must therefore read the
 
 ### Hosting
 
-Deployed to Vercel on `testnet` at **https://ck-builder-s1eo.vercel.app**, tracking the default
+Deployed to Vercel on `testnet` at **https://ck-builder-bay.vercel.app**, tracking the default
 branch. Two settings matter, and both have a failure mode that does not name itself:
 
 - **Root Directory `ckb-lab`** — set in the Vercel dashboard, not in a file. The repo root is a
