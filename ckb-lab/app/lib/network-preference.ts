@@ -81,6 +81,27 @@ export function readNetworkQueryParam(search: string): string | null {
   return new URLSearchParams(search).get(NETWORK_QUERY_PARAM);
 }
 
+/**
+ * Keep an existing `?network=` in step with the network this tab is actually on.
+ *
+ * Only rewrites a param that is already in the URL — it never adds one. Without this, a tab
+ * opened at `?network=devnet` that later switches to mainnet would revert to devnet on the next
+ * reload, which is the very bug this whole layer exists to fix.
+ *
+ * Uses `history.replaceState` rather than the Next router: the caller lives in `providers.tsx`,
+ * which wraps every route, and `useSearchParams()` there would push the entire tree into
+ * client-side rendering and demand a Suspense boundary — for a URL touch-up that needs no
+ * re-render at all. Passing `history.state` through preserves the App Router's own history entry.
+ */
+export function syncNetworkQueryParam(network: Network): void {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has(NETWORK_QUERY_PARAM)) return;
+  if (url.searchParams.get(NETWORK_QUERY_PARAM) === network) return;
+  url.searchParams.set(NETWORK_QUERY_PARAM, network);
+  window.history.replaceState(window.history.state, "", url);
+}
+
 // The wrappers below follow the same shape as lib/ckb/deployed-scripts.ts: guard on `window` so
 // they are inert during SSR, and swallow storage errors (Safari private mode, a disabled-storage
 // profile) rather than taking a page down over a preference.
