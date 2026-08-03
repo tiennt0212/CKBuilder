@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Dropdown } from "antd";
-import { CheckOutlined, DownOutlined, LoadingOutlined } from "@ant-design/icons";
+import { Button, Dropdown, Skeleton, Tooltip } from "antd";
+import { CheckOutlined, DownOutlined, LoadingOutlined, PushpinFilled } from "@ant-design/icons";
 import { useCcc } from "@ckb-ccc/connector-react";
 import { useNetworkStore } from "@/stores/network";
 import {
@@ -26,6 +26,8 @@ const NET_DOT_COLORS: Record<Network, string> = {
 
 export function NetworkPill() {
   const network = useNetworkStore((s) => s.network);
+  const restorePending = useNetworkStore((s) => s.restorePending);
+  const pinned = useNetworkStore((s) => s.pinned);
   const { setClient } = useCcc();
   const [open, setOpen] = useState(false);
 
@@ -116,10 +118,58 @@ export function NetworkPill() {
     </div>
   );
 
+  // While a stored choice is being restored, `network` is still the env default and would be a
+  // lie — and on the devnet path the probe can take a couple of seconds. Show the pill as
+  // unsettled and refuse clicks for that window rather than inviting an action against a chain
+  // the app is about to leave. There is nothing to show before mount either way: localStorage
+  // cannot be read during render, so the restore can only ever start one commit late.
+  const trigger = (
+    <button
+      disabled={restorePending}
+      className={[
+        "flex items-center gap-1.5 px-2.5 py-1 rounded-[9px] border transition-colors text-body",
+        restorePending
+          ? "border-input-border text-text-3 cursor-default"
+          : open
+            ? "border-primary text-primary"
+            : "border-input-border text-text-1 hover:border-primary hover:text-primary",
+      ].join(" ")}
+      style={{ height: 34 }}
+    >
+      <span
+        className="inline-block size-2 rounded-full shrink-0 transition-opacity"
+        style={{
+          background: NET_DOT_COLORS[network],
+          opacity: restorePending ? 0.35 : 1,
+        }}
+      />
+      {restorePending ? (
+        <Skeleton.Input active size="small" style={{ width: 72, height: 14, minWidth: 72 }} />
+      ) : (
+        <span className="capitalize font-medium">{NETWORK_LABELS[network]}</span>
+      )}
+      {pinned && !restorePending && (
+        // Tooltip wraps the icon rather than the whole trigger on purpose: Dropdown clones its
+        // child to attach the click handler, and a Tooltip in between would have to forward it.
+        <Tooltip title="This tab is pinned to its own network and will not follow the others.">
+          <PushpinFilled className="text-text-3 shrink-0" style={{ fontSize: 10 }} />
+        </Tooltip>
+      )}
+      <DownOutlined
+        style={{
+          fontSize: 10,
+          transition: "transform 0.2s",
+          transform: open ? "rotate(180deg)" : "rotate(0deg)",
+        }}
+      />
+    </button>
+  );
+
   return (
     <Dropdown
-      open={open}
+      open={open && !restorePending}
       onOpenChange={(next) => {
+        if (restorePending) return;
         setOpen(next);
         if (next) setDevnetProbe("idle"); // a stale "unreachable" must not outlive the dropdown
       }}
@@ -127,28 +177,7 @@ export function NetworkPill() {
       trigger={["click"]}
       placement="bottomLeft"
     >
-      <button
-        className={[
-          "flex items-center gap-1.5 px-2.5 py-1 rounded-[9px] border transition-colors text-body",
-          open
-            ? "border-primary text-primary"
-            : "border-input-border text-text-1 hover:border-primary hover:text-primary",
-        ].join(" ")}
-        style={{ height: 34 }}
-      >
-        <span
-          className="inline-block size-2 rounded-full shrink-0"
-          style={{ background: NET_DOT_COLORS[network] }}
-        />
-        <span className="capitalize font-medium">{NETWORK_LABELS[network]}</span>
-        <DownOutlined
-          style={{
-            fontSize: 10,
-            transition: "transform 0.2s",
-            transform: open ? "rotate(180deg)" : "rotate(0deg)",
-          }}
-        />
-      </button>
+      {trigger}
     </Dropdown>
   );
 }
