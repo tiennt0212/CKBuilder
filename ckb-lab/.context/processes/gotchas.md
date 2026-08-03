@@ -149,7 +149,8 @@ confirm the trap still holds, delete the entry if the code moved on.
   instructions produce `VM Internal Error: InvalidInstruction` at runtime, on *every*
   `hash_type`, so no deploy-side setting fixes it. The binary itself must be rebuilt with
   `-C target-feature=-a`. Symptom looks like a script-resolution problem and is not one.
-  (source: `weekly-report/w11.md:55`; tracked as issue #34)
+  (source: `weekly-report/w11.md:55`; tracked as issue #66 — deploy-time ISA detection. The
+  decoder in `app/lib/ckb/tx-error.ts` now explains this failure when it reaches the UI)
 
 - **Bare `cargo test` at the workspace root fails to link** — Cargo builds a test harness for
   every member, including the `#![no_std] #![no_main]` contract crates, whose

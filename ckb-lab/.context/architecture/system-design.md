@@ -4,7 +4,8 @@
 
 A CKB developer "lab": a Next.js 15 app where each page makes one CKB concept concrete by
 building a real transaction against a real chain, plus the Rust contracts some of those pages
-deploy and exercise. It follows a 24-lesson course, so pages accumulate roughly one per lesson.
+deploy and exercise. It grew out of a 24-lesson course; since 2026-07-31 the roadmap is cut by
+product milestone instead, so a page maps to a delivered capability rather than to a lesson.
 
 **Constraint — there is no backend.** Not "the backend is small": there are zero route handlers,
 zero server actions, and nothing in the tree imports `fs` or `next/server`. Every chain
@@ -201,8 +202,12 @@ Listing only what exists reads as an invitation to add more. These are absences 
 - **No backend, no API routes, no server actions.** See the constraint at the top.
 - **No database.** Persistence is `localStorage`, network-scoped, and disposable by design — this
   is a lab, and losing a registry entry costs a redeploy, not data.
-- **No test suite for the web app.** Only the Rust contracts have tests (`contracts/tests/`). The
-  gate is `pnpm build` + `pnpm lint`; do not add a JS test runner without asking.
+- **No test coverage beyond the pure layer.** Vitest covers `app/lib/` only (`tests/`, mirroring
+  its paths) and the Rust contracts have their own suite (`contracts/tests/`). Pages, hooks,
+  `app/components/` and the tx builders are deliberately untested — a builder's value is the
+  order in which it calls CCC's completion helpers, and asserting that against a hand-rolled fake
+  signer tests the fake rather than the chain. Gates are `pnpm build` + `pnpm lint` + `pnpm test`;
+  widening what `pnpm test` covers is a decision to raise, not to make in passing.
 - **No `tailwind.config.ts`.** Tailwind v4 tokens live in `app/globals.css` `@theme inline` only.
 - **No state library beyond Zustand**, and no Context beyond theme.
 - **Not every route is implemented.** `dao/`, `time-lock/`, `multisig/` and `history/`

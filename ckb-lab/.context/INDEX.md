@@ -1,8 +1,8 @@
 # .context — reading order
 
-`ckb-lab` is a Next.js 15 browser-only app plus Rust CKB contracts, built lesson-by-lesson
-against a 24-part CKB course. `CLAUDE.md` at the repo root is always read; these files are read
-on demand.
+`ckb-lab` is a Next.js 15 browser-only app plus Rust CKB contracts. It grew out of a 24-part CKB
+course; the roadmap is now cut by product milestone, tracked in GitHub. `CLAUDE.md` at the repo
+root is always read; these files are read on demand.
 
 ## Read first, on any task
 
