@@ -235,3 +235,9 @@ body {
 .ant-form-item-label > label {
   font-weight: 550;
 }
+
+/* Set by `FormItem` when it renders a hint. The child chain is deliberate: a hinted field often
+   wraps `noStyle` Form.Items of its own, and a descendant selector would stretch their labels too. */
+.ckb-label-row > .ant-form-item-row > .ant-form-item-label > label {
+  width: 100%;
+}
