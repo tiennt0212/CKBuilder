@@ -47,6 +47,8 @@ ckb-lab/                         # single pnpm package at root — no workspace 
 │   │
 │   └── lib/
 │       ├── ccc-client.ts        # Network enum, per-network client singletons, devnet script map
+│       ├── network-preference.ts # persisted network choice: shared key, per-tab pin,
+│       │                        # ?network= param, startup precedence
 │       ├── format.ts            # shannonToCKB, ckbToShannons, utf8ToHex, hexToUtf8,
 │       │                        # truncateAddress, formatCapacity
 │       ├── routes.ts            # ROUTES + PAGE_TITLES (group + title per route)
@@ -113,23 +115,36 @@ Four Zustand singletons in `app/stores/`. React Context is used for the theme an
 
 | Store | Holds | Backing |
 |---|---|---|
-| `network.ts` | Active `network`, the `cccClient` for it, `lockLabelMap` | Derived cache — `CccProvider` is the source of truth; `NetworkSync` mirrors it |
+| `network.ts` | Active `network`, `lockLabelMap`, `restorePending`, `pinned` | Derived cache — `CccProvider` is the source of truth; `NetworkSync` mirrors it and is the only writer of the persisted choice; `NetworkRestore` restores it via `setClient` |
 | `wallet.ts` | Connected address + balance | Derived from the signer; `WalletAccountSync` refetches on signer change |
 | `deployed-scripts.ts` | The script registry read by `/deploy`, `/invoke`, `/registry` | Mirrors `lib/ckb/deployed-scripts.ts`, writes through on every mutation |
 | `counter-cells.ts` | Tracked counter cells for `/counter` | Mirrors `lib/ckb/counter-cells.ts`, writes through |
 
-Both `*Sync` components mount once in `providers.tsx`. The two persisted stores fill **after
-mount** (localStorage does not exist during SSR) and re-read on network change, because every
-entry is network-scoped.
+The `*Sync` components and `NetworkRestore` mount once each in `providers.tsx`. The two persisted
+stores fill **after mount** (localStorage does not exist during SSR) and re-read on network change,
+because every entry is network-scoped. The network choice fills after mount for the same reason —
+which is why the pill has a settling state at all. It only shows it when the restore actually has
+somewhere to go; when the stored choice already matches `defaultClient` the label is correct on
+the first paint.
 
 Provider chain (`app/providers.tsx`):
 
 ```
-ThemeProvider > AntdThemeProvider (ConfigProvider + ckbTheme) > CccProvider
+ThemeProvider > AntdThemeProvider (ConfigProvider + ckbTheme > App) > CccProvider
   ├── NetworkSync
+  ├── NetworkRestore
+  ├── VetDevnetSwitch
   ├── WalletAccountSync
   └── children
 ```
+
+Antd's `<App component={false}>` sits inside `ConfigProvider` so `App.useApp()` hands out a
+theme-aware `message` — the static one ignores `ConfigProvider`. `NetworkRestore` and
+`VetDevnetSwitch` use it to explain a devnet node that did not answer.
+
+Devnet probe rule: **whoever triggers a switch probes; followers do not; startup always does.**
+Callers claim a vetted switch with `markDevnetProbed()`; `VetDevnetSwitch` probes and reverts
+anything unclaimed, which today is only CCC's picker in the connected-wallet modal.
 
 ## Data flow — building and sending a transaction
 
@@ -159,7 +174,7 @@ See `../processes/gotchas.md` for why each of those fails silently rather than l
 
 | Variable | Read by | Values |
 |---|---|---|
-| `NEXT_PUBLIC_NETWORK` | `readEnvNetwork()` in `app/lib/ccc-client.ts` | `devnet` \| `testnet` \| `mainnet` — defaults to `testnet` |
+| `NEXT_PUBLIC_NETWORK` | `readEnvNetwork()` in `app/lib/ccc-client.ts` | `devnet` \| `testnet` \| `mainnet` — defaults to `testnet`. Only the default for a **first visit**: a browser that has already chosen a network is restored to it, and `?network=` outranks both |
 
 Set in `.env.local`. Devnet additionally needs `offckb node` running; its RPC is
 `http://localhost:28114` (`DEVNET_RPC_URL`).

@@ -78,9 +78,15 @@ make -C contracts test    # builds first, then `cargo test -p tests`
 `contracts/` is a standalone Cargo workspace — no pnpm command touches it. Bare `cargo test` at
 its root fails to link; always scope to `-p tests`.
 
-Network comes from `NEXT_PUBLIC_NETWORK` in `.env.local` (defaults to `testnet`). For devnet, set
-it to `devnet` and run `offckb node`. Read the active network from `useNetworkStore`, never from
-the env var — the user can switch at runtime.
+`NEXT_PUBLIC_NETWORK` in `.env.local` (defaults to `testnet`) is the **default for a first visit**,
+not "the network". Once the user picks one it is persisted and restored on every later load, so
+the env var only decides where a browser that has never chosen ends up. Precedence at startup:
+`?network=<n>` → this tab's `sessionStorage` pin → the shared `localStorage` choice → the env var.
+For devnet, set the env var to `devnet` (or open `?network=devnet`) and run `offckb node`.
+
+Read the active network from `useNetworkStore`, never from the env var. To *change* it, call
+`setClient(CLIENT_BY_NETWORK[n])` — the store is a derived cache and setting it directly leaves
+every RPC pointed at the old chain with no visible symptom.
 
 ## Constraints
 

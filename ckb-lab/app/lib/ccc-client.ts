@@ -162,12 +162,19 @@ export function buildCccClient(network: Network): ccc.Client {
   });
 }
 
+/**
+ * `null` for anything that is not one of the three names in `NETWORKS`.
+ *
+ * The one validator for this union — an env var, a `localStorage` value, a `?network=` param and
+ * a cross-tab `storage` event all arrive as untrusted strings and all come through here.
+ */
+export function parseNetwork(raw: string | null | undefined): Network | null {
+  return NETWORKS.find((n) => n === raw) ?? null;
+}
+
 export function readEnvNetwork(): Network {
   const network = typeof process !== "undefined" ? process.env.NEXT_PUBLIC_NETWORK : undefined;
-  if (!network || !NETWORKS.includes(network as Network)) {
-    return Network.Testnet;
-  }
-  return network as Network;
+  return parseNetwork(network) ?? Network.Testnet;
 }
 
 // Built once per network so <CccProvider> (defaultClient/clientOptions), NetworkPill, and
@@ -190,6 +197,17 @@ export function networkOfClient(client: ccc.Client): Network {
     ([, c]) => c === client
   );
   return match?.[0] ?? Network.Testnet;
+}
+
+const CANONICAL_CLIENTS = Object.values(CLIENT_BY_NETWORK);
+
+/**
+ * Is this one of the 3 instances this app built, rather than the bare ClientPublicTestnet the
+ * connector constructs for itself before `defaultClient` commits? Callers use it both to skip
+ * that transient client and as the signal that CccProvider's own effect has already run.
+ */
+export function isCanonicalClient(client: ccc.Client): boolean {
+  return CANONICAL_CLIENTS.includes(client);
 }
 
 const KNOWN_SCRIPT_LABELS: KnownScript[] = [

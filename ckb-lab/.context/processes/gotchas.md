@@ -113,6 +113,37 @@ confirm the trap still holds, delete the entry if the code moved on.
   client instead of reacting to it. (source: `app/lib/ccc-client.ts:159`,
   `app/stores/network.ts:32`)
 
+- **`CccProvider`'s `defaultClient` effect has `[setClient]` deps, not `[defaultClient]`** — two
+  consequences that are easy to get wrong in opposite directions. Changing the `defaultClient`
+  prop after mount does *nothing*, so it cannot carry a restored network. And that effect belongs
+  to the **parent** of anything mounted inside `CccProvider`, so it runs *after* every child
+  effect in the same commit and will overwrite an eager `setClient` from one of them. The way out
+  is not to time it: seeing a canonical client is itself proof the effect has already committed,
+  so wait for that rather than for a tick. Verified against @ckb-ccc/connector-react
+  `dist/hooks/useCcc.js:34`.
+
+  That inference is only sound while `setClient` has exactly three callers, and **enumerate them
+  before adding a fourth**: CCC's own `defaultClient` effect, a user click in `NetworkPill`
+  (impossible before mount), and the cross-tab `storage` listener. The listener genuinely could
+  make a client canonical without CCC's effect having run, so it stays disarmed until
+  `restoreSettled`. Anything new that calls `setClient` during mount breaks this. (source: issue
+  #86, `app/stores/network.ts` `NetworkRestore`)
+
+- **`useCcc().client` lags the connector's real client by a microtask and a render** — `setClient`
+  sets a Lit `@state` synchronously, but React only sees it after Lit's update dispatches
+  `willUpdate` → `setFlag` → re-render. So an "are we already on this client?" guard inside an
+  event handler can compare against a client that is already one switch out of date and drop a
+  legitimate change. Passing the same instance to `setClient` twice is free (Lit's default
+  `hasChanged` is `!==`), so prefer no guard over a stale one. `useNetworkStore.getState().network`
+  is *not* a fix — it trails `useCcc().client`, so it lags at least as much. (source:
+  `@ckb-ccc/connector/dist/connector/index.js`, `app/stores/network.ts`)
+
+- **Restoring a network is not the same code path as choosing one, except that it must be** — a
+  restore that sets `useNetworkStore` directly renders correctly and routes every RPC to the old
+  client, and nothing goes wrong visibly until a transaction fails. Always go through
+  `setClient(CLIENT_BY_NETWORK[n])` and let `NetworkSync` mirror the result.
+  (source: `app/stores/network.ts`)
+
 - **`ErrorClientVerification.errorCode` from CCC is wrong for any code that is not a single
   non-negative digit** — CCC parses the node's rejection with
   `see error code (-?[0-9])* on page`, which repeats a *single-character* group rather than
@@ -142,6 +173,17 @@ confirm the trap still holds, delete the entry if the code moved on.
   request the user permits is additionally exempted from the mixed-content check. Consequence
   for this repo: never gate devnet on `location.protocol`; probe the node and report what
   actually happened. (source: `app/lib/ccc-client.ts` `isDevnetReachable`)
+
+- **Local Network Access never applies during local development, and is one prompt when it does** —
+  the spec exempts a loopback *origin* outright: *"Requests originating from the loopback address
+  should not be considered local network requests… since any software running on the user's device
+  is already in the most privileged vantage point"*. So `localhost:3000` → `localhost:28114` is
+  never gated; only the deployed origin (public → loopback) is. And it is an ordinary persisted
+  per-origin permission — the spec allows a UA to *"persist this decision to reduce permission
+  fatigue"*, which Chrome does — not a per-request or per-tab prompt. Do not treat "it would prompt"
+  as a reason to avoid probing; budget the probe's ~2s latency instead. Unverified: how Chrome
+  handles a request raised from a background tab. (source: WICG Local Network Access spec, HTML
+  Standard)
 
 ## Rust contracts
 
@@ -204,6 +246,26 @@ confirm the trap still holds, delete the entry if the code moved on.
   entirely when the registry entry is edited, hidden, or deleted. (source:
   `app/lib/ckb/counter-cells.ts:31`)
 
+- **The network preference lives under two keys, and which one is written depends on the tab** —
+  `ckbuilder:network` in localStorage is the shared choice every unpinned tab mirrors;
+  `ckbuilder:networkPin` in sessionStorage belongs to one tab and makes it stop following (and
+  stop writing) the shared one. Writing the shared key from a pinned tab would silently drag every
+  other tab along. Both hold the bare network name, not JSON — unlike the three registry keys.
+  (source: `app/lib/network-preference.ts`)
+
+- **`localStorage.setItem` with an unchanged value fires *no* `storage` event** — the HTML
+  Standard's `setItem` steps return at 3.2 (*"If oldValue is value, then return"*), before the
+  broadcast step. So a write that merely echoes what is already stored costs nothing and needs no
+  read-compare guard; do not add one "to be safe". (An earlier revision of this file claimed the
+  opposite and was wrong.) (source: HTML Standard § Storage, `app/lib/network-preference.ts`)
+
+- **A `useRef` "run once" guard survives React StrictMode's remount, so cancelling on cleanup can
+  cancel the only attempt** — StrictMode tears an effect down and re-runs it on mount while
+  preserving refs. An effect that sets `ref.current = true` and aborts its async work in the
+  cleanup therefore does the work zero times in dev and once in prod. `NetworkRestore` deliberately
+  has no cleanup for this reason; both things its async work touches outlive the component.
+  (source: `app/stores/network.ts` `NetworkRestore`)
+
 ## UI
 
 - **Tailwind v4's important modifier is a suffix** — `px-2!`, not `!px-2`. The v3 prefix form
@@ -211,6 +273,11 @@ confirm the trap still holds, delete the entry if the code moved on.
 
 - **Antd v5 deprecated `bodyStyle` / `headStyle`** — use `styles={{ body: … }}`. The old prop
   is accepted and ignored.
+
+- **Antd v5's static `message.*` / `notification.*` do not read `ConfigProvider` context** — they
+  render with default theme tokens and warn in the console. Wrap the tree in `<App>` and take the
+  instance from `App.useApp()` instead. `component={false}` stops `<App>` adding a wrapper div.
+  (source: `app/providers.tsx`)
 
 - **Antd's `UploadFile` is not a `File`** — it wraps the native file in `.originFileObj`.
   Call `.arrayBuffer()` on `.originFileObj`, not on the `UploadFile` itself, which does not
