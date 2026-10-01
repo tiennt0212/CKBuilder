@@ -26,6 +26,8 @@ interface TransferInputCardProps {
   addressPlaceholder: string;
   address: string | null | undefined;
   balance: bigint | null | undefined;
+  /** Floor for `amount`, in shannons — the recipient cell's occupied capacity. */
+  minCapacity: bigint;
   isInProgress: boolean;
   to: string | undefined;
   onValuesChange: (changedValues: unknown, allValues: Record<string, unknown>) => void;
@@ -37,6 +39,7 @@ export function TransferInputCard({
   addressPlaceholder,
   address,
   balance,
+  minCapacity,
   isInProgress,
   to,
   onValuesChange,
@@ -95,7 +98,7 @@ export function TransferInputCard({
         <FormItem
           name="amount"
           label="Amount"
-          hint="Min: 61 CKB"
+          hint={`Min: ${shannonToCKB(minCapacity)} CKB`}
           style={{ marginBottom: 14 }}
           rules={[
             { required: true, message: "Please enter the amount to send" },
@@ -103,13 +106,13 @@ export function TransferInputCard({
               validator: (_, value) => {
                 if (!value) {
                   return Promise.resolve();
-                } else if (value < 61) {
-                  return Promise.reject(new Error("Amount must be at least 61 CKB"));
+                } else if (ckbToShannons(String(value)) < minCapacity) {
+                  return Promise.reject(
+                    new Error(`Amount must be at least ${shannonToCKB(minCapacity)} CKB`)
+                  );
                 } else if (balance && ckbToShannons(String(value)) > balance) {
                   return Promise.reject(
-                    new Error(
-                      `Amount cannot exceed your balance of ${shannonToCKB(balance)} CKB`
-                    )
+                    new Error(`Amount cannot exceed your balance of ${shannonToCKB(balance)} CKB`)
                   );
                 } else {
                   return Promise.resolve();
