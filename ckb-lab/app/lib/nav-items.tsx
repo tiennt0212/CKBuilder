@@ -14,7 +14,7 @@ import {
 import Link from "next/link";
 import { Tag } from "antd";
 import type { MenuProps } from "antd";
-import { ROUTES } from "./routes";
+import { ROUTES, type Route } from "./routes";
 
 const TAG_XUDT = (
   <Tag className="border-0 bg-primary-tint text-primary text-2xs font-semibold tracking-[0.02em] m-0!">
@@ -36,20 +36,20 @@ function navLabel(href: string, children: React.ReactNode) {
   );
 }
 
-export const NAV_ITEMS: MenuProps["items"] = [
+const ALL_NAV_ITEMS: NonNullable<MenuProps["items"]> = [
   {
     type: "group",
     label: "Wallet",
     children: [
       {
-        key: ROUTES.TRANSFER,
-        icon: <SwapOutlined />,
-        label: navLabel(ROUTES.TRANSFER, "Transfer CKB"),
-      },
-      {
         key: ROUTES.CELL_EXPLORER,
         icon: <SearchOutlined />,
         label: navLabel(ROUTES.CELL_EXPLORER, "Cell Explorer"),
+      },
+      {
+        key: ROUTES.TRANSFER,
+        icon: <SwapOutlined />,
+        label: navLabel(ROUTES.TRANSFER, "Transfer CKB"),
       },
       {
         key: ROUTES.TOKENS,
@@ -63,7 +63,7 @@ export const NAV_ITEMS: MenuProps["items"] = [
   },
   {
     type: "group",
-    label: "Smart Contracts",
+    label: "Scripts",
     children: [
       {
         key: ROUTES.INVOKE,
@@ -126,3 +126,25 @@ export const NAV_ITEMS: MenuProps["items"] = [
     ],
   },
 ];
+
+/**
+ * Routes kept out of the sidebar. Their pages still exist and stay reachable by URL — this only
+ * stops the nav advertising them. The placeholder pages (`PageShell planned`) have nothing to try
+ * yet, and /invoke has not been verified end-to-end. Delete a line here to bring an item back.
+ */
+const HIDDEN_FROM_NAV: ReadonlySet<Route> = new Set<Route>([
+  ROUTES.INVOKE,
+  ROUTES.DAO,
+  ROUTES.TIME_LOCK,
+  ROUTES.MULTISIG,
+  ROUTES.HISTORY,
+]);
+
+type NavItem = NonNullable<MenuProps["items"]>[number];
+
+// Drop hidden routes, then any group left with no children so no orphan group heading renders.
+export const NAV_ITEMS: MenuProps["items"] = ALL_NAV_ITEMS.flatMap<NavItem>((item) => {
+  if (item?.type !== "group") return [item];
+  const children = item.children?.filter((child) => !HIDDEN_FROM_NAV.has(child?.key as Route));
+  return children?.length ? [{ ...item, children }] : [];
+});
