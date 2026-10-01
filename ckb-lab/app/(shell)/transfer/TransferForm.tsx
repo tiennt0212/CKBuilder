@@ -5,8 +5,10 @@ import { useRawTx } from "@/features/common/useRawTx";
 import { useTransfer } from "@/features/transfer/useTransfer";
 import { Network } from "@/lib";
 import { useDebouncedCallback } from "@/lib/useDebouncedCallback";
+import { minTransferCapacity } from "@/lib/ckb/transfer";
 import { useNetworkStore } from "@/stores/network";
 import { useWalletStore } from "@/stores/wallet";
+import { ccc } from "@ckb-ccc/core";
 import { useCcc } from "@ckb-ccc/connector-react";
 import { Form } from "antd";
 import { useForm } from "antd/es/form/Form";
@@ -15,6 +17,8 @@ import { TransferInputCard } from "./TransferInputCard";
 import { TransferPreviewCard } from "./TransferPreviewCard";
 
 const DEBOUNCE_MS = 400;
+// secp256k1's floor (20-byte args), shown until the recipient address parses to a real lock.
+const FALLBACK_MIN_CAPACITY = ccc.fixedPointFrom(61);
 
 export function TransferForm() {
   const [activeTab, setActiveTab] = useState("summary");
@@ -44,6 +48,32 @@ export function TransferForm() {
   const to = Form.useWatch("to", form);
 
   const { rawTx, txJson, txBytes } = useRawTx();
+  const [minCapacity, setMinCapacity] = useState(FALLBACK_MIN_CAPACITY);
+
+  // The floor depends on the recipient's lock (an Omnilock address needs 63 CKB, not 61), so
+  // re-derive it whenever the address or network changes.
+  useEffect(() => {
+    if (!to) {
+      setMinCapacity(FALLBACK_MIN_CAPACITY);
+      return;
+    }
+    let cancelled = false;
+    ccc.Address.fromString(to, cccClient)
+      .then((addr) => minTransferCapacity(addr.script))
+      // Invalid or wrong-network address: the build step reports that; keep the default floor.
+      .catch(() => FALLBACK_MIN_CAPACITY)
+      .then((min) => {
+        if (!cancelled) setMinCapacity(min);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [to, cccClient]);
+
+  // An amount entered before the address resolved was validated against the old floor.
+  useEffect(() => {
+    if (form.getFieldValue("amount")) form.validateFields(["amount"]).catch(() => {});
+  }, [form, minCapacity]);
 
   useEffect(() => {
     if (address) {
@@ -110,6 +140,7 @@ export function TransferForm() {
           addressPlaceholder={addressPlaceholder}
           address={address}
           balance={balance}
+          minCapacity={minCapacity}
           isInProgress={isInProgress}
           to={to}
           onValuesChange={handleValuesChange}
